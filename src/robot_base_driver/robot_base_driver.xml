@@ -1,0 +1,10 @@
+<library path="robot_base_driver">
+  <class name="robot_base_driver/RobotBaseSystem"
+         type="robot_base_driver::RobotBaseSystem"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      差速底盘 ros2_control 硬件接口。
+      当前为骨架桩实现：命令回声为状态，串口 I/O 留作 TODO。
+    </description>
+  </class>
+</library>

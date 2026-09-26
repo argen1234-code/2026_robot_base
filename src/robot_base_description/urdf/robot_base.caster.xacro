@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- 万向轮（支撑轮），用固定球体近似。
+       z 的推导：地面在 base_link 系的 -(base_height/2 + wheel_radius)，
+       球心再抬高一个 caster_radius 即可刚好触地。
+       TODO(hardware): 若实际用的是带转向的万向轮，改用 continuous 关节。 -->
+  <xacro:macro name="caster" params="prefix reflect x_offset">
+    <link name="${prefix}_caster_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="${caster_radius}"/>
+        </geometry>
+        <material name="caster_grey">
+          <color rgba="0.65 0.65 0.68 1.0"/>
+        </material>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="${caster_radius}"/>
+        </geometry>
+      </collision>
+
+      <xacro:sphere_inertia mass="${caster_mass}" radius="${caster_radius}"/>
+    </link>
+
+    <joint name="${prefix}_caster_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="${prefix}_caster_link"/>
+      <origin xyz="${reflect * x_offset} 0 ${-(base_height / 2 + wheel_radius - caster_radius)}"
+              rpy="0 0 0"/>
+    </joint>
+  </xacro:macro>
+
+</robot>

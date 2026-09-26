@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<robot name="robot_base" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- 差速移动机器人底盘 —— 顶层描述文件。
+       common 必须最先 include（它定义后续文件用到的 property 和惯量宏）。 -->
+
+  <!-- 设为 false 可去掉 <ros2_control> 块：纯可视化时更干净，
+       也便于后续把同一份模型交给 Gazebo（Gazebo 自带硬件接口）。 -->
+  <xacro:arg name="use_ros2_control" default="true"/>
+
+  <xacro:include filename="$(find robot_base_description)/urdf/robot_base.common.xacro"/>
+  <xacro:include filename="$(find robot_base_description)/urdf/robot_base.base.xacro"/>
+  <xacro:include filename="$(find robot_base_description)/urdf/robot_base.wheel.xacro"/>
+  <xacro:include filename="$(find robot_base_description)/urdf/robot_base.caster.xacro"/>
+  <xacro:include filename="$(find robot_base_description)/urdf/robot_base.ros2_control.xacro"/>
+
+  <!-- ==========================================================================
+       坐标系约定（REP-103：x 前、y 左、z 上）
+         odom            ← 由 diff_drive_controller 发布
+         └─ base_footprint  地面投影，导航栈常用
+            └─ base_link    底盘几何中心
+               ├─ left_wheel_link
+               ├─ right_wheel_link
+               ├─ front_caster_link
+               └─ rear_caster_link
+       ========================================================================== -->
+
+  <link name="base_footprint"/>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <!-- 把 base_footprint 放到地面上，即底盘中心抬起 半高+轮半径 -->
+    <origin xyz="0 0 ${base_height / 2 + wheel_radius}" rpy="0 0 0"/>
+  </joint>
+
+  <xacro:robot_base_base_link/>
+
+  <!-- reflect=+1 为 +y 侧，即左侧 -->
+  <xacro:wheel prefix="left"  reflect="1"/>
+  <xacro:wheel prefix="right" reflect="-1"/>
+
+  <xacro:caster prefix="front" reflect="1"  x_offset="${base_length / 2 - caster_radius}"/>
+  <xacro:caster prefix="rear"  reflect="-1" x_offset="${base_length / 2 - caster_radius}"/>
+
+  <xacro:if value="$(arg use_ros2_control)">
+    <xacro:robot_base_ros2_control name="RobotBaseSystem"/>
+  </xacro:if>
+
+</robot>

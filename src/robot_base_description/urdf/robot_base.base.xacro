@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- 底盘本体。原点位于底盘几何中心。
+       整车高度关系（base_link 坐标系，z 向上）：
+         驱动轮中心 z = -base_height/2
+         地面        z = -(base_height/2 + wheel_radius) -->
+  <xacro:macro name="robot_base_base_link">
+    <link name="base_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${base_length} ${base_width} ${base_height}"/>
+        </geometry>
+        <material name="base_grey">
+          <color rgba="0.4 0.42 0.48 1.0"/>
+        </material>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${base_length} ${base_width} ${base_height}"/>
+        </geometry>
+      </collision>
+
+      <xacro:box_inertia mass="${base_mass}"
+                         x="${base_length}" y="${base_width}" z="${base_height}"/>
+    </link>
+  </xacro:macro>
+
+</robot>

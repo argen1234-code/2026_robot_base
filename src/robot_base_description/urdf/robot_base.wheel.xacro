@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- 驱动轮。prefix: left / right
+       reflect: +1 表示 +y 侧（ROS REP-103 中 +y 为左），-1 为右侧。
+       关节类型必须是 continuous，diff_drive_controller 按 velocity 接口驱动它。 -->
+  <xacro:macro name="wheel" params="prefix reflect">
+    <link name="${prefix}_wheel_link">
+      <!-- 圆柱默认轴向为 z，绕 x 转 90° 后轴向变为 y，即驱动轮的正确朝向 -->
+      <visual>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+        <material name="wheel_black">
+          <color rgba="0.1 0.1 0.12 1.0"/>
+        </material>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+      </collision>
+
+      <xacro:cylinder_inertia mass="${wheel_mass}"
+                              radius="${wheel_radius}" length="${wheel_width}"/>
+    </link>
+
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${prefix}_wheel_link"/>
+      <origin xyz="0 ${reflect * wheel_separation / 2} ${-base_height / 2}" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <!-- 限位值待按实际电机替换（TODO: 填真实额定转速/扭矩） -->
+      <limit effort="10.0" velocity="20.0"/>
+      <dynamics damping="0.05" friction="0.02"/>
+    </joint>
+  </xacro:macro>
+
+</robot>

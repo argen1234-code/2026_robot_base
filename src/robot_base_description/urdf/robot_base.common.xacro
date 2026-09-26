@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ==========================================================================
+       底盘几何与物理参数
+       ==========================================================================
+       TODO(geometry): 以下全部是【占位值】，接真机前请按实际底盘替换。
+       每个值都可以在命令行覆盖，无需改文件：
+         xacro robot_base.urdf.xacro wheel_radius:=0.06 wheel_separation:=0.40
+
+       ⚠️ 同步提醒：wheel_separation 与 wheel_radius 在
+          src/robot_base_bringup/config/controllers.yaml 里还有一份副本，
+          改这里之后必须同步改那边，否则 odom 尺度会算错。
+       ========================================================================== -->
+
+  <!-- 驱动轮 -->
+  <xacro:arg name="wheel_radius"     default="0.05"/>
+  <xacro:arg name="wheel_width"      default="0.03"/>
+  <xacro:arg name="wheel_separation" default="0.35"/>
+
+  <!-- 底盘本体（长方体） -->
+  <xacro:arg name="base_length" default="0.40"/>
+  <xacro:arg name="base_width"  default="0.30"/>
+  <xacro:arg name="base_height" default="0.15"/>
+
+  <!-- 万向轮（用球体近似） -->
+  <xacro:arg name="caster_radius" default="0.02"/>
+
+  <!-- 质量（kg） -->
+  <xacro:arg name="base_mass"   default="8.0"/>
+  <xacro:arg name="wheel_mass"  default="0.5"/>
+  <xacro:arg name="caster_mass" default="0.1"/>
+
+  <xacro:property name="wheel_radius"     value="$(arg wheel_radius)"/>
+  <xacro:property name="wheel_width"      value="$(arg wheel_width)"/>
+  <xacro:property name="wheel_separation" value="$(arg wheel_separation)"/>
+  <xacro:property name="base_length"      value="$(arg base_length)"/>
+  <xacro:property name="base_width"       value="$(arg base_width)"/>
+  <xacro:property name="base_height"      value="$(arg base_height)"/>
+  <xacro:property name="caster_radius"    value="$(arg caster_radius)"/>
+  <xacro:property name="base_mass"        value="$(arg base_mass)"/>
+  <xacro:property name="wheel_mass"       value="$(arg wheel_mass)"/>
+  <xacro:property name="caster_mass"      value="$(arg caster_mass)"/>
+
+  <!-- ==========================================================================
+       惯量宏
+       注意：inertial 不可省略。留空或写零惯量会让 Gazebo 报错，
+       也会让依赖动力学的控制器行为异常。
+       ========================================================================== -->
+
+  <!-- 长方体绕质心惯量 -->
+  <xacro:macro name="box_inertia" params="mass x y z">
+    <inertial>
+      <mass value="${mass}"/>
+      <inertia ixx="${mass * (y*y + z*z) / 12}" ixy="0.0" ixz="0.0"
+               iyy="${mass * (x*x + z*z) / 12}" iyz="0.0"
+               izz="${mass * (x*x + y*y) / 12}"/>
+    </inertial>
+  </xacro:macro>
+
+  <!-- 圆柱绕质心惯量，轴向沿 y（用于左右驱动轮）
+       绕自身轴(此处为 y)为 m*r^2/2，绕垂直于轴的 x/z 为 m*(3r^2+L^2)/12 -->
+  <xacro:macro name="cylinder_inertia" params="mass radius length">
+    <inertial>
+      <mass value="${mass}"/>
+      <inertia ixx="${mass * (3*radius*radius + length*length) / 12}" ixy="0.0" ixz="0.0"
+               iyy="${mass * radius * radius / 2}"                    iyz="0.0"
+               izz="${mass * (3*radius*radius + length*length) / 12}"/>
+    </inertial>
+  </xacro:macro>
+
+  <!-- 实心球绕质心惯量，用于万向轮 -->
+  <xacro:macro name="sphere_inertia" params="mass radius">
+    <inertial>
+      <mass value="${mass}"/>
+      <inertia ixx="${2 * mass * radius * radius / 5}" ixy="0.0" ixz="0.0"
+               iyy="${2 * mass * radius * radius / 5}" iyz="0.0"
+               izz="${2 * mass * radius * radius / 5}"/>
+    </inertial>
+  </xacro:macro>
+
+</robot>

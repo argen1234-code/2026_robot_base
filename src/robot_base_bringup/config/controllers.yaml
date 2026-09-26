@@ -1,0 +1,66 @@
+# =============================================================================
+# ros2_control 控制器参数
+# =============================================================================
+# ⚠️ 同步提醒：下面的 wheel_separation 与 wheel_radius 必须与
+#    src/robot_base_description/urdf/robot_base.common.xacro 里的同名参数一致。
+#    两处不一致会导致 odom 的尺度和转向全部算错（走一米报成别的值）。
+#    改几何参数时，这两个文件都要改。
+# =============================================================================
+
+# controller_manager 自身的参数。
+#
+# ⚠️⚠️ 这里【绝对不要】写各控制器的 type 字段！
+#   一旦写了，controller_manager 在启动时就会自动加载这些控制器，
+#    与 spawner 的加载动作产生竞争，表现为启动时好时坏：
+#      "Controller already loaded, skipping load_controller"
+#      紧接着
+#      "Could not configure controller ... because no controller with this name exists"
+#    控制器的类型改由 launch 里 spawner 的 -t 参数显式指定，避免这个竞争。
+controller_manager:
+  ros__parameters:
+    update_rate: 50  # Hz，硬件 read/write 的调用频率
+
+# -----------------------------------------------------------------------------
+# diff_drive_controller 参数。由 spawner 通过 --param-file 加载。
+# 类型在 launch 里用 -t diff_drive_controller/DiffDriveController 指定。
+# -----------------------------------------------------------------------------
+diff_drive_controller:
+  ros__parameters:
+    # 关节名必须与 robot_base.ros2_control.xacro 里声明的完全一致。
+    # 顺序约定：第一个是左轮，第二个是右轮。
+    left_wheel_names: ["left_wheel_joint"]
+    right_wheel_names: ["right_wheel_joint"]
+
+    # ⚠️ 占位值，与 robot_base.common.xacro 保持一致
+    wheel_separation: 0.35
+    wheel_radius: 0.05
+
+    # 标定用的微调系数：轮距/轮径实测有偏差时改这里，不必动 URDF
+    wheel_separation_multiplier: 1.0
+    left_wheel_radius_multiplier: 1.0
+    right_wheel_radius_multiplier: 1.0
+
+    publish_rate: 50.0
+    odom_frame_id: odom
+    base_frame_id: base_link
+
+    # 里程计协方差对角线，供 EKF（robot_localization）等下游使用
+    pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+    twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+
+    # false = 用硬件回报的轮速算 odom（更准）；
+    # true  = 用下发的命令直接积分（硬件没有速度反馈时才用）
+    open_loop: false
+
+    # 由本控制器发布 odom -> base_link 的 TF
+    enable_odom_tf: true
+
+    # 已在本机 libdiff_drive_controller.so 中确认该参数存在。
+    # false -> 订阅 ~/cmd_vel_unstamped（geometry_msgs/Twist）
+    # true  -> 订阅 ~/cmd_vel（geometry_msgs/TwistStamped）
+    # 选 false 是为了直接配合 teleop_twist_keyboard（它发的是 Twist），
+    # 并在 launch 里把该话题重映射成 /cmd_vel。
+    use_stamped_vel: false
+
+    # 超过这个时间没收到 cmd_vel 就把速度归零（安全停车）。0.0 表示禁用。
+    cmd_vel_timeout: 0.5
