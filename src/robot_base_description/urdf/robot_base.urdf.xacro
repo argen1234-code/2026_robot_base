@@ -12,6 +12,7 @@
   <xacro:include filename="$(find robot_base_description)/urdf/robot_base.base.xacro"/>
   <xacro:include filename="$(find robot_base_description)/urdf/robot_base.wheel.xacro"/>
   <xacro:include filename="$(find robot_base_description)/urdf/robot_base.caster.xacro"/>
+  <xacro:include filename="$(find robot_base_description)/urdf/robot_base.lidar.xacro"/>
   <xacro:include filename="$(find robot_base_description)/urdf/robot_base.ros2_control.xacro"/>
 
   <!-- ==========================================================================
@@ -22,7 +23,8 @@
                ├─ left_wheel_link
                ├─ right_wheel_link
                ├─ front_caster_link
-               └─ rear_caster_link
+               ├─ rear_caster_link
+               └─ laser_frame        ← 激光雷达，ydlidar 驱动在此坐标系发 /scan
        ========================================================================== -->
 
   <link name="base_footprint"/>
@@ -42,6 +44,16 @@
 
   <xacro:caster prefix="front" reflect="1"  x_offset="${base_length / 2 - caster_radius}"/>
   <xacro:caster prefix="rear"  reflect="-1" x_offset="${base_length / 2 - caster_radius}"/>
+
+  <!-- 激光雷达。默认认为它坐在底盘顶面正中：
+       底盘顶面在 base_link 的 +base_height/2，雷达光学中心再抬高 半高。
+       ⚠️ 这同样只是占位值，接真机后按实际安装位置改
+          robot_base.lidar.xacro 或被这里的 mount_* 参数覆盖。
+       坐标系名固定为 laser_frame，与 ydlidar 驱动的 frame_id 参数对应。 -->
+  <xacro:lidar prefix="laser"
+               mount_x="0"
+               mount_y="0"
+               mount_z="${base_height / 2 + laser_height / 2}"/>
 
   <xacro:if value="$(arg use_ros2_control)">
     <xacro:robot_base_ros2_control name="RobotBaseSystem"/>

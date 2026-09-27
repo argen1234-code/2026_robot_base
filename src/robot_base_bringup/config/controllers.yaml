@@ -9,23 +9,44 @@
 
 # controller_manager 自身的参数。
 #
-# ⚠️⚠️ 这里【绝对不要】写各控制器的 type 字段！
-#   一旦写了，controller_manager 在启动时就会自动加载这些控制器，
-#    与 spawner 的加载动作产生竞争，表现为启动时好时坏：
+# ⚠️ 不要在本段下面嵌套写各控制器的 type，即不要写
+#      controller_manager:
+#        ros__parameters:
+#          diff_drive_controller:
+#            type: ...
+#   那样 controller_manager 启动时会自动加载这些控制器，
+#   与 spawner 的加载动作产生竞争，表现为启动时好时坏：
 #      "Controller already loaded, skipping load_controller"
 #      紧接着
 #      "Could not configure controller ... because no controller with this name exists"
-#    控制器的类型改由 launch 里 spawner 的 -t 参数显式指定，避免这个竞争。
+#
+#   ⚠️ Jazzy 变更：spawner 已经没有 --controller-type / -t 参数了（Humble 有），
+#   而且 load_controller 服务只接收控制器名、不带类型。
+#   控制器类型改为写在【控制器自己的段】里：
+#       <控制器名>:
+#         ros__parameters:
+#           type: <插件名>
+#   spawner 会从这个文件里读出 type，再通过 set_parameters 服务告诉
+#   controller_manager，既能正常加载，又不会触发上面的自动加载竞争。
 controller_manager:
   ros__parameters:
     update_rate: 50  # Hz，硬件 read/write 的调用频率
 
 # -----------------------------------------------------------------------------
+# joint_state_broadcaster：把关节状态发成 /joint_states。
+# 由 launch 里的 spawner 通过 --param-file 加载，type 从本段读取。
+# -----------------------------------------------------------------------------
+joint_state_broadcaster:
+  ros__parameters:
+    type: joint_state_broadcaster/JointStateBroadcaster
+
+# -----------------------------------------------------------------------------
 # diff_drive_controller 参数。由 spawner 通过 --param-file 加载。
-# 类型在 launch 里用 -t diff_drive_controller/DiffDriveController 指定。
+# type 必须写在本段里（Jazzy 的 spawner 没有 --controller-type，见上方说明）。
 # -----------------------------------------------------------------------------
 diff_drive_controller:
   ros__parameters:
+    type: diff_drive_controller/DiffDriveController
     # 关节名必须与 robot_base.ros2_control.xacro 里声明的完全一致。
     # 顺序约定：第一个是左轮，第二个是右轮。
     left_wheel_names: ["left_wheel_joint"]
@@ -42,7 +63,18 @@ diff_drive_controller:
 
     publish_rate: 50.0
     odom_frame_id: odom
-    base_frame_id: base_link
+
+    # ⚠️ 必须是 base_footprint，不能是 base_link！
+    #
+    # diff_drive_controller 会发布 odom -> <base_frame_id> 这条 TF。
+    # 而 URDF 里 robot_state_publisher 已经发布了 base_footprint -> base_link。
+    # 若这里写 base_link，base_link 就会有【两个父节点】（odom 和 base_footprint），
+    # TF 要求每帧只能有一个父节点，结果是树结构非法、base_footprint 整条边被丢弃。
+    #
+    # 正确的树（与 TF2 教程里的移动机器人树形图一致）：
+    #     map -> odom -> base_footprint -> base_link -> laser_frame
+    #                      └ left/right_wheel_link, front/rear_caster_link
+    base_frame_id: base_footprint
 
     # 里程计协方差对角线，供 EKF（robot_localization）等下游使用
     pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
@@ -52,15 +84,37 @@ diff_drive_controller:
     # true  = 用下发的命令直接积分（硬件没有速度反馈时才用）
     open_loop: false
 
-    # 由本控制器发布 odom -> base_link 的 TF
-    enable_odom_tf: true
+    # ⚠️ 已改为 false：odom -> base_footprint 的 TF 现在由【激光里程计】
+    #    rf2o_laser_odometry 发布（见 robot_base.launch.py）。
+    #
+    #    为什么必须让出：里程计链路的位姿来自 RF2O 对相邻两帧雷达扫描的配准，
+    #    与轮子无关。当前 robot_base_driver.read() 还是桩实现（命令回声积分），
+    #    轮式里程计是假的；而雷达是真的，所以激光里程计给出的才是真实运动。
+    #
+    #    ⚠️ 不能两边都发：两个节点同时发布 odom -> base_footprint 会让这条 TF
+    #    有两个来源，TF 树非法（RViz 报 TF_REPEATED_DATA，树结构错乱）。
+    #
+    #    接真机后想换回轮式里程计：
+    #      1) 把这里改回 true
+    #      2) 在 launch 里把 rf2o_node 那段注释掉
+    #      3) 恢复 launch 里的重映射 ('/diff_drive_controller/odom', '/odom')
+    enable_odom_tf: false
 
-    # 已在本机 libdiff_drive_controller.so 中确认该参数存在。
-    # false -> 订阅 ~/cmd_vel_unstamped（geometry_msgs/Twist）
-    # true  -> 订阅 ~/cmd_vel（geometry_msgs/TwistStamped）
-    # 选 false 是为了直接配合 teleop_twist_keyboard（它发的是 Twist），
-    # 并在 launch 里把该话题重映射成 /cmd_vel。
-    use_stamped_vel: false
+    # 里程计用哪路反馈来算（Jazzy 新增参数，Humble 没有）。
+    # true  -> 用关节的 position 状态接口（编码器绝对位置，通常更准）
+    # false -> 用关节的 velocity 状态接口
+    # 本仓库的驱动两种状态接口都发布，所以哪种都能跑。
+    # Jazzy 默认值就是 true，这里显式写出是为了不依赖默认值。
+    position_feedback: true
+
+    # ⚠️ Jazzy 起 diff_drive_controller 只订阅 ~/cmd_vel，
+    #    且类型固定为 geometry_msgs/msg/TwistStamped：
+    #      - Humble 的 use_stamped_vel 参数已移除
+    #      - ~/cmd_vel_unstamped 话题已移除
+    #    launch 里把 /diff_drive_controller/cmd_vel 重映射到了 /cmd_vel，
+    #    因此往 /cmd_vel 发消息必须带 header.stamp，例如：
+    #      ros2 run teleop_twist_keyboard teleop_twist_keyboard \
+    #          --ros-args -p stamped:=true
 
     # 超过这个时间没收到 cmd_vel 就把速度归零（安全停车）。0.0 表示禁用。
     cmd_vel_timeout: 0.5

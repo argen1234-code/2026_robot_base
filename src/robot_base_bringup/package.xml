@@ -20,6 +20,10 @@
 
   <exec_depend>robot_base_description</exec_depend>
   <exec_depend>robot_base_driver</exec_depend>
+  <exec_depend>ydlidar_ros2_driver</exec_depend>
+  <exec_depend>laser_filters</exec_depend>
+  <exec_depend>slam_toolbox</exec_depend>
+  <exec_depend>rf2o_laser_odometry</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

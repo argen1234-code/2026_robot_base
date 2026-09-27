@@ -1,0 +1,121 @@
+# =============================================================================
+# slam_toolbox 参数 —— 持续建图（lifelong / 终身建图）模式
+# =============================================================================
+# 对应节点：lifelong_slam_toolbox_node（见 robot_base.launch.py）
+#
+# 与普通 async 建图模式的区别：
+#   普通模式（async_slam_toolbox_node）位姿图只增不减，环境一变旧墙就留在图上，
+#   新旧两套墙叠加、地图糊掉。
+#   lifelong 模式会主动【淘汰过时节点】（lifelong_node_removal_score 等），
+#   让地图随时间持续演化 —— 家具挪了、门关了，地图会跟着更新。
+#
+# 顶层 key 必须与 launch 里的节点名一致（都是 slam_toolbox），否则参数不加载。
+#
+# 坐标系（与 TF2 教程里的移动机器人树形图一致）：
+#     map -> odom -> base_footprint -> base_link -> laser_frame
+#       ▲      ▲            ▲
+#       │      │            └─ URDF（robot_state_publisher）
+#       │      └─ diff_drive_controller（controllers.yaml 的 base_frame_id）
+#       └─ 本节点发布
+#
+# 输入：/scan_filtered（角度过滤后的雷达数据）+ TF
+# 输出：/map、map->odom 的 TF
+# =============================================================================
+
+slam_toolbox:
+  ros__parameters:
+
+    # ---- 求解器（保持默认）----
+    solver_plugin: solver_plugins::CeresSolver
+    ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
+    ceres_preconditioner: SCHUR_JACOBI
+    ceres_trust_strategy: LEVENBERG_MARQUARDT
+    ceres_dogleg_type: TRADITIONAL_DOGLEG
+    ceres_loss_function: None
+
+    # ---- 坐标系与话题 ----
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_footprint      # ⚠️ 必须与 controllers.yaml 的 base_frame_id 一致
+    scan_topic: /scan_filtered      # ⚠️ 用过滤后的，不是原始 /scan
+    mode: mapping
+    use_map_saver: true
+
+    # ---- lifelong 专属参数 ----
+    # 这几项是终身建图的核心：控制"什么算同一块区域""旧节点何时该被淘汰"
+    lifelong_search_use_tree: false
+    lifelong_minimum_score: 0.1          # 匹配分数下限，低于此不认为是重访
+    lifelong_iou_match: 0.85             # 重叠度阈值
+    lifelong_node_removal_score: 0.04    # ⭐ 低于此分数的新观测会淘汰旧节点（地图演化靠它）
+    lifelong_overlap_score_scale: 0.06
+    lifelong_constraint_multiplier: 0.08
+    lifelong_nearby_penalty: 0.001
+    lifelong_candidates_scale: 0.03
+
+    # ---- 跨重启继续建图（可选）----
+    # 想让它重启后接着上次的地图继续（而不是从零开始），打开下面两项。
+    # 文件由 /slam_toolbox/serialize_map 服务生成：
+    #   ros2 service call /slam_toolbox/serialize_map \
+    #       slam_toolbox/srv/SerializePoseGraph "{filename: /home/argen/map}"
+    # 会得到 /home/argen/map.posegraph 与 /home/argen/map.data
+    #
+    # ⚠️ map_file_name 与 map_start_at_dock 互斥；给了 map_start_pose 则用 pose。
+    #map_file_name: /home/argen/map
+    #map_start_pose: [0.0, 0.0, 0.0]
+    #map_start_at_dock: true
+
+    # ---- 基本行为 ----
+    debug_logging: false
+    throttle_scans: 1               # 雷达只有 10Hz，不抽稀
+    transform_publish_period: 0.02  # map->odom 的 TF 发布周期（50Hz）
+    map_update_interval: 3.0        # /map 重算并发布的间隔（秒）
+    resolution: 0.05                # 栅格 5cm
+    restamp_tf: false
+    min_laser_range: 0.0
+    max_laser_range: 12.0           # ⚠️ 与 YDLIDAR Tmini Pro 量程一致
+    minimum_time_interval: 0.2
+    transform_timeout: 0.2
+    tf_buffer_duration: 30.0
+    stack_size_to_use: 40000000
+
+    # ---- 扫描匹配 ----
+    use_scan_matching: true          # ⭐ 关掉就退化成纯里程计推算，必须为 true
+    use_scan_barycenter: true
+
+    # ---- 何时插入新节点 ----
+    # 官方默认 0.5m/0.5rad 对小车偏粗，改 0.2 让位姿图更密
+    minimum_travel_distance: 0.2
+    minimum_travel_heading: 0.2
+    check_min_dist_and_heading_precisely: false
+    scan_buffer_size: 10
+    scan_buffer_maximum_scan_distance: 10.0
+    link_match_minimum_response_fine: 0.1
+    link_scan_maximum_distance: 1.5
+
+    # ---- 回环检测 ----
+    do_loop_closing: true
+    loop_search_maximum_distance: 3.0
+    loop_match_minimum_chain_size: 10
+    loop_match_maximum_variance_coarse: 3.0
+    loop_match_minimum_response_coarse: 0.35
+    loop_match_minimum_response_fine: 0.45
+
+    # ---- 相关性搜索 ----
+    correlation_search_space_dimension: 0.5
+    correlation_search_space_resolution: 0.01
+    correlation_search_space_smear_deviation: 0.1
+    loop_search_space_dimension: 8.0
+    loop_search_space_resolution: 0.05
+    loop_search_space_smear_deviation: 0.03
+
+    # ---- 扫描匹配惩罚项 ----
+    distance_variance_penalty: 0.5
+    angle_variance_penalty: 1.0
+    fine_search_angle_offset: 0.00349
+    coarse_search_angle_offset: 0.349
+    coarse_angle_resolution: 0.0349
+    minimum_angle_penalty: 0.9
+    minimum_distance_penalty: 0.5
+    use_response_expansion: true
+    min_pass_through: 2
+    occupancy_threshold: 0.1

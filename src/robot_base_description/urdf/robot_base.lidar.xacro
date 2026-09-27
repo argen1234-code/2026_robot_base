@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- 激光雷达（YDLIDAR Tmini Pro），用圆柱近似。
+
+       ⚠️ link 名必须是 laser_frame：ydlidar_ros2_driver 的参数文件里
+          frame_id 就写的是 laser_frame，两边必须一致，否则 RViz 找不到
+          扫描数据所在的坐标系，会报 "No transform from [laser_frame]"。
+
+       TODO(geometry): mount_z / mount_x / mount_y 是【占位值】。
+       默认把雷达当成坐在底盘顶面正中，接真机后请按实际安装位置量准，
+       否则扫描点在 RViz 里的高度和位置会偏移。 -->
+  <xacro:macro name="lidar" params="prefix mount_x mount_y mount_z">
+    <link name="${prefix}_frame">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="${laser_radius}" length="${laser_height}"/>
+        </geometry>
+        <material name="lidar_black">
+          <color rgba="0.15 0.15 0.18 1.0"/>
+        </material>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="${laser_radius}" length="${laser_height}"/>
+        </geometry>
+      </collision>
+
+      <xacro:cylinder_inertia mass="${laser_mass}"
+                              radius="${laser_radius}" length="${laser_height}"/>
+    </link>
+
+    <!-- 雷达固定在底盘上，不需要关节运动 -->
+    <joint name="${prefix}_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="${prefix}_frame"/>
+      <origin xyz="${mount_x} ${mount_y} ${mount_z}" rpy="0 0 0"/>
+    </joint>
+  </xacro:macro>
+
+</robot>

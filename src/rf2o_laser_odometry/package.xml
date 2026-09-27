@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>rf2o_laser_odometry</name>
+  <version>0.1.0</version>
+  <description>
+    2D 激光里程计：通过配准相邻两帧 LaserScan 估计平面运动，输出 odom->base 的 TF。
+    用于没有轮式编码器（或轮式里程计不可用）时提供运动先验。
+
+    移植说明（适配 ROS 2 Jazzy）：
+      原 package.xml 依赖 cmake_modules 与 eigen（均为 ROS 1 时代的包，Jazzy 没有），
+      但 CMakeLists 并未真正 find_package(cmake_modules)，eigen 也已由
+      eigen3_cmake_module + Eigen3 取代 —— 故两者移除。
+      另外补上了 CMakeLists 实际用到却漏声明的 nav_msgs。
+  </description>
+  <maintainer email="dev@example.com">argen</maintainer>
+  <license>GPL-3.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>eigen3_cmake_module</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

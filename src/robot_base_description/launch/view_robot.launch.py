@@ -5,6 +5,9 @@
     ros2 launch robot_base_description view_robot.launch.py
     ros2 launch robot_base_description view_robot.launch.py use_joint_state_publisher_gui:=false
     ros2 launch robot_base_description view_robot.launch.py rviz:=false
+
+用的是 rviz/view_robot.rviz（Fixed Frame = base_footprint，带 RobotModel 显示）。
+整机建图运行时请用 robot_base_bringup 的 robot_base.launch.py + rviz/robot_base.rviz。
 """
 
 import os
@@ -21,7 +24,14 @@ from launch_ros.parameter_descriptions import ParameterValue
 def generate_launch_description():
     pkg_share = get_package_share_directory('robot_base_description')
     xacro_file = os.path.join(pkg_share, 'urdf', 'robot_base.urdf.xacro')
-    rviz_config = os.path.join(pkg_share, 'rviz', 'robot_base.rviz')
+
+    # ⚠️ 用 view_robot.rviz，不要用 robot_base.rviz。
+    #    robot_base.rviz 是建图视图：Fixed Frame 是 map，且没有 RobotModel 显示。
+    #    本 launch 不启动 ros2_control / SLAM，map 和 odom 都不存在，
+    #    用那份配置 RViz 会报 "Fixed Frame [map] does not exist" 且看不到模型。
+    #    view_robot.rviz 的 Fixed Frame 是 base_footprint（URDF 直接提供），
+    #    并带 RobotModel 显示。
+    rviz_config = os.path.join(pkg_share, 'rviz', 'view_robot.rviz')
 
     use_gui = LaunchConfiguration('use_joint_state_publisher_gui')
     use_rviz = LaunchConfiguration('rviz')
@@ -57,8 +67,8 @@ def generate_launch_description():
             }],
         ),
 
-        # robot_state_publisher 3.0.3 没有 publish_default_positions 参数，
-        # 轮子的 TF 只有等 /joint_states 有数据后才会出现。
+        # robot_state_publisher 3.3.4（Jazzy）仍然没有 publish_default_positions
+        # 参数，轮子的 TF 只有等 /joint_states 有数据后才会出现。
         # 所以下面两个节点必须且只能跑一个。
         Node(
             package='joint_state_publisher_gui',

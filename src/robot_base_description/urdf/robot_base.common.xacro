@@ -26,10 +26,15 @@
   <!-- 万向轮（用球体近似） -->
   <xacro:arg name="caster_radius" default="0.02"/>
 
+  <!-- 激光雷达（YDLIDAR Tmini Pro，用圆柱近似；实际约 70x60mm） -->
+  <xacro:arg name="laser_radius" default="0.035"/>
+  <xacro:arg name="laser_height" default="0.04"/>
+
   <!-- 质量（kg） -->
   <xacro:arg name="base_mass"   default="8.0"/>
   <xacro:arg name="wheel_mass"  default="0.5"/>
   <xacro:arg name="caster_mass" default="0.1"/>
+  <xacro:arg name="laser_mass"  default="0.15"/>
 
   <xacro:property name="wheel_radius"     value="$(arg wheel_radius)"/>
   <xacro:property name="wheel_width"      value="$(arg wheel_width)"/>
@@ -38,9 +43,12 @@
   <xacro:property name="base_width"       value="$(arg base_width)"/>
   <xacro:property name="base_height"      value="$(arg base_height)"/>
   <xacro:property name="caster_radius"    value="$(arg caster_radius)"/>
+  <xacro:property name="laser_radius"     value="$(arg laser_radius)"/>
+  <xacro:property name="laser_height"     value="$(arg laser_height)"/>
   <xacro:property name="base_mass"        value="$(arg base_mass)"/>
   <xacro:property name="wheel_mass"       value="$(arg wheel_mass)"/>
   <xacro:property name="caster_mass"      value="$(arg caster_mass)"/>
+  <xacro:property name="laser_mass"       value="$(arg laser_mass)"/>
 
   <!-- ==========================================================================
        惯量宏
