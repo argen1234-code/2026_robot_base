@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.1-15-g882169e-dirty  Build Version: 1.6.9772.27582
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="mecanum_car_model">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="-0.0115544633001471 0.113013717398734 -0.104348241113251"
+        rpy="0 0 0" />
+      <mass
+        value="0.87462862212344" />
+      <inertia
+        ixx="0.00150200636211398"
+        ixy="-2.11457627364298E-09"
+        ixz="-1.03031085274673E-09"
+        iyy="0.00258424523658672"
+        iyz="-0.000237093999177919"
+        izz="0.0012527061984787" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://mecanum_car_model/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://mecanum_car_model/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="Link1">
+    <inertial>
+      <origin
+        xyz="-1.8801E-07 -0.002033 9.7821E-08"
+        rpy="0 0 0" />
+      <mass
+        value="0.056517" />
+      <inertia
+        ixx="6.6277E-06"
+        ixy="-7.1157E-12"
+        ixz="6.2514E-11"
+        iyy="8.3695E-06"
+        iyz="1.6262E-11"
+        izz="6.6278E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://mecanum_car_model/meshes/Link1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 0.50196 0 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://mecanum_car_model/meshes/Link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wheel_back_left"
+    type="continuous">
+    <origin
+      xyz="-0.15175 -0.06721 0.12768"
+      rpy="3.1416 -0.067789 -1.5708" />
+    <parent
+      link="base_link" />
+    <child
+      link="Link1" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="Link2">
+    <inertial>
+      <origin
+        xyz="-1.88016380679723E-07 -0.00203296194037361 9.78170021925795E-08"
+        rpy="0 0 0" />
+      <mass
+        value="0.0565173772218734" />
+      <inertia
+        ixx="6.62770031763641E-06"
+        ixy="-7.11538727318729E-12"
+        ixz="6.2514179012078E-11"
+        iyy="8.36947024585973E-06"
+        iyz="1.62614903092693E-11"
+        izz="6.62775492867269E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://mecanum_car_model/meshes/Link2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 0.501960784313725 0 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://mecanum_car_model/meshes/Link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wheel_back_right"
+    type="continuous">
+    <origin
+      xyz="0.12865 -0.06721 0.12768"
+      rpy="3.1416 -0.067789 1.5708" />
+    <parent
+      link="base_link" />
+    <child
+      link="Link2" />
+    <axis
+      xyz="0 0 -1" />
+  </joint>
+  <link
+    name="Link3">
+    <inertial>
+      <origin
+        xyz="-1.88014708413231E-07 -0.00203296154496765 9.78207166935086E-08"
+        rpy="0 0 0" />
+      <mass
+        value="0.0565173772106941" />
+      <inertia
+        ixx="6.62770030840802E-06"
+        ixy="-7.11572275403359E-12"
+        ixz="6.25142268053297E-11"
+        iyy="8.36947023771463E-06"
+        iyz="1.62621805696713E-11"
+        izz="6.62775492136049E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://mecanum_car_model/meshes/Link3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 0.501960784313725 0 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://mecanum_car_model/meshes/Link3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wheel_front_right"
+    type="continuous">
+    <origin
+      xyz="0.12865 0.27094 0.069248"
+      rpy="3.1416 0.27443 1.5708" />
+    <parent
+      link="base_link" />
+    <child
+      link="Link3" />
+    <axis
+      xyz="0 0 -1" />
+  </joint>
+  <link
+    name="Link4">
+    <inertial>
+      <origin
+        xyz="-2.7712579175887E-08 -0.0141670385235859 -2.10116579413278E-07"
+        rpy="0 0 0" />
+      <mass
+        value="0.0565173772248273" />
+      <inertia
+        ixx="6.62779570137159E-06"
+        ixy="-9.23946475499594E-12"
+        ixz="-4.27723715625854E-12"
+        iyy="8.36947024191804E-06"
+        iyz="1.51557969607931E-11"
+        izz="6.62765953210764E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://mecanum_car_model/meshes/Link4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://mecanum_car_model/meshes/Link4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wheel_front_left"
+    type="continuous">
+    <origin
+      xyz="-0.13555 0.27094 0.069248"
+      rpy="0 0.54992 -1.5708" />
+    <parent
+      link="base_link" />
+    <child
+      link="Link4" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+</robot>
