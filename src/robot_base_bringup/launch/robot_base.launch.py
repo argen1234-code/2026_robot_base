@@ -12,7 +12,7 @@
   6. scan_to_scan_filter_chain —— 对 /scan 做角度过滤，发布 /scan_filtered
                                  （RViz 与下游订阅的是过滤后的这一份）
   7. rf2o_laser_odometry     —— 激光里程计，发布 /odom 与 odom->base_footprint 的 TF
-  8. slam_toolbox            —— 2D SLAM 持续建图（lifelong 模式），
+  8. slam_toolbox            —— 2D SLAM 异步建图，
                                  发布 /map 与 map->odom 的 TF（可用 slam:=false 关掉）
 
 话题流向：ydlidar -> /scan -> [角度滤波] -> /scan_filtered -> slam_toolbox -> /map
@@ -231,7 +231,7 @@ def generate_launch_description():
         output='screen',
     )
 
-    # 8) 2D SLAM 持续建图（lifelong 模式）。
+    # 8) 2D SLAM 异步建图。
     #    订阅 /scan_filtered，发布 /map 与 map->odom 的 TF。
     #
     #    ⚠️ slam_toolbox 是 LifecycleNode，不是普通节点：
@@ -243,11 +243,8 @@ def generate_launch_description():
     #       true，那会让节点一直等 /clock 而卡在未激活状态。
     slam_node = LifecycleNode(
         package='slam_toolbox',
-        # lifelong（终身建图）节点。与 async 版的核心区别：它会主动淘汰过时节点，
-        # 环境变化时地图会持续演化，而不是把新旧两套墙都留在图上。
-        # 想换回单次建图模式改成 'async_slam_toolbox_node' 即可，
-        # 但参数文件也要换（lifelong_* 那几项 async 版没声明，会报未声明参数错误）。
-        executable='lifelong_slam_toolbox_node',
+        # 标准异步建图，避免实验性 lifelong 节点频繁淘汰位姿图节点。
+        executable='async_slam_toolbox_node',
         name='slam_toolbox',
         parameters=[
             slam_params_yaml,

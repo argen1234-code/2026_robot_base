@@ -210,14 +210,14 @@ def generate_launch_description():
     )
 
     # 8) 2D SLAM 建图。
-    #    与真机路径用同一份 slam_toolbox.yaml、同样是 lifelong 模式，
+    #    与真机路径用同一份 slam_toolbox.yaml、同样是异步建图模式，
     #    唯一差别是 use_sim_time=true。
     #
     #    ⚠️ LifecycleNode，必须显式发 configure + activate，
     #       否则只有 lifecycle 样板接口，/scan 订阅与 /map 发布都不会创建。
     slam_node = LifecycleNode(
         package='slam_toolbox',
-        executable='lifelong_slam_toolbox_node',
+        executable='async_slam_toolbox_node',
         name='slam_toolbox',
         parameters=[slam_params_yaml, {'use_sim_time': True}],
         condition=IfCondition(use_slam),

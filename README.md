@@ -70,6 +70,14 @@ CAD STL 含四轮的最大水平外廓距 `base_footprint` 约 0.265 m。URDF �
 ros2 launch robot_base_bringup mapping.launch.py
 ```
 
+无已保存地图、需要在 RViz 设置目标并观察规划路径时，使用建图与 Nav2 联合入口（默认不驱动电机）：
+
+```bash
+ros2 launch robot_base_bringup mapping_navigation.launch.py
+```
+
+等待雷达产生 `/map` 且 Nav2 的 `/planner_server`、`/bt_navigator` 进入 active 后，在 RViz 使用 **Nav2 Goal** 指定目标；红色为 `/plan` 全局路径，蓝色为 `/local_plan` 局部路径。没有地图覆盖的区域无法保证规划成功。该入口只启动一份 SLAM，不启动 AMCL；不要同时运行 `navigation.launch.py`。本入口无地图文件要求，电机默认关闭，因此即使规划成功也不会移动实车。
+
 保存地图（文件名前缀，不带扩展名）：
 
 ```bash
@@ -369,8 +377,8 @@ Gazebo 只负责生成模型和传感器，不是 TF 的发布者。
 [slam_toolbox](https://docs.nav2.org/tutorials/docs/navigation2_with_slam.html) 做 2D SLAM，
 订阅 `/scan_filtered`，发布 `/map` 与 `map → odom` 的 TF。用 `slam:=false` 可关掉。
 
-用的是 **lifelong（终身建图）模式**（节点 `lifelong_slam_toolbox_node`），
-见下方「持续建图」。
+默认使用 **async 异步建图**（节点 `async_slam_toolbox_node`），
+见下方「建图稳定性」。
 
 ### TF 树
 
@@ -479,31 +487,18 @@ ros2 lifecycle get /slam_toolbox          # 应为 active [3]
 ⚠️ 官方 launch 的 `use_sim_time` 默认是 `true`。**真机必须设 false**，
 否则节点会一直等 `/clock` 而卡在未激活状态。本仓库已设为 `false`。
 
-### 持续建图（lifelong 模式）
+### 建图稳定性
 
-slam_toolbox 有两种建图模式，本项目用的是后者：
-
-| | `async` 模式 | **`lifelong` 模式（当前）** |
-|---|---|---|
-| 节点 | `async_slam_toolbox_node` | `lifelong_slam_toolbox_node` |
-| 位姿图 | 只增不减 | **会主动淘汰过时节点** |
-| 环境变化 | 新旧两套墙都留在图上，地图糊掉 | 逐步替换，地图持续演化 |
-
-lifelong 的核心参数（都在 [config/slam_toolbox.yaml](src/robot_base_bringup/config/slam_toolbox.yaml)）：
-
-| 参数 | 当前值 | 作用 |
-|---|---|---|
-| `lifelong_node_removal_score` | `0.04` | ⭐ 低于此分数的新观测会淘汰旧节点 —— 地图"演化"靠它 |
-| `lifelong_iou_match` | `0.85` | 重叠度阈值 |
-| `lifelong_minimum_score` | `0.1` | 匹配分数下限，低于此不认为是重访 |
-| `lifelong_nearby_penalty` | `0.001` | 邻近区域的惩罚项 |
-
-> ⚠️ 两个模式的参数文件**不通用**：`lifelong_*` 这几项 `async` 节点没有声明，
-> 直接复用会报未声明参数错误。换模式要连参数文件一起换。
+默认使用 `async_slam_toolbox_node`，避免实验性 lifelong 模式的节点淘汰在
+里程计质量有限时不断改写位姿图。rf2o 等待雷达 TF 后才初始化，并丢弃
+重复时间戳及扫描几何参数异常的数据；雷达角度过滤范围保持不变。
+没有轮速/IMU 时，rf2o 的扫描匹配仍可能在空旷、对称或动态环境漂移；
+先降低车速，避开大面积玻璃和移动人群，闭环回到已走过的区域检查地图重影。
+保存地图后用现有 AMCL 导航入口运行，不建议把实时建图视为长期稳定定位。
 
 #### 跨重启继续建图
 
-lifelong 模式默认也**不持久化** —— 重启从头开始。要让地图跨重启累积，
+异步建图默认也**不持久化** —— 重启从头开始。要让地图跨重启累积，
 先保存位姿图，再用 `map_file_name` 加载：
 
 ```bash
@@ -518,12 +513,7 @@ map_file_name: /home/argen/map
 map_start_pose: [0.0, 0.0, 0.0]
 ```
 
-之后启动会加载已有位姿图并在其上继续演化。
-
-#### 换回单次建图
-
-把 [robot_base.launch.py](src/robot_base_bringup/launch/robot_base.launch.py) 里
-`executable` 改成 `async_slam_toolbox_node`，并把参数文件里的 `lifelong_*` 那几项删掉。
+之后启动会加载已有位姿图并继续建图。地图完成后再保存栅格地图供 AMCL 使用。
 
 ### 参数
 
@@ -570,7 +560,7 @@ ros2 run nav2_map_server map_saver_cli -f /home/argen/map
 要等车走得足够多、扫描互相叠加后地图才长出来。改成 1 后单帧即可建出完整地图。
 
 **副作用**：单条射线即可判定空闲，对噪声更敏感（可能出现虚假空闲区）。
-本仓库前置了 5 级滤波链（去阴影/散斑/距离截断）已抑制大部分噪声；
+当前仅屏蔽车尾扇区，未启用去阴影/散斑滤波；
 若发现地图上出现"幽灵通道"，改回 2。
 
 ### 怎么让地图长出来

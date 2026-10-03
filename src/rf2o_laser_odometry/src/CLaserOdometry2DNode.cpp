@@ -16,6 +16,7 @@
 ******************************************************************************************** */
 
 #include "rf2o_laser_odometry/CLaserOdometry2DNode.hpp"
+#include <cmath>
 
 using namespace rf2o;
 
@@ -83,31 +84,39 @@ CLaserOdometry2DNode::CLaserOdometry2DNode(): Node("CLaserOdometry2DNode")
 */
 void CLaserOdometry2DNode::LaserCallBack(const sensor_msgs::msg::LaserScan::SharedPtr new_scan)
 {
-  if (GT_pose_initialized)
-  {
+  if (!GT_pose_initialized) return;
+
+  if (new_scan->ranges.size() < 64 || !std::isfinite(new_scan->angle_increment) ||
+      new_scan->angle_increment <= 0.0f ||
+      !std::isfinite(new_scan->angle_min) || !std::isfinite(new_scan->angle_max)) {
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000, "Invalid laser scan geometry; ignoring scan");
+    return;
+  }
+  if (!rf2o_ref.first_laser_scan) {
+    const auto stamp = rclcpp::Time(new_scan->header.stamp);
+    if (stamp <= rclcpp::Time(rf2o_ref.last_odom_time) ||
+        (new_scan_available && stamp <= rclcpp::Time(last_scan.header.stamp))) return;
+    if (new_scan->ranges.size() != rf2o_ref.width ||
+        new_scan->header.frame_id != last_scan.header.frame_id ||
+        std::abs(new_scan->angle_min - last_scan.angle_min) > 1e-4f ||
+        std::abs(new_scan->angle_increment - last_scan.angle_increment) > 1e-4f) {
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+                           "Laser scan geometry changed; restart RF2O after fixing the scan source");
+      return;
+    }
+  }
+
+  if (rf2o_ref.first_laser_scan) {
+    last_scan = *new_scan;
+    if (!setLaserPoseFromTf()) return;
+    rf2o_ref.init(last_scan, initial_robot_pose.pose.pose);
+    rf2o_ref.first_laser_scan = false;
+    publish();
+  } else {
     // Keep in memory the last received laser_scan
     last_scan = *new_scan;
     rf2o_ref.current_scan_time = last_scan.header.stamp;
-    
-    if (rf2o_ref.first_laser_scan == false)
-    {
-      // copy laser range data to rf2o internal variable
-      for (unsigned int i = 0; i < rf2o_ref.width; i++)
-        rf2o_ref.range_wf(i) = new_scan->ranges[i];
-      // inform of new scan available
-      new_scan_available = true;
-    }
-    else
-    {
-      // Initialize module on first scan (from laser params)
-      setLaserPoseFromTf();
-      rf2o_ref.init(last_scan, initial_robot_pose.pose.pose);
-      rf2o_ref.first_laser_scan = false;
-      // Publish the identity odometry immediately. This keeps odom -> base
-      // available while the next scan pair establishes motion, so GMapping
-      // can initialize even when the robot starts completely still.
-      publish();
-    }
+    new_scan_available = true;
   }
 }
 
@@ -128,8 +137,8 @@ bool CLaserOdometry2DNode::setLaserPoseFromTf()
   }
   catch (tf2::TransformException &ex)
   {
-    RCLCPP_ERROR(get_logger(), "%s",ex.what());
-    retrieved = false;
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000, "Waiting for laser TF: %s", ex.what());
+    return false;
   }
 
   // Keep this transform as Eigen Matrix3d

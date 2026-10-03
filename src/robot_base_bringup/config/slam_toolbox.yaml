@@ -1,13 +1,10 @@
 # =============================================================================
-# slam_toolbox 参数 —— 持续建图（lifelong / 终身建图）模式
+# slam_toolbox 参数 —— 标准异步建图模式
 # =============================================================================
-# 对应节点：lifelong_slam_toolbox_node（见 robot_base.launch.py）
+# 对应节点：async_slam_toolbox_node（见 robot_base.launch.py）
 #
-# 与普通 async 建图模式的区别：
-#   普通模式（async_slam_toolbox_node）位姿图只增不减，环境一变旧墙就留在图上，
-#   新旧两套墙叠加、地图糊掉。
-#   lifelong 模式会主动【淘汰过时节点】（lifelong_node_removal_score 等），
-#   让地图随时间持续演化 —— 家具挪了、门关了，地图会跟着更新。
+# 单雷达、无轮速反馈时默认采用成熟的 async 建图路径；环境变化时
+# 保存地图后用定位模式导航，不依赖实验性的 lifelong 节点淘汰策略。
 #
 # 顶层 key 必须与 launch 里的节点名一致（都是 slam_toolbox），否则参数不加载。
 #
@@ -40,17 +37,6 @@ slam_toolbox:
     scan_topic: /scan_filtered      # ⚠️ 用过滤后的，不是原始 /scan
     mode: mapping
     use_map_saver: true
-
-    # ---- lifelong 专属参数 ----
-    # 这几项是终身建图的核心：控制"什么算同一块区域""旧节点何时该被淘汰"
-    lifelong_search_use_tree: false
-    lifelong_minimum_score: 0.1          # 匹配分数下限，低于此不认为是重访
-    lifelong_iou_match: 0.85             # 重叠度阈值
-    lifelong_node_removal_score: 0.04    # ⭐ 低于此分数的新观测会淘汰旧节点（地图演化靠它）
-    lifelong_overlap_score_scale: 0.06
-    lifelong_constraint_multiplier: 0.08
-    lifelong_nearby_penalty: 0.001
-    lifelong_candidates_scale: 0.03
 
     # ---- 跨重启继续建图（可选）----
     # 想让它重启后接着上次的地图继续（而不是从零开始），打开下面两项。
@@ -128,7 +114,7 @@ slam_toolbox:
     # 要等车走得足够多、扫描互相叠加后地图才长出来。
     #
     # 副作用：单条射线即可判定空闲，对噪声更敏感（可能产生虚假空闲区）。
-    # 本仓库前置了 5 级滤波链（去阴影/散斑/距离截断），已抑制大部分噪声；
+    # 当前仅做车尾扇区遮罩，噪声环境下需实测评估虚假空闲区；
     # 若发现地图上出现"幽灵通道"，把这行改回 2。
     min_pass_through: 1
     occupancy_threshold: 0.1

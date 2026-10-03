@@ -167,6 +167,8 @@ void CLaserOdometry2D::init(const sensor_msgs::msg::LaserScan& scan,
 
   module_initialized = true;
   last_odom_time = scan.header.stamp;   // the time of this first scan
+  lin_speed = 0.0;
+  ang_speed = 0.0;
 }
 
 
