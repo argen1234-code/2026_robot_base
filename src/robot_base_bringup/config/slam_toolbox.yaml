@@ -117,5 +117,18 @@ slam_toolbox:
     minimum_angle_penalty: 0.9
     minimum_distance_penalty: 0.5
     use_response_expansion: true
-    min_pass_through: 2
+    # ⚠️ 已由默认值 2 改为 1。
+    #
+    # 含义：一个栅格要被【至少 N 条射线/扫描】穿过才标记为空闲。
+    #
+    # 默认值 2 是为【连续运动】场景调的。但实测（车静止 + 全新启动）：
+    #   min_pass_through: 2  ->  占用 3 格,   空闲 766 格,  空闲区 2.1x4.6 m
+    #   min_pass_through: 1  ->  占用 251 格, 空闲 3798 格, 空闲区 7.5x7.7 m
+    # 即默认值下，单帧扫描几乎全被丢弃，RViz 里看着"只建了一帧、很小一块"，
+    # 要等车走得足够多、扫描互相叠加后地图才长出来。
+    #
+    # 副作用：单条射线即可判定空闲，对噪声更敏感（可能产生虚假空闲区）。
+    # 本仓库前置了 5 级滤波链（去阴影/散斑/距离截断），已抑制大部分噪声；
+    # 若发现地图上出现"幽灵通道"，把这行改回 2。
+    min_pass_through: 1
     occupancy_threshold: 0.1

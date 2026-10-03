@@ -1,0 +1,134 @@
+<?xml version="1.0" ?>
+<!-- ==========================================================================
+     Gazebo 仿真世界：一个 8m x 8m 的封闭房间
+     ==========================================================================
+     为什么不做空世界：空世界里雷达扫不到任何东西，建图会是一片空白，
+     看不出 SLAM 是否正常。这个房间四面有墙，能立刻验证
+     "雷达 -> 滤波 -> SLAM -> 地图" 整条链路。
+
+     房间尺寸 8x8 m，墙高 1 m、厚 0.2 m。机器人出生在原点。
+     ========================================================================== -->
+<sdf version="1.10">
+  <world name="robot_base_world">
+
+    <!-- 物理引擎 -->
+    <plugin filename="gz-sim-physics-system"
+            name="gz::sim::systems::Physics"/>
+    <!-- 支持运行时创建/删除实体（ros_gz_sim 的 create 要用） -->
+    <plugin filename="gz-sim-user-commands-system"
+            name="gz::sim::systems::UserCommands"/>
+    <!-- 把场景发布给 GUI -->
+    <plugin filename="gz-sim-scene-broadcaster-system"
+            name="gz::sim::systems::SceneBroadcaster"/>
+    <!-- ⚠️ 传感器系统 —— 没有它 gpu_lidar 不会产生任何数据 -->
+    <plugin filename="gz-sim-sensors-system"
+            name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+
+    <!-- 光照 -->
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <!-- 地面 -->
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <plane><normal>0 0 1</normal><size>100 100</size></plane>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <plane><normal>0 0 1</normal><size>100 100</size></plane>
+          </geometry>
+          <material>
+            <ambient>0.5 0.5 0.5 1</ambient>
+            <diffuse>0.7 0.7 0.7 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 四面墙：8x8 m 房间，墙高 1 m、厚 0.2 m -->
+    <model name="wall_north">
+      <static>true</static>
+      <pose>0  4.0 0.5  0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>8.4 0.2 1.0</size></box></geometry></collision>
+        <visual name="v">
+          <geometry><box><size>8.4 0.2 1.0</size></box></geometry>
+          <material><ambient>0.8 0.7 0.6 1</ambient><diffuse>0.9 0.8 0.7 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="wall_south">
+      <static>true</static>
+      <pose>0 -4.0 0.5  0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>8.4 0.2 1.0</size></box></geometry></collision>
+        <visual name="v">
+          <geometry><box><size>8.4 0.2 1.0</size></box></geometry>
+          <material><ambient>0.8 0.7 0.6 1</ambient><diffuse>0.9 0.8 0.7 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="wall_east">
+      <static>true</static>
+      <pose> 4.0 0 0.5  0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.2 8.4 1.0</size></box></geometry></collision>
+        <visual name="v">
+          <geometry><box><size>0.2 8.4 1.0</size></box></geometry>
+          <material><ambient>0.8 0.7 0.6 1</ambient><diffuse>0.9 0.8 0.7 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="wall_west">
+      <static>true</static>
+      <pose>-4.0 0 0.5  0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.2 8.4 1.0</size></box></geometry></collision>
+        <visual name="v">
+          <geometry><box><size>0.2 8.4 1.0</size></box></geometry>
+          <material><ambient>0.8 0.7 0.6 1</ambient><diffuse>0.9 0.8 0.7 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 房间里放两个障碍物，方便观察建图与避障 -->
+    <model name="box_obstacle">
+      <static>true</static>
+      <pose>1.5 1.5 0.25  0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.5 0.5 0.5</size></box></geometry></collision>
+        <visual name="v">
+          <geometry><box><size>0.5 0.5 0.5</size></box></geometry>
+          <material><ambient>0.2 0.4 0.8 1</ambient><diffuse>0.3 0.5 0.9 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="cylinder_obstacle">
+      <static>true</static>
+      <pose>-2.0 1.0 0.4  0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.3</radius><length>0.8</length></cylinder></geometry></collision>
+        <visual name="v">
+          <geometry><cylinder><radius>0.3</radius><length>0.8</length></cylinder></geometry>
+          <material><ambient>0.8 0.3 0.2 1</ambient><diffuse>0.9 0.4 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

@@ -1,9 +1,8 @@
 # 2026_robot_base
 
-差速移动机器人底盘的 ROS 2 工作空间骨架，基于 **ROS 2 Jazzy**（Ubuntu 24.04）。
+四轮底盘的 ROS 2 Jazzy（Ubuntu 24.04）工作空间。真机室内导航通过 MCU USB CDC 模式 3 接收前进和旋转速度指令；单雷达的 rf2o 负责里程计。该方案仍需实车速度和方向标定。
 
-底盘的运动学正逆解和里程计由官方的 `diff_drive_controller` 负责，
-本工作空间只提供模型描述、硬件接口和启动配置。
+仓库保留的 `diff_drive_controller`/`robot_base_driver` 是旧的双轮桩实现，不读取真实编码器，也不适用于当前四轮 CAD 模型；真机建图和导航不启用它。请勿把其命令回声里程计当作闭环反馈。
 
 ## 包结构
 
@@ -58,6 +57,64 @@ source ~/2026_robot_base/install/setup.bash
 ```
 
 ## 运行
+
+### 单雷达建图与 Nav2 导航（真机）
+
+此工作区的真机运动模型使用底盘 MCU 的 ROS 室内模式；Nav2 控制器被限制为前进和原地旋转。雷达扫描配准产生 `/odom`，建图时由 SLAM 发布 `map -> odom`；导航时关闭 SLAM，由 AMCL 接管该 TF。两种模式不要同时启动。
+
+CAD STL 含四轮的最大水平外廓距 `base_footprint` 约 0.265 m。URDF 的半透明圆盘表示半径 0.30 m 的导航碰撞边界（含约 35 mm 安装余量），在 `view_robot.launch.py` 和建图/导航 RViz 中随车可见；导航圆盘在 Gazebo 中不作为物理接触体。Nav2 本地与全局 costmap 均使用 `robot_radius: 0.30`、`footprint_padding: 0.0`，膨胀半径 0.50 m，即从圆盘边缘向外 0.20 m 的渐变代价区；碰撞监控停止圈半径为 0.38 m。安装额外外凸设备时须重新测量并同步修改 URDF 与 Nav2 参数。
+
+先建图：
+
+```bash
+ros2 launch robot_base_bringup mapping.launch.py
+```
+
+保存地图（文件名前缀，不带扩展名）：
+
+```bash
+mkdir -p ~/maps
+ros2 run nav2_map_server map_saver_cli -f ~/maps/robot_map
+```
+
+载入地图并启动 Nav2，默认只观察 `/cmd_vel`，不连接/驱动 MCU：
+
+```bash
+ros2 launch robot_base_bringup navigation.launch.py map:=$HOME/maps/robot_map.yaml
+```
+
+确认扫描、定位和路径都正常后，架空驱动轮并显式启用底盘输出：
+
+```bash
+ros2 launch robot_base_bringup navigation.launch.py map:=$HOME/maps/robot_map.yaml motor_enable:=true mcu_port:=/dev/ttyACM0
+```
+
+`chassis_bridge` 按 STM32 `develop` 固件 `bsp_usb.c` 的 12 字节 USB CDC 帧发送模式 3、速度 float 和 XOR 校验；ROS 前进速度会按固件约定转换为负 Vx。桥接限速为 0.20 m/s、0.45 rad/s，命令超时 0.25 秒即周期发送零速，短于 MCU 的 0.5 秒离线保护。MCU 通常枚举为 `/dev/ttyACM*`；不要把它配置成雷达的 `/dev/ydlidar`。固件室内模式不支持倒车和横移，桥接会拒绝倒车命令。首次上电请架空车轮并备好物理急停；完成实际方向、轮廓尺寸和制动距离标定前，不要无人值守运行。
+
+微信小程序桥接按参考工程的 MQTT JSON/topic 协议实现，默认关闭。Broker 默认设为 `i6130f30.ala.cn-hangzhou.emqxsl.cn:8883`（MQTT over TLS）；TLS 使用系统 CA 信任链验证，无需把公共根证书内容作为密钥写入仓库。WebSocket TLS 端口 `8084` 不用于当前 ROS MQTT 客户端。先安装依赖 `sudo apt install python3-paho-mqtt`，配置 MQTT 用户名和密码，再分别显式启用导航、电机、微信桥接：
+
+```bash
+export WECHAT_MQTT_CLIENT_ID='robot_001_jetson'
+export WECHAT_MQTT_USERNAME='your-username'
+export WECHAT_MQTT_PASSWORD='your-password'
+ros2 launch robot_base_bringup navigation.launch.py map:=$HOME/maps/robot_map.yaml motor_enable:=true wechat:=true
+```
+
+如需覆盖默认连接地址，可设置 `WECHAT_MQTT_BROKER` 和 `WECHAT_MQTT_PORT`。EMQX 管理 API Key 用于管理 REST API，不是 MQTT 登录凭据；请在 EMQX 控制台创建 MQTT 用户名/密码。API Key、用户名和密码均不要提交到 Git。
+
+默认 topic 与参考小程序一致：订阅 `/k1ck5t83zdZ/test/user/get`，发布机器人状态、地图、路径和任务到 `robot`、`map`、`path`、`mission`。命令支持 `REMOTE`/`INDOOR`、方向键、`STOP`、`EMERGENCY`/`RESET_EMERGENCY` 和最多 30 个点的一次性 `INDOOR_MISSION_START`（坐标为 map 米，yaw 为弧度）；`LINE` 仅切换 MCU 室内模式，不启动循迹。地图以缩放灰度 PNG 的 base64 发布。急停/人工操作会撤销活动 Nav2 任务；遥控指令 0.25 秒失联自动归零。MQTT 断连后遥控速度因底盘超时归零，但既有 Nav2 任务仍继续运行。请勿在不可信网络开放云端遥控；固件物理急停仍是最终保护。
+
+定位或电机不动作时，可在不启用电机的导航模式检查：
+
+```bash
+ros2 topic hz /scan_filtered
+ros2 topic echo /odom --once
+ros2 topic echo /amcl_pose --once
+ros2 topic echo /cmd_vel
+ros2 lifecycle get /bt_navigator
+```
+
+`/cmd_vel` 是底盘输出前最后的碰撞监控速度指令。
 
 ### 1. 只看模型（不碰硬件）
 
@@ -198,7 +255,7 @@ sudo usermod -aG dialout $USER    # 需要重新登录才生效
 雷达原始数据 `/scan` 不做处理直接用会有噪声，所以中间加一层 `laser_filters` 滤波链：
 
 ```
-ydlidar_ros2_driver -> /scan -> [5 级滤波] -> /scan_filtered -> RViz / slam_toolbox / rf2o
+ydlidar_ros2_driver -> /scan -> [车尾扇区遮罩] -> /scan_filtered -> RViz / slam_toolbox / rf2o
 ```
 
 **RViz、slam_toolbox、rf2o 订阅的都是 `/scan_filtered`**；`/scan` 仍然存在（滤波链要读它）。
@@ -211,52 +268,47 @@ ydlidar_ros2_driver -> /scan -> [5 级滤波] -> /scan_filtered -> RViz / slam_t
 sudo apt install ros-jazzy-laser-filters
 ```
 
-#### 当前滤波链
+#### 当前滤波链：只保留角度滤波
 
-配置在 [config/laser_filters.yaml](src/robot_base_bringup/config/laser_filters.yaml)，
-`filter1`~`filter5` **按编号顺序依次作用**，顺序会影响结果：
+配置在 [config/laser_filters.yaml](src/robot_base_bringup/config/laser_filters.yaml)：
 
 | # | 插件 | 作用 | 当前参数 |
 |---|---|---|---|
-| 1 | `LaserScanAngularBoundsFilter` | 角度裁剪 | `±3.1416`（**360°，等于不过滤**） |
-| 2 | `LaserScanRangeFilter` | 距离截断 | `0.15~10.0 m`，超出置 `inf` |
-| 3 | `LaserScanFootprintFilter` | 剔除车体自身 | `inscribed_radius: 0.15` |
-| 4 | `ScanShadowsFilter` | **去阴影虚点** | `min/max_angle: 10/170`，`neighbors: 2` |
-| 5 | `LaserScanSpeckleFilter` | 去孤立噪点 | `filter_type: 0`，`window: 2` |
+| 1 | `LaserScanAngularBoundsFilterInPlace` | 屏蔽车尾 90° | 雷达角 `-135°～-45°`；绿色 `laser_frame +Y` 为车头 |
 
-顺序原则：先做范围性裁剪（1~3），再做邻域性分析（4~5）——
-阴影和散斑都依赖相邻点关系，放在后面才不会把已经该删的点算进邻域统计。
-
-**实测效果**（本机环境）：
+实测：
 
 ```
-/scan          平均有效 354.1 点/帧   -180°~180°
-/scan_filtered 平均有效 328.4 点/帧   -180°~180°   滤掉 7.2%
+/scan          430 束/帧   -180.0°~180.0°
+/scan_filtered 430 束/帧   保留整圈角度元数据，车尾约 90° 的束标记为无效回波
 ```
 
-360° 完整保留，只滤掉约 7% 的噪声/无效点，属温和设置。
+> 曾经试过串联 5 级滤波（角度 + 距离 + 车体 + 阴影 + 散斑），已全部移除，
+> 原因见 [laser_filters.yaml](src/robot_base_bringup/config/laser_filters.yaml) 末尾的说明。
+> 简要版：
+> - **`LaserScanFootprintFilter` 没有可用默认值，会让整条链断掉** ——
+>   不写 `inscribed_radius` 或写 `0.0` 时每帧报
+>   `We need an index channel to be able to filter out the footprint`，
+>   `/scan_filtered` **一帧都不输出**（不是不生效，是全断）。必须给正数半径。
+> - 其余三个（range / shadows / speckle）的插件默认值本身接近空操作
+>   （距离默认 0~100000 不截断；阴影默认 min=max=90 窗口极窄），
+>   既然默认等于不干活就没必要留着。
 
-#### ⚠️ 两个容易踩的点
+#### 角度范围怎么改
 
-**① 角度滤波只能"保留一段连续范围"，不能"砍掉中间一块保留其余"。**
-`LaserScanAngularBoundsFilter` 的工作方式是**把数组裁剪到 `[lower_angle, upper_angle]`**。
-而雷达本身扫描范围就是 −180°~+180°，所以设成 ±3.1416 时**一个点都不砍，是纯直通**。
+当前滤波器屏蔽车尾扇区。雷达 `+Y`（绿色轴）指向车头，即 LaserScan 角度 `+90°`；
+所以车尾为 `-90°`，左右各 45° 的屏蔽范围为 `-135°～-45°`。修改配置中的
+`lower_angle`/`upper_angle`（弧度）即可调整遮罩边界：
 
-要做"挖掉一个扇区"得用 `LaserScanSectorFilter`，参数是
-`angle_min`/`angle_max`/`range_min`/`range_max`/`clear_inside`/`invert`
-（缺任何一个都不生效）。实测它能把指定扇区的点设为 `range_max + 1`，
-超过 `slam_toolbox` 的 `max_laser_range` 从而被忽略。
+| 遮罩范围 | `lower_angle` | `upper_angle` | 含义 |
+|---|---|---|---|
+| **车尾 90°（当前值）** | `-2.3562` | `-0.7854` | 车尾方向 ±45° |
 
-**② 角度参数单位是弧度，但 `ScanShadowsFilter` 的 `min_angle`/`max_angle` 是角度。**
-同一个文件里两套单位，改参数时注意。
+换算公式：`弧度 = 角度 × 3.14159265 / 180`
 
-#### 想砍掉后方 90° 时
-
-把 `filter1` 的 `lower_angle`/`upper_angle` 改成 `-2.3562`/`2.3562` 即可
-（±135°，弧度）。换算：`弧度 = 角度 × 3.14159265 / 180`。
-
-⚠️ 但注意这会在地图上留下**后方 90° 的空白**。本机底盘在雷达扫描面下方、
-不在扫描范围内，所以通常没有东西需要砍 —— 保持 360° 更利于建图。
+角度遮罩会保留每帧原有的所有束位，只把车尾扇区的距离替换为 `NaN`，
+表示该方向没有有效回波；扫描角度范围和束数不变。这里不能用 `range_max + 1`：
+仓库中的 `rf2o` 将有限的超量程数值作为距离数据参与扫描配准，会导致位姿求解失败。
 
 #### 其他可用插件
 
@@ -299,6 +351,20 @@ ros2 launch ydlidar_ros2_driver ydlidar_launch.py publish_static_tf:=true  # 自
 再发一条同名的静态 TF 会让 RViz 报 `TF_REPEATED_DATA`。只有不加载 URDF 单独调试时才需要打开。
 
 ## 建图（slam_toolbox）
+
+### 当前模型与运动学边界
+
+当前 `robot_base_description/urdf/robot_base.urdf.xacro` 已完全使用仓库最新的
+`mecanum_car_model` CAD 网格与四个麦克纳姆轮关节，并额外补齐
+`base_footprint -> base_link -> laser_frame` 的 TF 链。`robot_state_publisher`
+根据 `/robot_description` 发布 TF，RViz 的 `RobotModel` 订阅该话题显示模型；
+Gazebo 只负责生成模型和传感器，不是 TF 的发布者。
+
+当前仓库的串口硬件插件和 `diff_drive_controller` 仍然是“两轮差速”接口，
+不能驱动四轮麦克纳姆底盘的横移/全向运动。因此默认建图启动使用
+`joint_state_publisher` 发布关节状态，适合手推车或外部里程计建图；不要把
+`/cmd_vel` 的差速控制结果当作麦克纳姆运动学。要实现真实四轮控制，需要另行
+接入四轮控制器（或自定义麦克纳姆运动学控制器）及对应硬件接口。
 
 [slam_toolbox](https://docs.nav2.org/tutorials/docs/navigation2_with_slam.html) 做 2D SLAM，
 订阅 `/scan_filtered`，发布 `/map` 与 `map → odom` 的 TF。用 `slam:=false` 可关掉。
@@ -472,6 +538,7 @@ map_start_pose: [0.0, 0.0, 0.0]
 | `minimum_travel_distance` | `0.2` | 走多远插入一个位姿图节点（默认 0.5 对小车偏粗） |
 | `map_update_interval` | `3.0` | `/map` 重发间隔（秒）；会话内地图就是按这个周期持续刷新的 |
 | `use_scan_matching` | `true` | 关掉会退化成纯里程计推算，必须保持 true |
+| `min_pass_through` | `1` | ⚠️ **已从默认值 2 改掉**，见下 |
 
 ### 保存地图
 
@@ -481,6 +548,30 @@ ros2 service call /slam_toolbox/serialize_map slam_toolbox/srv/SerializePoseGrap
 # 或用 nav2 的 map_saver_cli
 ros2 run nav2_map_server map_saver_cli -f /home/argen/map
 ```
+
+### ⚠️ min_pass_through：默认值会让地图"看着只有一帧"
+
+`slam_toolbox.yaml` 里的 `min_pass_through` 已从默认值 **2 改成 1**。
+
+**含义**：一个栅格要被至少 N 条射线/扫描穿过，才标记为空闲。
+
+**为什么改**：默认值 2 是为**连续运动**场景调的。车静止时位姿图只有一个节点、
+只有一帧扫描，绝大多数栅格只被穿过 1 次 → 全被拒绝。
+
+实测对比（两次都是"车静止 + 全新启动"，唯一变量是这个参数）：
+
+| | `min_pass_through: 2`（默认） | `min_pass_through: 1` |
+|---|---|---|
+| 占用格 | **3** | **251** |
+| 空闲格 | 766 | 3798 |
+| 空闲区包围盒 | 2.05 × 4.60 m | **7.45 × 7.65 m** |
+
+默认值下地图几乎是空的，RViz 里看着"只建了一帧、很小一块"，
+要等车走得足够多、扫描互相叠加后地图才长出来。改成 1 后单帧即可建出完整地图。
+
+**副作用**：单条射线即可判定空闲，对噪声更敏感（可能出现虚假空闲区）。
+本仓库前置了 5 级滤波链（去阴影/散斑/距离截断）已抑制大部分噪声；
+若发现地图上出现"幽灵通道"，改回 2。
 
 ### 怎么让地图长出来
 
@@ -506,6 +597,24 @@ ros2 topic echo /map --once | head -5
 
 ### RViz 视图
 
+启动时可在 RViz 和 Foxglove 之间选择；默认仍为 RViz：
+
+```bash
+ros2 launch robot_base_bringup robot_base.launch.py visualization:=rviz
+ros2 launch robot_base_bringup robot_base.launch.py visualization:=foxglove
+ros2 launch robot_base_bringup robot_base.launch.py visualization:=none
+```
+
+Foxglove 模式需先安装桥接包：`sudo apt install ros-jazzy-foxglove-bridge`。
+然后在 Foxglove 中添加
+**Foxglove WebSocket** 连接，地址填写 `ws://localhost:8765`。
+Bridge 默认监听 `0.0.0.0:8765`；从另一台电脑可直接连接 `ws://<机器人IP>:8765`，
+或使用 SSH 端口转发后连接本机地址：
+`ssh -L 8765:127.0.0.1:8765 <机器人用户名>@<机器人IP>`，并在电脑上的
+Foxglove 连接 `ws://localhost:8765`。在 3D 面板中添加 `/robot_description`
+机器人模型、`/tf` 与 `/tf_static` 坐标变换、`/scan_filtered` 激光扫描和
+`/map` 地图；Foxglove 不会自动导入 RViz 的 `.rviz` 布局。
+
 [robot_base.rviz](src/robot_base_description/rviz/robot_base.rviz) 是建图视图，订阅：
 
 | 显示 | 订阅的话题 | 说明 |
@@ -523,6 +632,112 @@ Fixed Frame 是 `map`；若 `slam:=false` 跑纯底盘，`map` 不存在，把 F
 **未过滤**的原始数据，且类型是已废弃的 `sensor_msgs/PointCloud`，滤波器不转发它。
 QoS 用 Best Effort 是为了兼容性：滤波节点是 Reliable 发布（也能收），
 雷达原始 `/scan` 是 Best Effort 发布，万一改回 `/scan` 不用改 QoS。
+
+## Gazebo 仿真
+
+```bash
+ros2 launch robot_base_bringup gazebo.launch.py
+ros2 launch robot_base_bringup gazebo.launch.py gui:=false    # 只跑服务器，不显示 Gazebo 界面
+ros2 launch robot_base_bringup gazebo.launch.py visualization:=foxglove
+ros2 launch robot_base_bringup gazebo.launch.py visualization:=none
+```
+
+**这是与真机路径并存的第二条链路，不动现有代码。** 两条路径共用同一份 URDF，
+靠 xacro 的 `use_gazebo` 参数切换硬件插件与传感器来源：
+
+| | 真机路径 `robot_base.launch.py` | 仿真 `gazebo.launch.py` |
+|---|---|---|
+| 雷达 | ydlidar 驱动读串口 | **Gazebo 仿真**，经 `ros_gz_bridge` 桥接成 `/scan` |
+| 轮子 | `robot_base_driver`（**桩实现，不会动**） | **Gazebo 物理引擎**（经 `gz_ros2_control`） |
+| 时钟 | 系统时钟 | **仿真时钟** `use_sim_time:=true` |
+| **`cmd_vel`** | **车不会动** | **车真的会跑** |
+
+### ⚠️ 三个关键坑（都已处理，改的时候注意）
+
+**① 不能再起 `ros2_control_node`。**
+`gz_ros2_control` 插件会在 **Gazebo 进程内部**自己创建一个 `controller_manager`，
+再起一个会撞车。本 launch 只用 spawner 往那个 controller_manager 里加载控制器。
+
+**② 控制器必须延迟 12 秒再加载。**
+Gazebo 启动阶段（加载世界 + 生成机器人 + 物理引擎初始化）很吃资源，
+CM 的更新循环跟不上，会出现
+
+```
+[controller_manager]: Switch controller timed out after 5 seconds!
+```
+
+表现为 `joint_state_broadcaster` 加载成功但**激活失败** → `/joint_states` 无数据、
+轮子不出现在 TF 里（车在 RViz 里是散的）。launch 里用 `TimerAction(period=12.0)`
+延迟解决。**机器性能更差时可以调大。**
+
+**③ RViz 的固定坐标系要用 `odom`，而且 `odom` 这条 TF 必须有人发。**
+`robot_base.rviz` 默认 Fixed Frame 是 `map`，但仿真里没有 SLAM、没有 `map` 坐标系 ——
+Fixed Frame 不存在时 RViz 什么都渲染不出来。launch 里已用 rviz2 的 `-f odom` 参数强制覆盖。
+
+**⚠️ 但光改 Fixed Frame 不够 —— `odom -> base_footprint` 这条 TF 必须真的有人发布。**
+
+`controllers.yaml` 里 `enable_odom_tf` 是 `false`，因为真机路径下这条 TF 由 rf2o 发布、
+`diff_drive_controller` 刻意让出以免两个节点抢同一条。而 gazebo.launch.py **不启动 rf2o** ——
+若不同时把 `enable_odom_tf` 改回 `true`，就【没有任何节点】发布 `odom` 坐标系，后果是：
+
+- TF 树里根本没有 `odom` 帧（`view_frames` 只列出 `base_footprint -> base_link -> ...`）
+- RViz 的 Fixed Frame 设成 `odom` 时什么都渲染不出来，小车完全不显示
+- 依赖 `odom` 帧的下游（nav2 等）全部失效
+
+因此 gazebo.launch.py 额外传了一份
+[config/controllers_gazebo.yaml](src/robot_base_bringup/config/controllers_gazebo.yaml) 覆盖，
+把 `diff_drive_controller` 的 `enable_odom_tf` 置回 `true`（spawner 的 `--param-file`
+按顺序生效，后一个覆盖前一个）。
+
+实测验证（发 `cmd_vel` 前进 0.3 m/s × 3 秒）：
+
+| | `odom -> base_footprint` 的 x |
+|---|---|
+| 发之前 | 0.000 |
+| 发之后 | **1.002** |
+
+TF 确实随车移动在变 —— 这就是 RViz 里小车"会动"的充要条件。
+
+### 实测结果（本机 Jetson Orin Nano）
+
+```
+/scan           9.6 Hz     仿真雷达（430 束、360°、量程 12m、带高斯噪声）
+/scan_filtered  9.8 Hz     角度滤波后
+/joint_states   49.6 Hz
+/odom           48.3 Hz
+diff_drive_controller / joint_state_broadcaster   均为 active
+```
+
+**发 `cmd_vel` 让车前进 0.3 m/s：**
+
+| | x 坐标 |
+|---|---|
+| `/odom` | 1.008 m |
+| **Gazebo 里的真实位姿** | **1.008 m** |
+
+里程计与物理引擎真值逐位一致，说明轮子、控制器、里程计整条链路都对。
+
+### 世界文件
+
+[worlds/robot_base_world.sdf](src/robot_base_bringup/worlds/robot_base_world.sdf)：
+一个 8m × 8m 的封闭房间（四面墙 + 两个障碍物）。
+
+**为什么不做空世界**：空世界里雷达扫不到东西，建图会是一片空白，
+看不出链路是否正常。有墙才能立刻验证。
+
+世界文件里必须包含 **`gz-sim-sensors-system`** 插件，否则 `gpu_lidar` 不产生任何数据。
+
+### 雷达在车上的位置
+
+雷达装在**小车前方**：`robot_base.urdf.xacro` 里 `mount_x = 0.15`
+（底盘 x 范围 ±0.20，0.15 表示靠近前缘并留出雷达半径余量）。改成正中就填 0。
+
+### 尚未做
+
+- 仿真里没启动 `rf2o` / `slam_toolbox` —— 仿真中轮式里程计是真实可靠的，
+  直接用 `diff_drive_controller` 的 `/odom` 即可，不需要激光里程计。
+  要仿真里也建图的话告诉我。
+- 仿真里没有 IMU、相机。
 
 ## ⚠️ 改几何参数要同步改两个文件
 

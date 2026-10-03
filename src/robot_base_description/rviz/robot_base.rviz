@@ -1,17 +1,23 @@
 # =============================================================================
 # RViz 配置 —— SLAM 建图视图
 # =============================================================================
-# 用于观察 SLAM 建图结果、滤波后的激光数据与坐标系关系。
+# 用于观察机器人模型、SLAM 建图结果、滤波后的激光数据与坐标系关系。
 #
 # 订阅话题清单：
-#   Map       -> /map, /map_updates
-#   LaserScan -> /scan_filtered   （角度过滤后的激光数据，渲染成点）
-#   TF        -> /tf, /tf_static
-#   Grid      -> 不订阅任何话题（纯空间参照网格）
+#   Map        -> /map, /map_updates
+#   RobotModel -> /robot_description  （机器人模型，靠 TF 摆放位置 —— 即"会动"的来源）
+#   LaserScan  -> /scan_filtered      （角度过滤后的激光数据，渲染成点）
+#   TF         -> /tf, /tf_static
+#   Grid       -> 不订阅任何话题（纯空间参照网格）
+#
+# ⚠️ RobotModel 只在 TF 链完整时才能渲染。Fixed Frame 是 map 时，
+#    map -> odom -> base_footprint -> base_link 必须层层都在，缺一环就
+#    报 "No transform from [xxx]" 并完全不显示。
+#    跑 Gazebo（gazebo.launch.py）时没有 SLAM，没有 map 坐标系 ——
+#    把 Fixed Frame 改成 odom 即可看到车。
 #
 # 已移除的显示（需要时右键 Add 自行加回）：
-#   RobotModel -> /robot_description
-#   Odometry   -> /odom
+#   Odometry -> /odom
 #
 # 注意：LaserScan 显示用的是 LaserScan 消息类型，不是 PointCloud。
 #   滤波链 scan_to_scan_filter_chain 输出的就是 LaserScan；
@@ -29,6 +35,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Map1
+        - /RobotModel1
         - /LaserScan1
         - /TF1
       Splitter Ratio: 0.5
@@ -85,6 +92,22 @@ Visualization Manager:
         Value: /map_updates
       Use Timestamp: false
       Value: true
+    - Alpha: 1
+      Class: rviz_default_plugins/RobotModel
+      Collision Enabled: false
+      Description File: ""
+      Description Source: Topic
+      Description Topic:
+        Depth: 5
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /robot_description
+      Enabled: true
+      Name: RobotModel
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:

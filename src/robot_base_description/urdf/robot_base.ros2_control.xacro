@@ -7,14 +7,28 @@
           必须与 controllers.yaml 的 left_wheel_names / right_wheel_names 一一对应。
        ⚠️ 每个关节都必须同时提供 velocity 命令接口和 position+velocity 状态接口，
           否则 RobotBaseSystem::on_init 会直接报错返回。 -->
-  <xacro:macro name="robot_base_ros2_control" params="name">
+  <xacro:macro name="robot_base_ros2_control" params="name use_gazebo:=false">
     <ros2_control name="${name}" type="system">
       <hardware>
-        <!-- 插件名必须与 robot_base_driver.xml 里的 <class name="..."> 完全一致 -->
-        <plugin>robot_base_driver/RobotBaseSystem</plugin>
-        <!-- TODO(hardware): 换成真机的串口设备与波特率 -->
-        <param name="serial_port">/dev/ttyUSB0</param>
-        <param name="baud_rate">115200</param>
+        <xacro:if value="${use_gazebo}">
+          <!-- ================================================================
+               仿真模式：硬件由 Gazebo 提供
+               ================================================================
+               插件类名来自 gz_ros2_control 的 gz_hardware_plugins.xml，
+               它把 Gazebo 里的关节接到 ros2_control 的接口上 ——
+               于是 diff_drive_controller 等控制器**无需任何改动**
+               就能驱动仿真车，这正是 ros2_control 这层抽象的价值。
+               ================================================================ -->
+          <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+        </xacro:if>
+        <xacro:unless value="${use_gazebo}">
+          <!-- 真机模式：走本仓库的串口驱动 -->
+          <!-- 插件名必须与 robot_base_driver.xml 里的 <class name="..."> 完全一致 -->
+          <plugin>robot_base_driver/RobotBaseSystem</plugin>
+          <!-- TODO(hardware): 换成真机的串口设备与波特率 -->
+          <param name="serial_port">/dev/ttyUSB0</param>
+          <param name="baud_rate">115200</param>
+        </xacro:unless>
       </hardware>
 
       <joint name="left_wheel_joint">

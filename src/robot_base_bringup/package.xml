@@ -8,15 +8,18 @@
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <test_depend>ament_cmake_pytest</test_depend>
 
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>joint_state_publisher</exec_depend>
   <exec_depend>xacro</exec_depend>
   <exec_depend>controller_manager</exec_depend>
   <exec_depend>diff_drive_controller</exec_depend>
   <exec_depend>joint_state_broadcaster</exec_depend>
   <exec_depend>rviz2</exec_depend>
+  <exec_depend>foxglove_bridge</exec_depend>
 
   <exec_depend>robot_base_description</exec_depend>
   <exec_depend>robot_base_driver</exec_depend>
@@ -24,6 +27,21 @@
   <exec_depend>laser_filters</exec_depend>
   <exec_depend>slam_toolbox</exec_depend>
   <exec_depend>rf2o_laser_odometry</exec_depend>
+  <exec_depend>python3-serial</exec_depend>
+  <exec_depend>python3-paho-mqtt</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav2_bringup</exec_depend>
+  <exec_depend>nav2_msgs</exec_depend>
+  <exec_depend>action_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+
+  <!-- Gazebo 仿真（gazebo.launch.py 用） -->
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>gz_ros2_control</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

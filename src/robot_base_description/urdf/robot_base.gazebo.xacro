@@ -1,0 +1,122 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ==========================================================================
+       Gazebo 仿真专用标签
+       ==========================================================================
+       只在 use_gazebo:=true 时被 robot_base.urdf.xacro 引入。真机路径完全不受影响。
+
+       包含三部分：
+         1. 雷达传感器插件（在仿真里真的"发出激光"并发布 LaserScan）
+         2. 轮子/万向轮的摩擦与接触参数（否则轮子会打滑或抖动）
+         3. gz_ros2_control 插件（把 Gazebo 变成 ros2_control 的"硬件"，
+            这样 diff_drive_controller 等控制器无需改动即可驱动仿真车）
+       ========================================================================== -->
+
+  <!-- =========================================================================
+       1) 雷达传感器
+       =========================================================================
+       ⚠️ reference 必须是 URDF 里的 link 名（laser_frame），
+          否则 Gazebo 找不到挂载点，传感器不会生成。
+       gpu_lidar 用 GPU 渲染射线，比 CPU 版的 lidar 快很多。
+       ========================================================================= -->
+  <xacro:macro name="gazebo_sim">
+
+  <gazebo reference="laser_frame">
+    <sensor name="lidar" type="gpu_lidar">
+      <!-- 话题名不带前导 / 时，Gazebo 会自动加前缀
+           （/model/<模型名>/link/.../sensor/lidar）。
+           这里用绝对路径，配合 launch 里的 bridge 直接映射成 /scan。
+           实际话题名可用 `gz topic -l` 查看。 -->
+      <topic>/lidar</topic>
+
+      <!-- ⚠️ 必须显式指定 gz_frame_id，否则 RViz 里看不到扫描点！
+           Gazebo 会把 URDF 里的【固定关节】合并（base_footprint -> base_link
+           -> laser_frame 全是 fixed），传感器于是挂在合并后的链路上，
+           发布出来的 LaserScan.header.frame_id 会是 Gazebo 自己的命名：
+               robot_base/base_footprint/lidar
+           这个坐标系在 ROS 的 TF 树里【不存在】（TF 树里叫 laser_frame），
+           后果是 RViz 无法把扫描变换到显示坐标系，整片点云一帧都不显示，
+           只会在状态栏报 "No transform from [robot_base/base_footprint/lidar]"。
+           gz_frame_id 让消息直接用我们 TF 树里已有的坐标系名。 -->
+      <gz_frame_id>laser_frame</gz_frame_id>
+
+      <update_rate>10</update_rate>      <!-- 与真机 Tmini Pro 一致 -->
+      <always_on>1</always_on>
+      <visualize>true</visualize>        <!-- Gazebo GUI 里画出射线 -->
+
+      <lidar>
+        <scan>
+          <horizontal>
+            <!-- 与真机参数对齐：430 束、360° -->
+            <samples>430</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.03</min>                <!-- 与 Tmini Pro 一致 -->
+          <max>12.0</max>
+        </range>
+        <noise>
+          <!-- 加一点高斯噪声，更接近真实雷达；
+               想测"理想数据"把这两行注释掉即可 -->
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </lidar>
+    </sensor>
+  </gazebo>
+
+  <!-- =========================================================================
+       2) 接触与摩擦参数
+       =========================================================================
+       不设的话 Gazebo 用默认值，差速车常见症状是转向时打滑、原地转不动。
+       ========================================================================= -->
+  <gazebo reference="Link1">
+    <mu1>0.8</mu1>
+    <mu2>0.8</mu2>
+    <kp>1000000.0</kp>
+    <kd>100.0</kd>
+  </gazebo>
+
+  <gazebo reference="Link2">
+    <mu1>0.8</mu1>
+    <mu2>0.8</mu2>
+    <kp>1000000.0</kp>
+    <kd>100.0</kd>
+  </gazebo>
+
+  <!-- 万向轮用球体近似，摩擦要【很低】否则会拖住车 -->
+  <gazebo reference="Link3">
+    <mu1>0.8</mu1>
+    <mu2>0.8</mu2>
+  </gazebo>
+
+  <gazebo reference="Link4">
+    <mu1>0.8</mu1>
+    <mu2>0.8</mu2>
+  </gazebo>
+
+  <!-- =========================================================================
+       3) gz_ros2_control 插件
+       =========================================================================
+       作用：让 Gazebo 里的关节去响应 ros2_control 的命令接口。
+       配合 robot_base.ros2_control.xacro 里把硬件插件换成
+       gz_ros2_control/GazeboSimSystem（由 use_gazebo 参数控制）一起生效。
+
+       filename 是插件库名（对应 libgz_ros2_control-system.so），
+       name 是插件类名 —— 两者不同，写错会加载失败。
+       ========================================================================= -->
+  <gazebo>
+    <plugin filename="gz-sim-joint-state-publisher-system"
+            name="gz::sim::systems::JointStatePublisher">
+      <topic>/world/robot_base_world/model/robot_base/joint_state</topic>
+    </plugin>
+  </gazebo>
+
+  </xacro:macro>
+
+</robot>

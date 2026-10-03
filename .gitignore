@@ -7,6 +7,9 @@ log/
 __pycache__/
 *.py[cod]
 
+# CAD exporter local diagnostics
+src/mecanum_car_model/export.log
+
 # 编辑器 / 系统
 .vscode/
 .idea/

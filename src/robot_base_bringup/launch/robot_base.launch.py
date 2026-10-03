@@ -1,7 +1,7 @@
 """拉起整个机器人底座栈：ros2_control 硬件 + 控制器 + TF。
 
     ros2 launch robot_base_bringup robot_base.launch.py
-    ros2 launch robot_base_bringup robot_base.launch.py rviz:=false
+    ros2 launch robot_base_bringup robot_base.launch.py visualization:=foxglove
 
 启动内容：
   1. robot_state_publisher   —— 发布 TF（由 URDF 决定）
@@ -39,7 +39,7 @@ from launch.actions import (
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.events import matches_action
-from launch.substitutions import Command, LaunchConfiguration
+from launch.substitutions import Command, EqualsSubstitution, LaunchConfiguration
 from launch_ros.actions import LifecycleNode, Node
 from launch_ros.event_handlers import OnStateTransition
 from launch_ros.events.lifecycle import ChangeState
@@ -64,10 +64,11 @@ def generate_launch_description():
     laser_filters_yaml = os.path.join(bringup_share, 'config', 'laser_filters.yaml')
     slam_params_yaml = os.path.join(bringup_share, 'config', 'slam_toolbox.yaml')
 
-    use_rviz = LaunchConfiguration('rviz')
     use_lidar = LaunchConfiguration('lidar')
     use_lidar_filter = LaunchConfiguration('lidar_filter')
     use_slam = LaunchConfiguration('slam')
+    foxglove_address = LaunchConfiguration('foxglove_address')
+    foxglove_port = LaunchConfiguration('foxglove_port')
 
     # 带 <ros2_control> 块，硬件由 robot_base_driver 提供
     robot_description = ParameterValue(
@@ -101,6 +102,12 @@ def generate_launch_description():
         executable='robot_state_publisher',
         name='robot_state_publisher',
         parameters=[{'robot_description': robot_description}],
+        output='screen',
+    )
+
+    wheel_states = Node(
+        package='joint_state_publisher',
+        executable='joint_state_publisher',
         output='screen',
     )
 
@@ -177,8 +184,8 @@ def generate_launch_description():
     #    订阅雷达原始数据 /scan，按 config/laser_filters.yaml 里的规则过滤，
     #    重新发布到 /scan_filtered。RViz 与下游（nav2 costmap 等）应订阅后者。
     #
-    #    当前规则：保留前方 270°，砍掉正后方 90° 的扇形
-    #             （lower_angle=-2.3562, upper_angle=+2.3562 弧度）。
+    #    当前规则：laser_frame +Y 是车头，屏蔽车尾 ±45°（雷达角
+    #             -135° 到 -45°），保留以车头为中心的 270°。
     #    改范围只改那个 yaml，不必动本文件。
     #
     #    ⚠️ 关掉滤波（lidar_filter:=false）时 /scan_filtered 不存在，
@@ -280,14 +287,24 @@ def generate_launch_description():
         executable='rviz2',
         name='rviz2',
         arguments=['-d', rviz_config],
-        condition=IfCondition(use_rviz),
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration('visualization'), 'rviz')),
+        output='screen',
+    )
+
+    foxglove_bridge = Node(
+        package='foxglove_bridge',
+        executable='foxglove_bridge',
+        name='foxglove_bridge',
+        parameters=[{'address': foxglove_address, 'port': foxglove_port}],
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration('visualization'), 'foxglove')),
         output='screen',
     )
 
     return LaunchDescription([
         DeclareLaunchArgument(
-            'rviz', default_value='true',
-            description='是否启动 RViz2。'),
+            'visualization', default_value='rviz',
+            choices=['rviz', 'foxglove', 'none'],
+            description='可视化方式：RViz2、Foxglove Bridge 或不启动。'),
         DeclareLaunchArgument(
             'lidar', default_value='true',
             description='是否启动激光雷达驱动（发布 /scan）。'),
@@ -305,10 +322,12 @@ def generate_launch_description():
             description='YDLidar 串口设备。默认用 udev 规则绑定的稳定名字 '
                         '/dev/ydlidar（见 README「雷达端口绑定」）；'
                         '没配 udev 规则时可传 /dev/ttyUSB0。'),
-        control_node,
+        DeclareLaunchArgument('foxglove_address', default_value='0.0.0.0',
+                              description='Foxglove Bridge 监听地址。'),
+        DeclareLaunchArgument('foxglove_port', default_value='8765',
+                              description='Foxglove Bridge WebSocket 端口。'),
         robot_state_publisher,
-        joint_state_broadcaster_spawner,
-        delay_diff_drive,
+        wheel_states,
         lidar_node,
         laser_filter_node,
         rf2o_node,
@@ -316,4 +335,5 @@ def generate_launch_description():
         slam_configure,
         slam_activate,
         rviz,
+        foxglove_bridge,
     ])
