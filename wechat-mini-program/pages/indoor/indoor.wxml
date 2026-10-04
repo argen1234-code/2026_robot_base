@@ -1,0 +1,73 @@
+<view class="page indoor-page">
+  <view class="card header-card">
+    <view class="row"><view class="title">室内导航</view><text class="tag {{state.online ? '' : 'offline'}}">{{state.online ? '机器人在线' : '机器人离线'}}</text></view>
+    <view class="muted">{{mission.message || '点击“添加目标”后在地图上选择目标点'}}</view>
+  </view>
+  <view class="card mode-card">
+    <view class="section-title">模式页面</view>
+    <view class="mode-entry-row">
+      <button wx:for="{{modeOptions}}" wx:key="value" class="mode-entry {{state.mode === item.value ? 'active' : ''}} {{switchingMode === item.value ? 'switching' : ''}}" disabled="{{switchingMode !== 0}}" data-mode="{{item.value}}" hover-class="mode-entry-pressed" hover-stay-time="100" bindtap="enterMode">{{item.label}}</button>
+    </view>
+  </view>
+
+  <view class="card map-card">
+    <movable-area class="map-stage">
+      <movable-view
+        class="map-content"
+        direction="all"
+        out-of-bounds="{{false}}"
+        scale="{{true}}"
+        scale-min="1"
+        scale-max="4"
+        scale-value="{{mapScale}}"
+        x="{{mapOffsetX}}"
+        y="{{mapOffsetY}}"
+        bindchange="onMapMove"
+        bindscale="onMapScale"
+        bindtap="mapTap"
+      >
+        <image wx:if="{{imagePath}}" class="map-image" src="{{imagePath}}" mode="aspectFit" />
+        <canvas class="overlay" canvas-id="indoorOverlay" width="{{canvasWidth}}" height="{{canvasHeight}}" />
+        <view wx:if="{{!imagePath}}" class="map-empty"><text>等待 ROS /map</text><text>启动室内导航后地图会自动刷新</text></view>
+      </movable-view>
+    </movable-area>
+    <view class="zoom-controls">
+      <button class="zoom-btn" hover-class="tool-pressed" bindtap="zoomOut">－</button>
+      <button class="zoom-btn reset" hover-class="tool-pressed" bindtap="resetZoom">复位</button>
+      <button class="zoom-btn" hover-class="tool-pressed" bindtap="zoomIn">＋</button>
+    </view>
+    <view class="zoom-tip">支持双指缩放和拖动地图，范围 1～4 倍</view>
+    <view class="map-meta">{{imagePath ? ('地图版本 ' + mapRevision) : '尚未收到地图'}}{{adding ? ' · 请点击地图添加目标' : ''}}</view>
+  </view>
+
+  <view class="card toolbar">
+    <button class="tool-btn primary" hover-class="tool-pressed" hover-stay-time="100" bindtap="toggleAdding">{{adding ? '完成添加' : '添加目标'}}</button>
+    <button class="tool-btn" hover-class="tool-pressed" hover-stay-time="100" bindtap="recordPoint">记录当前位置</button>
+    <button class="tool-btn" hover-class="tool-pressed" hover-stay-time="100" bindtap="clearPoints">清空目标</button>
+  </view>
+
+  <view class="card waypoint-card">
+    <view class="section-title">目标点顺序（{{waypoints.length}}）</view>
+    <view wx:if="{{!waypoints.length}}" class="muted">还没有目标点</view>
+    <view wx:for="{{waypoints}}" wx:key="id" class="waypoint-row">
+      <view class="waypoint-number">{{index + 1}}</view>
+      <view class="waypoint-info"><text>{{item.name}}</text><text class="muted">({{item.x}}, {{item.y}})</text></view>
+      <button class="mini-btn" data-index="{{index}}" bindtap="moveUp">↑</button>
+      <button class="mini-btn" data-index="{{index}}" bindtap="moveDown">↓</button>
+      <button class="mini-btn delete" data-index="{{index}}" bindtap="removePoint">×</button>
+    </view>
+  </view>
+
+  <view class="card patrol-card">
+    <view class="section-title">巡航方式</view>
+    <view class="patrol-row">
+      <button class="patrol-btn {{patrolMode === 'ONCE' ? 'selected' : ''}}" data-mode="ONCE" bindtap="setPatrolMode">单次</button>
+    </view>
+    <view class="dwell-row"><text>到点停留：{{dwellSeconds}} 秒</text><slider min="0" max="10" step="1" value="{{dwellSeconds}}" bindchange="dwellChange" show-value /></view>
+    <view class="dwell-row"><text>行驶速度：{{speed}}%</text><slider min="20" max="100" step="10" value="{{speed}}" bindchange="speedChange" show-value /></view>
+    <button class="button primary start-btn" hover-class="primary-pressed" bindtap="startMission">开始导航巡航</button>
+    <button class="button cancel-btn" hover-class="cancel-pressed" bindtap="cancelMission">取消导航</button>
+  </view>
+
+  <button class="button danger emergency" hover-class="danger-pressed" bindtap="emergency">急停</button>
+</view>

@@ -1,0 +1,50 @@
+.gps-page { padding-bottom: 40rpx; }
+.header-card { color: #fff; background: linear-gradient(135deg, #164e63, #0284c7); }
+.header-card .muted { margin-top: 12rpx; color: #bae6fd; }
+.section-title { margin-bottom: 16rpx; font-weight: 700; }
+.mode-entry-row { display: flex; gap: 12rpx; }
+.mode-entry { flex: 1; height: 76rpx; line-height: 76rpx; margin: 0; padding: 0 6rpx; border-radius: 14rpx; color: #334155; background: #e2e8f0; font-size: 23rpx; transition: transform .08s, background-color .08s; }
+.mode-entry::after { border: 0; }
+.mode-entry.active { color: #fff; background: #1e3a8a; box-shadow: 0 7rpx 15rpx rgba(30,58,138,.28); }
+.mode-entry.switching { color: #fff; background: #2563eb; }
+.mode-entry-pressed { color: #fff !important; background: #0f245f !important; transform: translateY(5rpx) scale(.95); }
+.coordinate-card { display: grid; grid-template-columns: 1fr 1fr; gap: 22rpx; }
+.coordinate-card view { display: flex; flex-direction: column; gap: 8rpx; }
+.label { color: #64748b; font-size: 23rpx; }
+.coordinate { color: #0f172a; font-size: 31rpx; font-weight: 700; }
+.valid { color: #15803d; font-weight: 700; }
+.invalid { color: #b91c1c; font-weight: 700; }
+.fusion-map-card { padding: 14rpx; }
+.fusion-map-card .section-title { margin-bottom: 0; }
+.map-status { color: #2563eb; font-size: 22rpx; }
+.fusion-map-stage { position: relative; width: 100%; height: 560rpx; margin-top: 16rpx; overflow: hidden; border-radius: 16rpx; background: #e2e8f0; }
+.fusion-map-image { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fusion-map-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.fusion-map-empty { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12rpx; color: #64748b; text-align: center; font-size: 24rpx; }
+.fusion-state-row { display: flex; justify-content: space-between; padding: 16rpx 4rpx 2rpx; color: #334155; font-size: 24rpx; }
+.map-card { padding: 14rpx; }
+.gps-map { width: 100%; height: 650rpx; border-radius: 16rpx; overflow: hidden; }
+.gps-empty { height: 500rpx; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 14rpx; color: #64748b; text-align: center; }
+.gps-map-tip { padding: 14rpx 4rpx 2rpx; color: #64748b; text-align: center; font-size: 22rpx; }
+.gps-toolbar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12rpx; padding: 18rpx; }
+.gps-tool-btn { width: 100%; height: 76rpx; line-height: 76rpx; margin: 0; padding: 0 6rpx; border-radius: 14rpx; color: #fff; background: #1e3a8a; box-shadow: 0 7rpx 0 #0f245f; font-size: 22rpx; }
+.gps-tool-btn::after { border: 0; }
+.gps-tool-btn.primary { background: #1d4ed8; }
+.gps-tool-pressed { transform: translateY(6rpx) scale(.96); background: #0f245f !important; box-shadow: 0 2rpx 0 #09183f; }
+.gps-waypoint-row { display: flex; align-items: center; gap: 10rpx; padding: 14rpx 0; border-bottom: 1rpx solid #e2e8f0; }
+.gps-waypoint-number { width: 44rpx; height: 44rpx; line-height: 44rpx; flex: none; border-radius: 50%; text-align: center; color: #fff; background: #f59e0b; }
+.gps-waypoint-info { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4rpx; font-size: 24rpx; }
+.gps-waypoint-info .muted { font-size: 20rpx; }
+.gps-mini-btn { min-width: 48rpx; height: 48rpx; line-height: 48rpx; padding: 0; margin: 0; font-size: 24rpx; background: #e2e8f0; }
+.gps-mini-btn.delete { color: #b91c1c; }
+.gps-patrol-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12rpx; }
+.gps-patrol-btn { width: 100%; margin: 0; padding: 0; font-size: 24rpx; background: #e2e8f0; }
+.gps-patrol-btn.selected { color: #fff; background: #1e3a8a; }
+.gps-dwell-row { margin: 20rpx 0; color: #334155; font-size: 24rpx; }
+.gps-start-btn { margin-top: 12rpx; }
+.gps-cancel-btn { margin-top: 16rpx; color: #334155; background: #e2e8f0; }
+.gps-cancel-pressed { transform: translateY(4rpx) scale(.97); background: #cbd5e1 !important; }
+.empty-title { color: #334155; font-size: 30rpx; font-weight: 700; }
+.pose-row { display: flex; justify-content: space-between; padding: 16rpx 0; border-bottom: 1rpx solid #e2e8f0; }
+.pose-row:last-child { border-bottom: 0; }
+.mode-entry-row { display: grid; grid-template-columns: 1fr 1fr; }.mode-entry { width: 100%; }

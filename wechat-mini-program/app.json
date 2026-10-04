@@ -1,0 +1,27 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/gps/gps",
+    "pages/puregps/puregps",
+    "pages/control/control",
+    "pages/indoor/indoor"
+  ],
+  "window": {
+    "navigationBarTitleText": "机器人控制台",
+    "navigationBarBackgroundColor": "#0f172a",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f1f5f9",
+    "backgroundTextStyle": "light"
+  },
+  "tabBar": {
+    "color": "#64748b",
+    "selectedColor": "#2563eb",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/home/home", "text": "状态" },
+      { "pagePath": "pages/control/control", "text": "遥控" },
+      { "pagePath": "pages/indoor/indoor", "text": "室内" }
+    ]
+  }
+}

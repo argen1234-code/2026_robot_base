@@ -1,0 +1,21 @@
+# Keil MDK build outputs
+*.o
+*.crf
+*.axf
+*.elf
+*.hex
+*.bin
+*.map
+*.htm
+*.dep
+*.lnp
+*.lst
+*.iex
+*.d
+
+# Build output directories
+MDK-ARM/STM32H743/
+MDK-ARM/STM32H743_Build/
+
+# Backup files
+*.Bak

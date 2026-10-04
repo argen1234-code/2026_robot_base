@@ -1,0 +1,53 @@
+<view class="page pure-page">
+  <view class="card header-card">
+    <view class="row"><view class="title">纯GPS路径管理</view><text class="tag {{state.online ? '' : 'offline'}}">{{state.online ? '机器人在线' : '机器人离线'}}</text></view>
+    <view class="muted">路径控制由STM32独立运行 · STM32当前路径 {{state.gps_route_total || 0}} 个点</view>
+    <view class="muted">GPS：{{state.gps_valid ? '正常' : '无效'}} · 磁力计：{{state.mag_valid ? '正常' : '无效'}}</view>
+  </view>
+
+  <view class="card mode-card">
+    <view class="section-title">模式页面</view>
+    <view class="mode-entry-row">
+      <button wx:for="{{modeOptions}}" wx:key="value" class="mode-entry {{state.mode === item.value ? 'active' : ''}} {{switchingMode === item.value ? 'switching' : ''}}" disabled="{{switchingMode !== 0}}" data-mode="{{item.value}}" hover-class="mode-entry-pressed" bindtap="enterMode">{{item.label}}</button>
+    </view>
+  </view>
+
+  <view class="card map-card">
+    <view class="row"><view class="section-title">GPS采点地图</view><text class="point-limit">{{points.length}} / 10</text></view>
+    <map wx:if="{{gpsValid}}" class="gps-map" longitude="{{mapLongitude}}" latitude="{{mapLatitude}}" scale="18" markers="{{markers}}" bindtap="onMapTap" />
+    <view wx:else class="map-empty"><text>等待有效GPS定位</text><text>纯GPS模式需要在室外采点</text></view>
+    <view class="map-tip">{{adding ? '请点击地图选择WGS-84目标点' : '橙色编号表示当前路径顺序'}}</view>
+  </view>
+
+  <view class="card toolbar">
+    <button class="tool-btn" hover-class="tool-pressed" bindtap="toggleAdding">{{adding ? '取消点选' : '地图采点'}}</button>
+    <button class="tool-btn" hover-class="tool-pressed" bindtap="recordCurrent">记录当前位置</button>
+    <button class="tool-btn" hover-class="tool-pressed" bindtap="clearPoints">清空编辑</button>
+  </view>
+
+  <view class="card point-card">
+    <view class="section-title">当前路径数组</view>
+    <view class="speed-row"><text>行驶速度：{{speed}}%</text><slider min="20" max="100" step="10" value="{{speed}}" bindchange="speedChange" show-value /></view>
+    <view wx:if="{{!points.length}}" class="muted">尚未采集路径点</view>
+    <view wx:for="{{points}}" wx:key="id" class="point-row">
+      <view class="point-number">{{index + 1}}</view>
+      <view class="point-info"><text>{{item.latitudeText}}, {{item.longitudeText}}</text></view>
+      <button class="mini-btn" data-index="{{index}}" bindtap="moveUp">↑</button>
+      <button class="mini-btn" data-index="{{index}}" bindtap="moveDown">↓</button>
+      <button class="mini-btn delete" data-index="{{index}}" bindtap="removePoint">×</button>
+    </view>
+    <button class="button save-btn" hover-class="button-pressed" bindtap="saveCurrentRoute">保存当前点数组</button>
+    <button class="button primary send-btn" loading="{{sending}}" disabled="{{sending}}" hover-class="primary-pressed" bindtap="sendRouteToStm32">下发路径并开始巡航</button>
+    <button class="button clear-device-btn" hover-class="button-pressed" bindtap="clearStm32Route">清空STM32路径</button>
+  </view>
+
+  <view class="card library-card">
+    <view class="section-title">已保存路径数组（{{savedRoutes.length}}）</view>
+    <view wx:if="{{!savedRoutes.length}}" class="muted">暂无预存路径</view>
+    <view wx:for="{{savedRoutes}}" wx:key="id" class="route-row">
+      <view class="route-info"><text class="route-name">{{item.name}}</text><text class="muted">{{item.points.length}}个点 · {{item.createdAt}}</text></view>
+      <button class="route-btn" data-index="{{index}}" bindtap="loadSavedRoute">载入</button>
+      <button class="route-btn delete" data-index="{{index}}" bindtap="deleteSavedRoute">删除</button>
+    </view>
+  </view>
+</view>

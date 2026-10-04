@@ -1,0 +1,125 @@
+<view class="page gps-page">
+  <view class="card header-card">
+    <view class="row">
+      <view class="title">GPS+ROS 融合导航</view>
+      <text class="tag {{state.online ? '' : 'offline'}}">{{state.online ? '机器人在线' : '机器人离线'}}</text>
+    </view>
+    <view class="muted">{{gpsValid ? 'GPS 定位有效' : '等待室外 GPS 定位'}}</view>
+  </view>
+
+  <view class="card mode-card">
+    <view class="section-title">模式页面</view>
+    <view class="mode-entry-row">
+      <button
+        wx:for="{{modeOptions}}"
+        wx:key="value"
+        class="mode-entry {{state.mode === item.value ? 'active' : ''}} {{switchingMode === item.value ? 'switching' : ''}}"
+        disabled="{{switchingMode !== 0}}"
+        data-mode="{{item.value}}"
+        hover-class="mode-entry-pressed"
+        hover-stay-time="100"
+        bindtap="enterMode"
+      >{{item.label}}</button>
+    </view>
+  </view>
+
+  <view class="card coordinate-card">
+    <view><text class="label">经度</text><text class="coordinate">{{longitudeText}}</text></view>
+    <view><text class="label">纬度</text><text class="coordinate">{{latitudeText}}</text></view>
+    <view><text class="label">GPS 状态</text><text class="{{gpsValid ? 'valid' : 'invalid'}}">{{gpsValid ? '有效' : '无效'}}</text></view>
+  </view>
+
+  <view class="card fusion-map-card">
+    <view class="row">
+      <view class="section-title">激光雷达动态避障</view>
+      <text class="map-status">{{rosMapImagePath ? '持续更新' : '等待地图'}}</text>
+    </view>
+    <view class="fusion-map-stage">
+      <image wx:if="{{rosMapImagePath}}" class="fusion-map-image" src="{{rosMapImagePath}}" mode="aspectFit" />
+      <canvas
+        class="fusion-map-overlay"
+        canvas-id="fusionMapOverlay"
+        width="{{rosCanvasWidth}}"
+        height="{{rosCanvasHeight}}"
+      />
+      <view wx:if="{{!rosMapImagePath}}" class="fusion-map-empty">
+        <text>等待 Jetson 上传 ROS /map</text>
+        <text>地图仅显示机器人位置，融合模式不再进行路径规划</text>
+      </view>
+    </view>
+    <view class="fusion-state-row">
+      <text>融合状态</text>
+      <text>{{state.navigation_state}}</text>
+    </view>
+    <view class="fusion-state-row">
+      <text>前方障碍距离</text>
+      <text>{{state.gps_ros_state.lidar_front == null ? '--' : state.gps_ros_state.lidar_front}} m</text>
+    </view>
+  </view>
+
+  <view class="card map-card">
+    <view class="section-title">GPS 经纬度地图</view>
+    <map
+      wx:if="{{gpsValid}}"
+      class="gps-map"
+      longitude="{{mapLongitude}}"
+      latitude="{{mapLatitude}}"
+      scale="18"
+      markers="{{markers}}"
+      show-location
+      enable-3D
+      bindtap="onGpsMapTap"
+    />
+    <view wx:else class="gps-empty">
+      <text class="empty-title">暂无有效 GPS 坐标</text>
+      <text>小车在室内时经纬度为 0 属于正常情况</text>
+    </view>
+    <view class="gps-map-tip">{{addingGpsPoint ? '请在经纬度地图上点击目标位置' : '橙色编号为GPS目标点'}}</view>
+  </view>
+
+  <view class="card gps-toolbar">
+    <button class="gps-tool-btn primary" hover-class="gps-tool-pressed" bindtap="toggleGpsAdding">{{addingGpsPoint ? '取消点选' : '地图添加目标'}}</button>
+    <button class="gps-tool-btn" hover-class="gps-tool-pressed" bindtap="recordCurrentGps">记录当前位置</button>
+    <button class="gps-tool-btn" hover-class="gps-tool-pressed" bindtap="clearGpsWaypoints">清空目标</button>
+  </view>
+
+  <view class="card gps-waypoint-card">
+    <view class="section-title">GPS目标点顺序（{{gpsWaypoints.length}}）</view>
+    <view wx:if="{{!gpsWaypoints.length}}" class="muted">还没有GPS目标点</view>
+    <view wx:for="{{gpsWaypoints}}" wx:key="id" class="gps-waypoint-row">
+      <view class="gps-waypoint-number">{{index + 1}}</view>
+      <view class="gps-waypoint-info">
+        <text>{{item.name}}</text>
+        <text class="muted">{{item.latitudeText}}, {{item.longitudeText}}</text>
+      </view>
+      <button class="gps-mini-btn" data-index="{{index}}" bindtap="moveGpsPointUp">↑</button>
+      <button class="gps-mini-btn" data-index="{{index}}" bindtap="moveGpsPointDown">↓</button>
+      <button class="gps-mini-btn delete" data-index="{{index}}" bindtap="removeGpsPoint">×</button>
+    </view>
+  </view>
+
+  <view class="card gps-patrol-card">
+    <view class="section-title">融合GPS巡航方式</view>
+    <view class="gps-patrol-row">
+      <button class="gps-patrol-btn {{patrolMode === 'LOOP' ? 'selected' : ''}}" data-mode="LOOP" bindtap="setGpsPatrolMode">循环</button>
+      <button class="gps-patrol-btn {{patrolMode === 'PING_PONG' ? 'selected' : ''}}" data-mode="PING_PONG" bindtap="setGpsPatrolMode">往返</button>
+      <button class="gps-patrol-btn {{patrolMode === 'ONCE' ? 'selected' : ''}}" data-mode="ONCE" bindtap="setGpsPatrolMode">单次</button>
+    </view>
+    <view class="gps-dwell-row">
+      <text>到点停留：{{dwellSeconds}} 秒</text>
+      <slider min="0" max="10" step="1" value="{{dwellSeconds}}" bindchange="gpsDwellChange" show-value />
+    </view>
+    <view class="gps-dwell-row">
+      <text>行驶速度：{{speed}}%</text>
+      <slider min="20" max="100" step="10" value="{{speed}}" bindchange="gpsSpeedChange" show-value />
+    </view>
+    <button class="button primary gps-start-btn" hover-class="primary-pressed" bindtap="startGpsMission">开始融合GPS巡航</button>
+    <button class="button gps-cancel-btn" hover-class="gps-cancel-pressed" bindtap="cancelGpsMission">取消融合GPS任务</button>
+  </view>
+
+  <view class="card pose-card">
+    <view class="section-title">ROS 地图位姿</view>
+    <view class="pose-row"><text>坐标</text><text>{{state.x}} m, {{state.y}} m</text></view>
+    <view class="pose-row"><text>方向角</text><text>{{state.yaw}}°</text></view>
+  </view>
+</view>

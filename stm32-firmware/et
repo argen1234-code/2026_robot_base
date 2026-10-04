@@ -1,0 +1,248 @@
+warning: in the working copy of 'h7_lvgl_rtos_base/Drivers/Hardware/bsp_bluetooth.c', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'h7_lvgl_rtos_base/Drivers/Hardware/bsp_bluetooth.h', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'h7_lvgl_rtos_base/MDK-ARM/RTE/_STM32H743/RTE_Components.h', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'h7_lvgl_rtos_base/MDK-ARM/STM32H743.uvguix.han_z', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'h7_lvgl_rtos_base/MDK-ARM/STM32H743.uvoptx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'h7_lvgl_rtos_base/Middware/App/app_remote_control.h', LF will be replaced by CRLF the next time Git touches it
+ h7_lvgl_rtos_base/Drivers/Hardware/bsp_bluetooth.c |    185 [32m+[m[31m-[m
+ h7_lvgl_rtos_base/Drivers/Hardware/bsp_bluetooth.h |     50 [32m+[m
+ .../MDK-ARM/RTE/_STM32H743/RTE_Components.h        |      6 [32m+[m
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743.uvguix.han_z   |    169 [32m+[m[31m-[m
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743.uvoptx         |    154 [32m+[m[31m-[m
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/STM32H743.axf  |    Bin [31m7890332[m -> [32m8126580[m bytes
+ .../MDK-ARM/STM32H743/STM32H743.build_log.htm      |     41 [32m+[m[31m-[m
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/STM32H743.hex  |  54265 [32m++[m[31m--[m
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/STM32H743.htm  |  29478 [32m++[m[31m-[m
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/STM32H743.lnp  |      6 [32m+[m[31m-[m
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/STM32H743.map  |  16076 [32m+[m[31m-[m
+ .../MDK-ARM/STM32H743/STM32H743_STM32H743.dep      |  40787 [32m+[m[31m--[m
+ .../MDK-ARM/STM32H743/app_chassis_board.crf        |    Bin [31m1616372[m -> [32m1634938[m bytes
+ .../MDK-ARM/STM32H743/app_chassis_board.d          |      1 [32m+[m
+ .../MDK-ARM/STM32H743/app_chassis_board.o          |    Bin [31m1786544[m -> [32m1834816[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/app_key.crf    |    Bin [31m1513491[m -> [32m1513491[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/app_key.o      |    Bin [31m1688060[m -> [32m1688036[m bytes
+ .../MDK-ARM/STM32H743/app_navigation.crf           |    Bin [31m1528133[m -> [32m1534523[m bytes
+ .../MDK-ARM/STM32H743/app_navigation.d             |      1 [32m+[m
+ .../MDK-ARM/STM32H743/app_navigation.o             |    Bin [31m1718436[m -> [32m1723156[m bytes
+ .../MDK-ARM/STM32H743/app_remote_control.crf       |    Bin [31m1521739[m -> [32m1529479[m bytes
+ .../MDK-ARM/STM32H743/app_remote_control.d         |      2 [32m+[m[31m-[m
+ .../MDK-ARM/STM32H743/app_remote_control.o         |    Bin [31m1701272[m -> [32m1706500[m bytes
+ .../MDK-ARM/STM32H743/app_voice_recognition.crf    |    Bin [31m1523610[m -> [32m1530041[m bytes
+ .../MDK-ARM/STM32H743/app_voice_recognition.d      |      1 [32m+[m
+ .../MDK-ARM/STM32H743/app_voice_recognition.o      |    Bin [31m1706972[m -> [32m1716552[m bytes
+ .../MDK-ARM/STM32H743/bsp_bluetooth.crf            |    Bin [31m1512871[m -> [32m1520362[m bytes
+ .../MDK-ARM/STM32H743/bsp_bluetooth.d              |      1 [32m+[m
+ .../MDK-ARM/STM32H743/bsp_bluetooth.o              |    Bin [31m1694700[m -> [32m1726004[m bytes
+ .../MDK-ARM/STM32H743/bsp_encoder.crf              |    Bin [31m1512992[m -> [32m1512992[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_encoder.o  |    Bin [31m1690848[m -> [32m1690828[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_exti.crf   |    Bin [31m1511859[m -> [32m1511859[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_exti.o     |    Bin [31m1687792[m -> [32m1687768[m bytes
+ .../MDK-ARM/STM32H743/bsp_fatfs_diskio.crf         |    Bin [31m1826263[m -> [32m1826263[m bytes
+ .../MDK-ARM/STM32H743/bsp_fatfs_diskio.o           |    Bin [31m1963096[m -> [32m1962800[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_gps.crf    |    Bin [31m1541912[m -> [32m1542372[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_gps.o      |    Bin [31m1718576[m -> [32m1718780[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_jy901s.crf |    Bin [31m1531839[m -> [32m1531839[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_jy901s.o   |    Bin [31m1713936[m -> [32m1713904[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_motor.crf  |    Bin [31m1519578[m -> [32m1519578[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_motor.o    |    Bin [31m1698768[m -> [32m1698752[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_oled.crf   |    Bin [31m1528506[m -> [32m1528506[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_oled.o     |    Bin [31m1727680[m -> [32m1727608[m bytes
+ .../MDK-ARM/STM32H743/bsp_qmc5883.crf              |    Bin [31m1513062[m -> [32m1513735[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_qmc5883.o  |    Bin [31m1695896[m -> [32m1698236[m bytes
+ .../MDK-ARM/STM32H743/bsp_qspi_flash.crf           |    Bin [31m1526697[m -> [32m1526697[m bytes
+ .../MDK-ARM/STM32H743/bsp_qspi_flash.o             |    Bin [31m1720240[m -> [32m1720200[m bytes
+ .../MDK-ARM/STM32H743/bsp_tf_card.crf              |    Bin [31m1515765[m -> [32m1515765[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_tf_card.o  |    Bin [31m1696276[m -> [32m1696248[m bytes
+ .../MDK-ARM/STM32H743/bsp_tf_image_load.crf        |    Bin [31m1840628[m -> [32m1841413[m bytes
+ .../MDK-ARM/STM32H743/bsp_tf_image_load.o          |    Bin [31m1965120[m -> [32m1965216[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_timer.crf  |    Bin [31m1511701[m -> [32m1511701[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_timer.o    |    Bin [31m1685312[m -> [32m1685304[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_uart.crf   |    Bin [31m1526057[m -> [32m1528990[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_uart.o     |    Bin [31m1715468[m -> [32m1718704[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_usb.crf    |    Bin [31m1542929[m -> [32m1542929[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/bsp_usb.o      |    Bin [31m1714220[m -> [32m1714184[m bytes
+ .../MDK-ARM/STM32H743/bsp_wit_c_sdk.crf            |    Bin [31m25897[m -> [32m25897[m bytes
+ .../MDK-ARM/STM32H743/bsp_wit_c_sdk.o              |    Bin [31m72080[m -> [32m72128[m bytes
+ .../MDK-ARM/STM32H743/bsp_wonderecho.crf           |    Bin [31m1518124[m -> [32m1518124[m bytes
+ .../MDK-ARM/STM32H743/bsp_wonderecho.o             |    Bin [31m1705152[m -> [32m1705116[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/cmsis_os2.crf  |    Bin [31m1600660[m -> [32m1600660[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/cmsis_os2.o    |    Bin [31m1882464[m -> [32m1882252[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/croutine.crf   |    Bin [31m40934[m -> [32m40934[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/croutine.o     |    Bin [31m46372[m -> [32m46456[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/dma.crf        |    Bin [31m1511990[m -> [32m1511990[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/dma.o          |    Bin [31m1687164[m -> [32m1687148[m bytes
+ .../MDK-ARM/STM32H743/event_groups.crf             |    Bin [31m55369[m -> [32m55369[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/event_groups.o |    Bin [31m80588[m -> [32m80636[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/ff.crf         |    Bin [31m42923[m -> [32m42923[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/ff.o           |    Bin [31m112568[m -> [32m112548[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/freertos.crf   |    Bin [31m1854354[m -> [32m1860814[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/freertos.d     |      1 [32m+[m
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/freertos.o     |    Bin [31m1968756[m -> [32m1973160[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/gifdec.crf     |    Bin [31m57971[m -> [32m57971[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/gifdec.o       |    Bin [31m64448[m -> [32m64512[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/gpio.crf       |    Bin [31m1514167[m -> [32m1514167[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/gpio.o         |    Bin [31m1688420[m -> [32m1688404[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/heap_4.crf     |    Bin [31m46772[m -> [32m46772[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/heap_4.o       |    Bin [31m61820[m -> [32m61900[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/i2c.crf        |    Bin [31m1512750[m -> [32m1512750[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/i2c.o          |    Bin [31m1691400[m -> [32m1691376[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lcd_fonts.crf  |    Bin [31m4699[m -> [32m4699[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lcd_fonts.o    |    Bin [31m63872[m -> [32m63968[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lcd_rgb.crf    |    Bin [31m1844424[m -> [32m1844424[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lcd_rgb.o      |    Bin [31m2005680[m -> [32m2005356[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/led.crf        |    Bin [31m1510800[m -> [32m1510800[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/led.o          |    Bin [31m1685492[m -> [32m1685476[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/list.crf       |    Bin [31m34917[m -> [32m34917[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/list.o         |    Bin [31m49336[m -> [32m49420[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lodepng.crf    |    Bin [31m298096[m -> [32m298096[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lodepng.o      |    Bin [31m277352[m -> [32m277216[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_anim.crf    |    Bin [31m97487[m -> [32m97487[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_anim.o      |    Bin [31m122104[m -> [32m122076[m bytes
+ .../MDK-ARM/STM32H743/lv_anim_timeline.crf         |    Bin [31m50556[m -> [32m50556[m bytes
+ .../MDK-ARM/STM32H743/lv_anim_timeline.o           |    Bin [31m74772[m -> [32m74820[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_animimg.crf |    Bin [31m300366[m -> [32m300366[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_animimg.o   |    Bin [31m295232[m -> [32m295052[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_arc.crf     |    Bin [31m217989[m -> [32m217989[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_arc.o       |    Bin [31m227076[m -> [32m227016[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_area.crf    |    Bin [31m48835[m -> [32m48835[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_area.o      |    Bin [31m81828[m -> [32m81884[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_async.crf   |    Bin [31m43492[m -> [32m43492[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_async.o     |    Bin [31m54644[m -> [32m54712[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_bar.crf     |    Bin [31m215839[m -> [32m215839[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_bar.o       |    Bin [31m215072[m -> [32m215016[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_bidi.crf    |    Bin [31m57324[m -> [32m57324[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_bidi.o      |    Bin [31m65212[m -> [32m65276[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_bmp.crf     |    Bin [31m297996[m -> [32m297996[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_bmp.o       |    Bin [31m276356[m -> [32m276232[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_btn.crf     |    Bin [31m205719[m -> [32m205719[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_btn.o       |    Bin [31m170072[m -> [32m170064[m bytes
+ .../MDK-ARM/STM32H743/lv_btnmatrix.crf             |    Bin [31m222270[m -> [32m222270[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_btnmatrix.o |    Bin [31m246936[m -> [32m246812[m bytes
+ .../MDK-ARM/STM32H743/lv_calendar.crf              |    Bin [31m305206[m -> [32m305206[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_calendar.o  |    Bin [31m312260[m -> [32m312108[m bytes
+ .../MDK-ARM/STM32H743/lv_calendar_header_arrow.crf |    Bin [31m216235[m -> [32m216235[m bytes
+ .../MDK-ARM/STM32H743/lv_calendar_header_arrow.o   |    Bin [31m186020[m -> [32m185984[m bytes
+ .../STM32H743/lv_calendar_header_dropdown.crf      |    Bin [31m219015[m -> [32m219015[m bytes
+ .../STM32H743/lv_calendar_header_dropdown.o        |    Bin [31m187884[m -> [32m187828[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_canvas.crf  |    Bin [31m224417[m -> [32m224417[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_canvas.o    |    Bin [31m225612[m -> [32m225552[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_chart.crf   |    Bin [31m333815[m -> [32m333815[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_chart.o     |    Bin [31m401436[m -> [32m401156[m bytes
+ .../MDK-ARM/STM32H743/lv_checkbox.crf              |    Bin [31m206235[m -> [32m206235[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_checkbox.o  |    Bin [31m194692[m -> [32m194636[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_color.crf   |    Bin [31m64523[m -> [32m64523[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_color.o     |    Bin [31m82680[m -> [32m82728[m bytes
+ .../MDK-ARM/STM32H743/lv_colorwheel.crf            |    Bin [31m310877[m -> [32m310877[m bytes
+ .../MDK-ARM/STM32H743/lv_colorwheel.o              |    Bin [31m332540[m -> [32m332332[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_disp.crf    |    Bin [31m209281[m -> [32m209281[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_disp.o      |    Bin [31m207308[m -> [32m207236[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_draw.crf    |    Bin [31m145941[m -> [32m145941[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_draw.o      |    Bin [31m136956[m -> [32m136964[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_arc.crf              |    Bin [31m133477[m -> [32m133477[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_draw_arc.o  |    Bin [31m130020[m -> [32m130024[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_img.crf              |    Bin [31m204839[m -> [32m204839[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_draw_img.o  |    Bin [31m184828[m -> [32m184784[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_label.crf            |    Bin [31m205670[m -> [32m205670[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_label.o              |    Bin [31m178684[m -> [32m178644[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_line.crf             |    Bin [31m201964[m -> [32m201964[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_draw_line.o |    Bin [31m166908[m -> [32m166888[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_mask.crf             |    Bin [31m158277[m -> [32m158277[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_draw_mask.o |    Bin [31m200376[m -> [32m200292[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_rect.crf             |    Bin [31m131799[m -> [32m131799[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_draw_rect.o |    Bin [31m129688[m -> [32m129684[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl.crf              |    Bin [31m36776[m -> [32m36776[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_draw_sdl.o  |    Bin [31m44460[m -> [32m44548[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_arc.crf          |    Bin [31m36780[m -> [32m36780[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_arc.o            |    Bin [31m44516[m -> [32m44604[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_bg.crf           |    Bin [31m36779[m -> [32m36779[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_bg.o             |    Bin [31m44504[m -> [32m44584[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_composite.crf    |    Bin [31m36786[m -> [32m36786[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_composite.o      |    Bin [31m44604[m -> [32m44684[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_img.crf          |    Bin [31m36780[m -> [32m36780[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_img.o            |    Bin [31m44516[m -> [32m44604[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_label.crf        |    Bin [31m36782[m -> [32m36782[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_label.o          |    Bin [31m44548[m -> [32m44628[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_line.crf         |    Bin [31m36781[m -> [32m36781[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_line.o           |    Bin [31m44524[m -> [32m44612[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_mask.crf         |    Bin [31m36781[m -> [32m36781[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_mask.o           |    Bin [31m44524[m -> [32m44612[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_polygon.crf      |    Bin [31m36784[m -> [32m36784[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_polygon.o        |    Bin [31m44572[m -> [32m44660[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_rect.crf         |    Bin [31m36781[m -> [32m36781[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_rect.o           |    Bin [31m44524[m -> [32m44612[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_stack_blur.crf   |    Bin [31m36923[m -> [32m36923[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_stack_blur.o     |    Bin [31m45660[m -> [32m45736[m bytes
+ .../STM32H743/lv_draw_sdl_texture_cache.crf        |    Bin [31m36790[m -> [32m36790[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_texture_cache.o  |    Bin [31m44660[m -> [32m44740[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_utils.crf        |    Bin [31m36782[m -> [32m36782[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sdl_utils.o          |    Bin [31m44548[m -> [32m44628[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_draw_sw.crf |    Bin [31m146548[m -> [32m146548[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_draw_sw.o   |    Bin [31m141312[m -> [32m141344[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_arc.crf           |    Bin [31m155143[m -> [32m155143[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_arc.o             |    Bin [31m154860[m -> [32m154896[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_blend.crf         |    Bin [31m215633[m -> [32m215633[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_blend.o           |    Bin [31m200264[m -> [32m200256[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_dither.crf        |    Bin [31m105599[m -> [32m105599[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_dither.o          |    Bin [31m100028[m -> [32m100096[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_gradient.crf      |    Bin [31m134281[m -> [32m134281[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_gradient.o        |    Bin [31m145444[m -> [32m145472[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_img.crf           |    Bin [31m207302[m -> [32m207302[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_img.o             |    Bin [31m176928[m -> [32m176932[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_letter.crf        |    Bin [31m207456[m -> [32m207456[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_letter.o          |    Bin [31m175692[m -> [32m175704[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_line.crf          |    Bin [31m210864[m -> [32m210864[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_line.o            |    Bin [31m181860[m -> [32m181856[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_polygon.crf       |    Bin [31m148200[m -> [32m148200[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_polygon.o         |    Bin [31m141876[m -> [32m141912[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_rect.crf          |    Bin [31m225075[m -> [32m225075[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_sw_rect.o            |    Bin [31m210592[m -> [32m210580[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_triangle.crf         |    Bin [31m131742[m -> [32m131742[m bytes
+ .../MDK-ARM/STM32H743/lv_draw_triangle.o           |    Bin [31m125580[m -> [32m125592[m bytes
+ .../MDK-ARM/STM32H743/lv_dropdown.crf              |    Bin [31m229626[m -> [32m229626[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_dropdown.o  |    Bin [31m256196[m -> [32m256100[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_event.crf   |    Bin [31m207861[m -> [32m207861[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_event.o     |    Bin [31m212240[m -> [32m212160[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_extra.crf   |    Bin [31m296288[m -> [32m296288[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_extra.o     |    Bin [31m272740[m -> [32m272592[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_ffmpeg.crf  |    Bin [31m298427[m -> [32m298427[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_ffmpeg.o    |    Bin [31m277280[m -> [32m277132[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_flex.crf    |    Bin [31m223545[m -> [32m223545[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_flex.o      |    Bin [31m228792[m -> [32m228732[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_font.crf    |    Bin [31m54911[m -> [32m54911[m bytes
+ h7_lvgl_rtos_base/MDK-ARM/STM32H743/lv_font.o      |    Bin [31m68184[m -> [32m68240[m bytes
+ .../STM32H743/lv_font_dejavu_16_persian_hebrew.crf |    Bin [31m296118[m -> [32m296118[m bytes
+ .../STM32H743/lv_font_dejavu_16_persian_hebrew.o   |    Bin [31m271328[m -> [32m271200[m bytes
+ .../MDK-ARM/STM32H743/lv_font_fmt_txt.crf          |    Bin [31m101707[m -> [32m101707[m bytes
+ .../MDK-ARM/STM32H743/lv_font_fmt_txt.o            |    Bin [31m110552[m -> [32m110568[m bytes
+ .../MDK-ARM/STM32H743/lv_font_loader.crf           |    Bin [31m306984[m -> [32m306984[m bytes
+ .../MDK-ARM/STM32H743/lv_font_loader.o             |    Bin [31m298412[m -> [32m298268[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_10.crf    |    Bin [31m296107[m -> [32m296107[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_10.o      |    Bin [31m271180[m -> [32m271044[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_12.crf    |    Bin [31m296107[m -> [32m296107[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_12.o      |    Bin [31m271180[m -> [32m271044[m bytes
+ .../STM32H743/lv_font_montserrat_12_subpx.crf      |    Bin [31m296113[m -> [32m296113[m bytes
+ .../STM32H743/lv_font_montserrat_12_subpx.o        |    Bin [31m271260[m -> [32m271132[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_14.crf    |    Bin [31m296710[m -> [32m296710[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_14.o      |    Bin [31m286616[m -> [32m286484[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_16.crf    |    Bin [31m296107[m -> [32m296107[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_16.o      |    Bin [31m271180[m -> [32m271044[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_18.crf    |    Bin [31m296107[m -> [32m296107[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_18.o      |    Bin [31m271180[m -> [32m271044[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_20.crf    |    Bin [31m296710[m -> [32m296710[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_20.o      |    Bin [31m294772[m -> [32m294640[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_22.crf    |    Bin [31m296107[m -> [32m296107[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_22.o      |    Bin [31m271180[m -> [32m271044[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_24.crf    |    Bin [31m296107[m -> [32m296107[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_24.o      |    Bin [31m271180[m -> [32m271044[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_26.crf    |    Bin [31m296107[m -> [32m296107[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_26.o      |    Bin [31m271180[m -> [32m271044[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_28.crf    |    Bin [31m296107[m -> [32m296107[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_28.o      |    Bin [31m271180[m -> [32m271044[m bytes
+ .../STM32H743/lv_font_montserrat_28_compressed.crf |    Bin [31m296118[m -> [32m296118[m bytes
+ .../STM32H743/lv_font_montserrat_28_compressed.o   |    Bin [31m271328[m -> [32m271200[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_30.crf    |    Bin [31m296107[m -> [32m296107[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_30.o      |    Bin [31m271180[m -> [32m271044[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_32.crf    |    Bin [31m296107[m -> [32m296107[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_32.o      |    Bin [31m271180[m -> [32m271044[m bytes
+ .../MDK-ARM/STM32H743/lv_font_montserrat_34.crf    |    Bin [31m296107[m -> [32m296107[m bytes
+ .../MDK-ARM/ST

@@ -1,0 +1,37 @@
+<view class="page">
+  <view class="card hero">
+    <view class="row"><view class="title">{{state.robot_id}}</view><text class="tag {{state.online ? '' : 'offline'}}">{{state.online ? '机器人在线' : (state.mqtt_connected ? '等待机器人' : 'MQTT离线')}}</text></view>
+    <view class="muted">最近通信：{{lastSeen}}</view>
+    <view class="mode">{{modeName}}</view>
+  </view>
+  <view class="card mode-selector">
+    <view class="section-title">工作模式</view>
+    <view class="mode-entry-row">
+      <button
+        wx:for="{{modeOptions}}"
+        wx:key="value"
+        class="mode-entry {{state.mode === item.value ? 'active' : ''}} {{switchingMode === item.value ? 'switching' : ''}}"
+        disabled="{{switchingMode !== 0}}"
+        data-mode="{{item.value}}"
+        hover-class="mode-entry-pressed"
+        hover-stay-time="100"
+        bindtap="enterMode"
+      >{{item.label}}</button>
+    </view>
+  </view>
+  <view class="card grid">
+    <view><text class="label">地图坐标</text><text>{{state.x}} m, {{state.y}} m</text></view>
+    <view><text class="label">方向角</text><text>{{state.yaw}}°</text></view>
+    <view><text class="label">经度</text><text>{{state.longitude_car}}</text></view>
+    <view><text class="label">纬度</text><text>{{state.latitude_car}}</text></view>
+  </view>
+  <view class="card status-list">
+    <view class="row item"><text>MQTT</text><text>{{state.mqtt_status}}</text></view>
+    <view wx:if="{{state.mqtt_error}}" class="mqtt-error">{{state.mqtt_error}}</view>
+    <view class="row item"><text>导航状态</text><text>{{state.navigation_state}}</text></view>
+    <view class="row item"><text>GPS</text><text>{{state.gps_valid ? '有效' : '无效'}}</text></view>
+    <view class="row item"><text>激光雷达</text><text>{{state.lidar_ok ? '正常' : '异常'}}</text></view>
+    <view class="row item"><text>STM32</text><text>{{state.stm32_ok ? '正常' : '异常'}}</text></view>
+  </view>
+  <button class="button primary" hover-class="primary-pressed" hover-stay-time="80" bindtap="reconnect">重新连接 MQTT</button>
+</view>

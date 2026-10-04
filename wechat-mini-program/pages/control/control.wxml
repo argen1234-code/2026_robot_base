@@ -1,0 +1,15 @@
+<view class="page">
+  <view class="card"><view class="title">遥控模式</view><view class="muted">{{modeStatus}}</view></view>
+  <view class="card modes"><view class="section-title">模式页面</view><view class="mode-row"><button wx:for="{{modes}}" wx:key="value" class="mode-btn {{item.value === selectedMode ? 'selected' : ''}} {{item.value === pendingMode ? 'pending' : ''}}" disabled="{{pendingMode !== 0}}" hover-class="mode-pressed" hover-stay-time="80" data-mode="{{item.value}}" bindtap="switchMode">{{item.label}}</button></view></view>
+  <view class="card control-map-card" bindtap="goIndoor">
+    <view class="row"><view class="section-title">实时地图</view><text class="map-link">进入室内页 ›</text></view>
+    <view class="control-map-stage">
+      <image wx:if="{{mapImagePath}}" class="control-map-image" src="{{mapImagePath}}" mode="aspectFit" />
+      <canvas class="control-map-overlay" canvas-id="controlMapOverlay" width="{{mapCanvasWidth}}" height="{{mapCanvasHeight}}" />
+      <view wx:if="{{!mapImagePath}}" class="control-map-empty">等待 ROS 地图</view>
+    </view>
+  </view>
+  <view class="card pad"><view class="section-title">按住移动，松开停止</view><view class="pad-grid"><view></view><button class="move" hover-class="move-pressed" hover-stay-time="80" data-command="FORWARD" catchtouchstart="move" catchtouchend="stop" catchtouchcancel="stop">前进</button><view></view><button class="move" hover-class="move-pressed" hover-stay-time="80" data-command="LEFT" catchtouchstart="move" catchtouchend="stop" catchtouchcancel="stop">左转</button><button class="move stop" hover-class="stop-pressed" hover-stay-time="80" bindtap="stop">停止</button><button class="move" hover-class="move-pressed" hover-stay-time="80" data-command="RIGHT" catchtouchstart="move" catchtouchend="stop" catchtouchcancel="stop">右转</button><view></view><button class="move" hover-class="move-pressed" hover-stay-time="80" data-command="BACKWARD" catchtouchstart="move" catchtouchend="stop" catchtouchcancel="stop">后退</button><view></view></view></view>
+  <view class="card"><view class="section-title">速度：{{speed}}%</view><slider min="0" max="100" step="10" value="{{speed}}" bindchange="speedChange" show-value /></view>
+  <button class="button danger emergency" hover-class="danger-pressed" hover-stay-time="100" bindtap="emergency">急停</button>
+</view>

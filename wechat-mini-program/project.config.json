@@ -1,0 +1,31 @@
+{
+  "description": "机器人远程控制小程序",
+  "compileType": "miniprogram",
+  "miniprogramRoot": "",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": false,
+    "compileHotReLoad": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "appid": "wx888840c0a38a8ed7",
+  "projectname": "robot-mini-program",
+  "condition": {},
+  "libVersion": "3.17.1",
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
+  }
+}

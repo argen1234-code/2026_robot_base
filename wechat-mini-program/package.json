@@ -1,0 +1,8 @@
+{
+  "name": "robot-mini-program",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "mqtt": "4.3.7"
+  }
+}
