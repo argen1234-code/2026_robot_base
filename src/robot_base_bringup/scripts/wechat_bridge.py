@@ -177,6 +177,20 @@ class WechatBridge(Node):
         elif command == 'INDOOR_MISSION_CANCEL':
             self.cancel_mission()
             self.set_mode(2)
+        elif command == 'INDOOR_RECORD_POINT':
+            try:
+                trans = self.tf.lookup_transform('map', 'base_footprint', rclpy.time.Time())
+                q = trans.transform.rotation
+                yaw = math.atan2(2 * (q.w * q.z + q.x * q.y),
+                                 1 - 2 * (q.y * q.y + q.z * q.z))
+                self.publish('mission_pub_topic', {
+                    'state': 'RECORDED_POINT',
+                    'point': {'x': round(trans.transform.translation.x, 4),
+                              'y': round(trans.transform.translation.y, 4),
+                              'yaw': round(yaw, 4)}})
+            except TransformException:
+                self.publish('mission_pub_topic', {
+                    'state': 'ERROR', 'message': 'map pose unavailable'})
         elif command == 'INDOOR_MISSION_START':
             if not self.action.server_is_ready():
                 self.publish('mission_pub_topic', {'state': 'ERROR', 'message': 'Nav2 unavailable'})

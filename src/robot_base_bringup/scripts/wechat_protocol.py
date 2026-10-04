@@ -20,7 +20,7 @@ def parse_command(payload):
             raise ValueError('non-finite speed')
         return name, max(0.0, min(speed, 100.0)) / 100.0
     if name in ('REMOTE', 'INDOOR', 'LINE', 'EMERGENCY', 'RESET_EMERGENCY',
-                'INDOOR_MISSION_CANCEL'):
+                'INDOOR_MISSION_CANCEL', 'INDOOR_RECORD_POINT'):
         return name, None
     if name == 'INDOOR_MISSION_START':
         if str(data.get('patrol_mode', 'ONCE')).upper() != 'ONCE':

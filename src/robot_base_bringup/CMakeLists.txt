@@ -7,6 +7,9 @@ find_package(ament_cmake REQUIRED)
 install(DIRECTORY launch config worlds
   DESTINATION share/${PROJECT_NAME}
 )
+install(DIRECTORY udev
+  DESTINATION share/${PROJECT_NAME}
+)
 
 install(PROGRAMS scripts/chassis_bridge.py scripts/wechat_bridge.py DESTINATION lib/${PROJECT_NAME})
 install(FILES scripts/chassis_protocol.py scripts/wechat_protocol.py scripts/wechat_map.py

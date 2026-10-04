@@ -1,0 +1,6 @@
+# STM32H743 USB CDC used by the chassis bridge.
+# Match the unique USB serial number so the alias survives USB reordering.
+SUBSYSTEM=="tty", KERNEL=="ttyACM*", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", ATTRS{serial}=="3159396C3430", GROUP="dialout", MODE="0660", SYMLINK+="stm32"
+
+# YDLIDAR T-mini Pro (CP2102). Keep this separate from the STM32 CDC port.
+SUBSYSTEM=="tty", KERNEL=="ttyUSB*", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{devpath}=="2.3", GROUP="dialout", MODE="0660", SYMLINK+="ydlidar"

@@ -19,7 +19,7 @@ def generate_launch_description():
         DeclareLaunchArgument('map', description='Saved map YAML file'),
         DeclareLaunchArgument('lidar_port', default_value='/dev/ydlidar'),
         DeclareLaunchArgument('motor_enable', default_value='false'),
-        DeclareLaunchArgument('mcu_port', default_value='/dev/ttyACM0'),
+        DeclareLaunchArgument('mcu_port', default_value='/dev/stm32'),
         DeclareLaunchArgument('wechat', default_value='false', description='Enable TLS MQTT bridge'),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(base_launch),

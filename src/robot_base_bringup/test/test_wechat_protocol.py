@@ -15,6 +15,8 @@ class WechatProtocolTest(unittest.TestCase):
     def test_direction_speed_is_bounded(self):
         self.assertEqual(parse_command(b'{"command":"FORWARD","speed":250}'), ('FORWARD', 1.0))
         self.assertEqual(parse_command(b'{"command":"LEFT","speed":-5}'), ('LEFT', 0.0))
+        self.assertEqual(parse_command(b'{"command":"INDOOR_RECORD_POINT"}'),
+                         ('INDOOR_RECORD_POINT', None))
 
     def test_mission_waypoints_are_validated(self):
         self.assertEqual(parse_command(b'{"command":"INDOOR_MISSION_START","waypoints":[{"x":1,"y":2}]}')[0],

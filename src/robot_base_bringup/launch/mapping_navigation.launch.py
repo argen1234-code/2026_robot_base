@@ -17,7 +17,8 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('lidar_port', default_value='/dev/ydlidar'),
         DeclareLaunchArgument('motor_enable', default_value='false'),
-        DeclareLaunchArgument('mcu_port', default_value='/dev/ttyACM0'),
+        DeclareLaunchArgument('mcu_port', default_value='/dev/stm32'),
+        DeclareLaunchArgument('wechat', default_value='false', description='Enable TLS MQTT bridge'),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(bringup, 'launch', 'mapping.launch.py')),
             launch_arguments={'lidar_port': LaunchConfiguration('lidar_port')}.items()),
@@ -38,4 +39,8 @@ def generate_launch_description():
                 'command_timeout': 0.25, 'max_linear': 0.20, 'max_angular': 0.45,
             }],
             condition=IfCondition(LaunchConfiguration('motor_enable'))),
+        Node(
+            package='robot_base_bringup', executable='wechat_bridge.py',
+            name='wechat_bridge', output='screen',
+            condition=IfCondition(LaunchConfiguration('wechat'))),
     ])

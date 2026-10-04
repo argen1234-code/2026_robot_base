@@ -90,6 +90,7 @@ class ChassisBridge(Node):
                 # The MCU enumerates as USB CDC (ttyACM), not the lidar's CP2102 ttyUSB.
                 self.device = serial.Serial(self.port, baudrate=115200, timeout=0,
                                             write_timeout=0.1, exclusive=True)
+                self.get_logger().info(f'STM32 connected on {self.port} ({self.device.name}); sending zero-safe frames')
             except (serial.SerialException, OSError) as exc:
                 self.get_logger().error(f'Cannot open MCU {self.port}: {exc}', throttle_duration_sec=5.0)
                 return

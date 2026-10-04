@@ -94,10 +94,28 @@ ros2 launch robot_base_bringup navigation.launch.py map:=$HOME/maps/robot_map.ya
 确认扫描、定位和路径都正常后，架空驱动轮并显式启用底盘输出：
 
 ```bash
-ros2 launch robot_base_bringup navigation.launch.py map:=$HOME/maps/robot_map.yaml motor_enable:=true mcu_port:=/dev/ttyACM0
+ros2 launch robot_base_bringup navigation.launch.py map:=$HOME/maps/robot_map.yaml motor_enable:=true mcu_port:=/dev/stm32
 ```
 
-`chassis_bridge` 按 STM32 `develop` 固件 `bsp_usb.c` 的 12 字节 USB CDC 帧发送模式 3、速度 float 和 XOR 校验；ROS 前进速度会按固件约定转换为负 Vx。桥接限速为 0.20 m/s、0.45 rad/s，命令超时 0.25 秒即周期发送零速，短于 MCU 的 0.5 秒离线保护。MCU 通常枚举为 `/dev/ttyACM*`；不要把它配置成雷达的 `/dev/ydlidar`。固件室内模式不支持倒车和横移，桥接会拒绝倒车命令。首次上电请架空车轮并备好物理急停；完成实际方向、轮廓尺寸和制动距离标定前，不要无人值守运行。
+`chassis_bridge` 按 STM32 `develop` 固件 `bsp_usb.c` 的 12 字节 USB CDC 帧发送模式 3、速度 float 和 XOR 校验；ROS 前进速度会按固件约定转换为负 Vx。桥接限速为 0.20 m/s、0.45 rad/s，命令超时 0.25 秒即周期发送零速，短于 MCU 的 0.5 秒离线保护。STM32 通过唯一序列号固定为 `/dev/stm32`，不要把它配置成雷达的 `/dev/ydlidar`。固件室内模式不支持倒车和横移，桥接会拒绝倒车命令。首次上电请架空车轮并备好物理急停；完成实际方向、轮廓尺寸和制动距离标定前，不要无人值守运行。
+
+首次部署 udev 规则（规则模板位于 `src/robot_base_bringup/udev/99-robot-base.rules`）：
+
+```bash
+sudo install -m 0644 install/robot_base_bringup/share/robot_base_bringup/udev/99-robot-base.rules /etc/udev/rules.d/99-robot-base.rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger --subsystem-match=tty
+ls -l /dev/stm32 /dev/ydlidar
+```
+
+只验证通信、不驱动车轮（发送 12 字节零速度帧）：
+
+```bash
+source install/setup.bash
+ros2 run robot_base_bringup chassis_bridge.py --ros-args -p port:=/dev/stm32 -p enabled:=true
+```
+
+桥接启动日志出现 `STM32 connected` 即表示串口已打开；验证时不要发布非零 `/cmd_vel`。
 
 微信小程序桥接按参考工程的 MQTT JSON/topic 协议实现，默认关闭。Broker 默认设为 `i6130f30.ala.cn-hangzhou.emqxsl.cn:8883`（MQTT over TLS）；TLS 使用系统 CA 信任链验证，无需把公共根证书内容作为密钥写入仓库。WebSocket TLS 端口 `8084` 不用于当前 ROS MQTT 客户端。先安装依赖 `sudo apt install python3-paho-mqtt`，配置 MQTT 用户名和密码，再分别显式启用导航、电机、微信桥接：
 
@@ -111,6 +129,10 @@ ros2 launch robot_base_bringup navigation.launch.py map:=$HOME/maps/robot_map.ya
 如需覆盖默认连接地址，可设置 `WECHAT_MQTT_BROKER` 和 `WECHAT_MQTT_PORT`。EMQX 管理 API Key 用于管理 REST API，不是 MQTT 登录凭据；请在 EMQX 控制台创建 MQTT 用户名/密码。API Key、用户名和密码均不要提交到 Git。
 
 默认 topic 与参考小程序一致：订阅 `/k1ck5t83zdZ/test/user/get`，发布机器人状态、地图、路径和任务到 `robot`、`map`、`path`、`mission`。命令支持 `REMOTE`/`INDOOR`、方向键、`STOP`、`EMERGENCY`/`RESET_EMERGENCY` 和最多 30 个点的一次性 `INDOOR_MISSION_START`（坐标为 map 米，yaw 为弧度）；`LINE` 仅切换 MCU 室内模式，不启动循迹。地图以缩放灰度 PNG 的 base64 发布。急停/人工操作会撤销活动 Nav2 任务；遥控指令 0.25 秒失联自动归零。MQTT 断连后遥控速度因底盘超时归零，但既有 Nav2 任务仍继续运行。请勿在不可信网络开放云端遥控；固件物理急停仍是最终保护。
+
+微信小程序代码位于远端 `wechat-mini-program` 分支。首次配置时复制 `utils/mqtt-config.js` 为
+`utils/mqtt-config.local.js`，填入同一组 MQTT 用户名和密码；该本地文件已加入 `.gitignore`，不会提交。
+当前 Jetson 侧未实现 GPS 任务，因此小程序默认只显示遥控和室内导航页面。
 
 定位或电机不动作时，可在不启用电机的导航模式检查：
 
