@@ -6,3 +6,7 @@
 .primary-pressed { transform: translateY(4rpx) scale(.97); background: #1d4ed8 !important; opacity: .9; }
 .section-title { margin-bottom: 18rpx; font-weight: 700; }.mode-entry-row { display: flex; gap: 12rpx; }.mode-entry { flex: 1; height: 78rpx; line-height: 78rpx; margin: 0; padding: 0 6rpx; border-radius: 14rpx; color: #334155; background: #e2e8f0; font-size: 23rpx; transition: transform .08s, background-color .08s, box-shadow .08s; }.mode-entry::after { border: 0; }.mode-entry.active { color: #fff; background: #1e3a8a; box-shadow: 0 7rpx 15rpx rgba(30,58,138,.28); }.mode-entry.switching { color: #fff; background: #2563eb; }.mode-entry-pressed { transform: translateY(5rpx) scale(.95); background: #0f245f !important; color: #fff !important; }
 .mode-entry-row { display: grid; grid-template-columns: 1fr 1fr; }.mode-entry { width: 100%; }
+.mqtt-settings { padding: 20rpx 0; }
+.mqtt-input { height: 78rpx; margin: 12rpx 0; padding: 0 18rpx; border: 1rpx solid #cbd5e1; border-radius: 8rpx; background: #fff; font-size: 27rpx; box-sizing: border-box; }
+.mqtt-actions { display: flex; gap: 12rpx; }
+.mqtt-actions .button { flex: 1; margin: 0; padding: 0 8rpx; font-size: 26rpx; }

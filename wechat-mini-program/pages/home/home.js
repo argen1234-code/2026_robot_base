@@ -5,8 +5,12 @@ const modeOptions = [
   { value: 3, label: '室内导航', command: 'INDOOR', url: '/pages/indoor/indoor' }
 ]
 Page({
-  data: { state: app.globalData.state, modeName: '', lastSeen: '', modeOptions, switchingMode: 0 },
-  onLoad() { this.unsubscribe = app.globalData.api.onState(state => this.applyState(state)) },
+  data: { state: app.globalData.state, modeName: '', lastSeen: '', modeOptions, switchingMode: 0,
+    mqttUsername: '', mqttPassword: '' },
+  onLoad() {
+    this.setData({ mqttUsername: app.globalData.api.getCredentials().username || '' })
+    this.unsubscribe = app.globalData.api.onState(state => this.applyState(state))
+  },
   onUnload() { if (this.unsubscribe) this.unsubscribe() },
   onShow() { this.refresh() },
   applyState(state) {
@@ -30,7 +34,30 @@ Page({
   },
   reconnect() {
     app.globalData.api.reconnect()
-    wx.showToast({ title: '正在重新连接', icon: 'none' })
+    wx.showToast({ title: app.globalData.api.getState().mqtt_status, icon: 'none' })
+  },
+  usernameInput(event) { this.setData({ mqttUsername: event.detail.value }) },
+  passwordInput(event) { this.setData({ mqttPassword: event.detail.value }) },
+  saveMqtt() {
+    try {
+      app.globalData.api.saveCredentials(this.data.mqttUsername, this.data.mqttPassword)
+      this.setData({ mqttPassword: '' })
+      wx.showToast({ title: '已保存，正在连接', icon: 'none' })
+    } catch (error) {
+      wx.showToast({ title: error.message || '保存失败', icon: 'none' })
+    }
+  },
+  clearMqtt() {
+    wx.showModal({ title: '清除 MQTT 账号', content: '将断开小程序与机器人的连接。',
+      success: result => {
+        if (!result.confirm) return
+        try {
+          app.globalData.api.clearCredentials()
+          this.setData({ mqttUsername: '', mqttPassword: '' })
+        } catch (error) {
+          wx.showToast({ title: error.message || '清除失败', icon: 'none' })
+        }
+      } })
   },
   enterMode(event) {
     const mode = Number(event.currentTarget.dataset.mode)

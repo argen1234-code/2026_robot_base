@@ -133,8 +133,7 @@ ros2 launch robot_base_bringup navigation.launch.py map:=$HOME/maps/robot_map.ya
 
 默认 topic 与参考小程序一致：订阅 `/k1ck5t83zdZ/test/user/get`，发布机器人状态、地图、路径和任务到 `robot`、`map`、`path`、`mission`。命令支持 `REMOTE`/`INDOOR`、方向键、`STOP`、`EMERGENCY`/`RESET_EMERGENCY` 和最多 30 个点的一次性 `INDOOR_MISSION_START`（坐标为 map 米，yaw 为弧度）；`LINE` 仅切换 MCU 室内模式，不启动循迹。地图以缩放灰度 PNG 的 base64 发布。急停/人工操作会撤销活动 Nav2 任务；遥控指令 0.25 秒失联自动归零。MQTT 断连后遥控速度因底盘超时归零，但既有 Nav2 任务仍继续运行。请勿在不可信网络开放云端遥控；固件物理急停仍是最终保护。
 
-微信小程序代码位于本仓库的 `wechat-mini-program/` 目录。首次配置时复制 `utils/mqtt-config.js` 为
-`utils/mqtt-config.local.js`，填入 MQTT 用户名和密码；该本地文件已加入 `.gitignore`，不会提交。
+微信小程序代码位于本仓库的 `wechat-mini-program/` 目录。首次使用在小程序「状态」页填写专用 MQTT 客户端用户名和密码，保存后连接；凭据仅保存在微信本机存储中，不会提交到 Git。云端认证/授权配置参见仓库根目录 `deploy/emqx/README.md`。
 当前 Jetson 侧未实现 GPS 任务，因此小程序默认只显示遥控和室内导航页面。
 
 EMQX 最小权限模板和管理 API 示例位于仓库根目录 `deploy/emqx/`。建议 Jetson

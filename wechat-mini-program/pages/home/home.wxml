@@ -33,5 +33,14 @@
     <view class="row item"><text>激光雷达</text><text>{{state.lidar_ok ? '正常' : '异常'}}</text></view>
     <view class="row item"><text>STM32</text><text>{{state.stm32_ok ? '正常' : '异常'}}</text></view>
   </view>
+  <view class="mqtt-settings">
+    <view class="section-title">MQTT 客户端账号</view>
+    <input class="mqtt-input" placeholder="用户名" value="{{mqttUsername}}" bindinput="usernameInput" />
+    <input class="mqtt-input" placeholder="密码（修改账号时重新输入）" password="true" value="{{mqttPassword}}" bindinput="passwordInput" />
+    <view class="mqtt-actions">
+      <button class="button primary" bindtap="saveMqtt">保存并连接</button>
+      <button class="button" bindtap="clearMqtt">清除账号</button>
+    </view>
+  </view>
   <button class="button primary" hover-class="primary-pressed" hover-stay-time="80" bindtap="reconnect">重新连接 MQTT</button>
 </view>

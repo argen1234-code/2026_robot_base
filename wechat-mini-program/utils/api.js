@@ -1,22 +1,14 @@
 const mqtt = require('./mqtt.wx.js')
-let localConfig = { username: '', password: '' }
-try { localConfig = require('./mqtt-config.local.js') } catch (error) {}
+const CREDENTIALS_KEY = 'robot_mqtt_credentials'
 
-const BROKER_URL = 'wxs://i6130f30.ala.cn-hangzhou.emqxsl.cn:8084/mqtt'
-const MQTT_OPTIONS = {
-  clientId: `wechat_001_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`,
-  username: localConfig.username || '',
-  password: localConfig.password || '',
-  clean: true,
-  connectTimeout: 10000,
-  reconnectPeriod: 3000,
-  keepalive: 30
+function getCredentials() {
+  try { return wx.getStorageSync(CREDENTIALS_KEY) || {} } catch (error) { return {} }
 }
 
+const BROKER_URL = 'wxs://i6130f30.ala.cn-hangzhou.emqxsl.cn:8084/mqtt'
 const TOPICS = {
   command: '/k1ck5t83zdZ/test/user/get',
   state: '/k1ck5t83zdZ/test/user/robot',
-  gps: '/k1ck5t83zdZ/test/user/esp8266duan',
   map: '/k1ck5t83zdZ/test/user/map',
   path: '/k1ck5t83zdZ/test/user/path',
   mission: '/k1ck5t83zdZ/test/user/mission'
@@ -109,17 +101,19 @@ function parseMessage(topic, rawPayload) {
 
   if (topic === TOPICS.state) {
     mergeState(data)
-  } else if (topic === TOPICS.gps) {
-    mergeState({
-      longitude_car: Number(data.longitude_car || 0),
-      latitude_car: Number(data.latitude_car || 0),
-      gps_valid: Number(data.longitude_car || 0) !== 0 || Number(data.latitude_car || 0) !== 0,
-      timestamp: data.timestamp || state.timestamp
-    })
   }
 }
 
 function connect() {
+  const credentials = getCredentials()
+  if (!credentials.username || !credentials.password) {
+    state.mqtt_connected = false
+    state.online = false
+    state.mqtt_status = '待配置账号'
+    state.mqtt_error = '请在状态页配置 MQTT 客户端账号和密码'
+    notify()
+    return null
+  }
   if (client) {
     if (!state.mqtt_connected) {
       state.mqtt_status = '正在重连'
@@ -134,9 +128,18 @@ function connect() {
   state.mqtt_error = ''
   notify()
 
-  console.log('MQTT 开始连接', BROKER_URL, MQTT_OPTIONS.clientId)
+  const options = {
+    clientId: `wechat_001_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`,
+    username: credentials.username,
+    password: credentials.password,
+    clean: true,
+    connectTimeout: 10000,
+    reconnectPeriod: 3000,
+    keepalive: 30
+  }
+  console.log('MQTT 开始连接', BROKER_URL, options.clientId)
   try {
-    client = mqtt.connect(BROKER_URL, MQTT_OPTIONS)
+    client = mqtt.connect(BROKER_URL, options)
   } catch (error) {
     state.mqtt_status = '连接创建失败'
     state.mqtt_error = error.message || String(error)
@@ -149,12 +152,13 @@ function connect() {
     state.mqtt_connected = true
     state.mqtt_status = '已连接，等待机器人数据'
     state.mqtt_error = ''
-    client.subscribe([TOPICS.state, TOPICS.gps, TOPICS.map, TOPICS.path, TOPICS.mission], { qos: 1 }, error => {
-      if (error) {
-        state.mqtt_error = `订阅失败：${error.message || error}`
-        console.error('MQTT 订阅失败', error)
+    client.subscribe([TOPICS.state, TOPICS.map, TOPICS.path, TOPICS.mission], { qos: 1 }, (error, granted) => {
+      const denied = (granted || []).filter(item => item.qos === 128).map(item => item.topic)
+      if (error || denied.length) {
+        state.mqtt_error = error ? `订阅失败：${error.message || error}` : `订阅被拒绝：${denied.join(', ')}`
+        console.error('MQTT 订阅失败', state.mqtt_error)
       } else {
-        console.log('MQTT 订阅成功', TOPICS.state, TOPICS.gps, TOPICS.map, TOPICS.path, TOPICS.mission)
+        console.log('MQTT 订阅成功', TOPICS.state, TOPICS.map, TOPICS.path, TOPICS.mission)
       }
       notify()
     })
@@ -190,6 +194,30 @@ function connect() {
   })
 
   return client
+}
+
+function disconnect() {
+  if (client) {
+    client.removeAllListeners()
+    client.end(true)
+    client = null
+  }
+  state.mqtt_connected = false
+  state.online = false
+}
+
+function saveCredentials(username, password) {
+  const user = (username || '').trim()
+  if (!user || !password) throw new Error('请输入完整的 MQTT 用户名和密码')
+  wx.setStorageSync(CREDENTIALS_KEY, { username: user, password })
+  disconnect()
+  return connect()
+}
+
+function clearCredentials() {
+  wx.removeStorageSync(CREDENTIALS_KEY)
+  disconnect()
+  connect()
 }
 
 function sendCommand(command, extra) {
@@ -258,6 +286,9 @@ setInterval(() => {
 
 module.exports = {
   connect,
+  getCredentials,
+  saveCredentials,
+  clearCredentials,
   sendCommand,
   onState,
   onMap: listener => addListener(mapListeners, listener, latestMap),
