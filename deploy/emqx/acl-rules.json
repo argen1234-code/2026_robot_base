@@ -1,0 +1,12 @@
+[
+  {"username":"JETSON_MQTT_USERNAME","permission":"allow","action":"subscribe","topic":"/k1ck5t83zdZ/test/user/get"},
+  {"username":"JETSON_MQTT_USERNAME","permission":"allow","action":"publish","topic":"/k1ck5t83zdZ/test/user/robot"},
+  {"username":"JETSON_MQTT_USERNAME","permission":"allow","action":"publish","topic":"/k1ck5t83zdZ/test/user/map"},
+  {"username":"JETSON_MQTT_USERNAME","permission":"allow","action":"publish","topic":"/k1ck5t83zdZ/test/user/path"},
+  {"username":"JETSON_MQTT_USERNAME","permission":"allow","action":"publish","topic":"/k1ck5t83zdZ/test/user/mission"},
+  {"username":"WECHAT_MQTT_USERNAME","permission":"allow","action":"publish","topic":"/k1ck5t83zdZ/test/user/get"},
+  {"username":"WECHAT_MQTT_USERNAME","permission":"allow","action":"subscribe","topic":"/k1ck5t83zdZ/test/user/robot"},
+  {"username":"WECHAT_MQTT_USERNAME","permission":"allow","action":"subscribe","topic":"/k1ck5t83zdZ/test/user/map"},
+  {"username":"WECHAT_MQTT_USERNAME","permission":"allow","action":"subscribe","topic":"/k1ck5t83zdZ/test/user/path"},
+  {"username":"WECHAT_MQTT_USERNAME","permission":"allow","action":"subscribe","topic":"/k1ck5t83zdZ/test/user/mission"}
+]

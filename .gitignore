@@ -4,3 +4,13 @@
 *.swp
 *~
 .DS_Store
+
+# Jetson ROS workspaces are built from jetson/; ignore legacy local workspace
+# artifacts that may exist at the repository root.
+/build/
+/install/
+/log/
+/src/
+
+# Test/build caches
+.pytest_cache/

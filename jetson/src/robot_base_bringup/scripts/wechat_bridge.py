@@ -85,7 +85,14 @@ class WechatBridge(Node):
     def on_connect(self, client, _userdata, _flags, rc):
         self.connected = rc == 0
         if self.connected:
-            client.subscribe(self.topics['sub_topic'], qos=1)
+            result, _mid = client.subscribe(self.topics['sub_topic'], qos=1)
+            if result != mqtt.MQTT_ERR_SUCCESS:
+                self.get_logger().error(
+                    f'MQTT subscribe failed ({result}): {self.topics["sub_topic"]}')
+                self.connected = False
+                return
+            self.get_logger().info(
+                f'MQTT connected: {self.topics["sub_topic"]} (qos=1)')
         else:
             self.get_logger().error(f'MQTT connection rejected: {rc}')
 
