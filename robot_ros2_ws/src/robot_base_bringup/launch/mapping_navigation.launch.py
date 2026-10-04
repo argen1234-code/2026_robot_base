@@ -16,12 +16,16 @@ def generate_launch_description():
     nav2 = get_package_share_directory('nav2_bringup')
     return LaunchDescription([
         DeclareLaunchArgument('lidar_port', default_value='/dev/ydlidar'),
+        DeclareLaunchArgument('visualization', default_value='rviz'),
         DeclareLaunchArgument('motor_enable', default_value='false'),
         DeclareLaunchArgument('mcu_port', default_value='/dev/stm32'),
         DeclareLaunchArgument('wechat', default_value='false', description='Enable TLS MQTT bridge'),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(bringup, 'launch', 'mapping.launch.py')),
-            launch_arguments={'lidar_port': LaunchConfiguration('lidar_port')}.items()),
+            launch_arguments={
+                'lidar_port': LaunchConfiguration('lidar_port'),
+                'visualization': LaunchConfiguration('visualization'),
+            }.items()),
         # mapping.launch.py already owns slam_toolbox and map->odom. Nav2 only
         # starts the planners/controllers here; no second SLAM or AMCL instance.
         IncludeLaunchDescription(

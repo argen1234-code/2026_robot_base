@@ -35,8 +35,9 @@ sudo apt install python3-colcon-common-extensions \
 ## 编译
 
 ```bash
-cd ~/2026_robot_base
-colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+cd ~/2026_robot_base/robot_ros2_ws
+source /opt/ros/jazzy/setup.bash
+MAKEFLAGS=-j1 CMAKE_BUILD_PARALLEL_LEVEL=1 colcon build --symlink-install --executor sequential --parallel-workers 1 --cmake-args -DCMAKE_BUILD_TYPE=Release
 ```
 
 `--symlink-install` 让 launch / yaml / xacro 改动后不必重新编译（C++ 改动仍需重编）。
@@ -53,7 +54,7 @@ colcon build --packages-select robot_base_driver
 
 ```bash
 source /opt/ros/jazzy/setup.bash
-source ~/2026_robot_base/install/setup.bash
+source ~/2026_robot_base/robot_ros2_ws/install/setup.bash
 ```
 
 ## 运行
@@ -75,6 +76,8 @@ ros2 launch robot_base_bringup mapping.launch.py
 ```bash
 ros2 launch robot_base_bringup mapping_navigation.launch.py
 ```
+
+Jetson 内存紧张时可用 `visualization:=none` 关闭 RViz，另开电脑查看 ROS 话题。
 
 等待雷达产生 `/map` 且 Nav2 的 `/planner_server`、`/bt_navigator` 进入 active 后，在 RViz 使用 **Nav2 Goal** 指定目标；红色为 `/plan` 全局路径，蓝色为 `/local_plan` 局部路径。没有地图覆盖的区域无法保证规划成功。该入口只启动一份 SLAM，不启动 AMCL；不要同时运行 `navigation.launch.py`。本入口无地图文件要求，电机默认关闭，因此即使规划成功也不会移动实车。
 
@@ -131,7 +134,7 @@ ros2 launch robot_base_bringup navigation.launch.py map:=$HOME/maps/robot_map.ya
 默认 topic 与参考小程序一致：订阅 `/k1ck5t83zdZ/test/user/get`，发布机器人状态、地图、路径和任务到 `robot`、`map`、`path`、`mission`。命令支持 `REMOTE`/`INDOOR`、方向键、`STOP`、`EMERGENCY`/`RESET_EMERGENCY` 和最多 30 个点的一次性 `INDOOR_MISSION_START`（坐标为 map 米，yaw 为弧度）；`LINE` 仅切换 MCU 室内模式，不启动循迹。地图以缩放灰度 PNG 的 base64 发布。急停/人工操作会撤销活动 Nav2 任务；遥控指令 0.25 秒失联自动归零。MQTT 断连后遥控速度因底盘超时归零，但既有 Nav2 任务仍继续运行。请勿在不可信网络开放云端遥控；固件物理急停仍是最终保护。
 
 微信小程序代码位于本仓库的 `wechat-mini-program/` 目录。首次配置时复制 `utils/mqtt-config.js` 为
-`utils/mqtt-config.local.js`，填入同一组 MQTT 用户名和密码；该本地文件已加入 `.gitignore`，不会提交。
+`utils/mqtt-config.local.js`，填入 MQTT 用户名和密码；该本地文件已加入 `.gitignore`，不会提交。
 当前 Jetson 侧未实现 GPS 任务，因此小程序默认只显示遥控和室内导航页面。
 
 EMQX 最小权限模板和管理 API 示例位于仓库根目录 `deploy/emqx/`。建议 Jetson

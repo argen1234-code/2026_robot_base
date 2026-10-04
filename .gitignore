@@ -5,7 +5,7 @@
 *~
 .DS_Store
 
-# Jetson ROS workspaces are built from jetson/; ignore legacy local workspace
+# Jetson ROS workspace is robot_ros2_ws/; ignore legacy local workspace
 # artifacts that may exist at the repository root.
 /build/
 /install/

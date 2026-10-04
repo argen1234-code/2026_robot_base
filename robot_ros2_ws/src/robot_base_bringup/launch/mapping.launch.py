@@ -12,10 +12,12 @@ def generate_launch_description():
     base = get_package_share_directory('robot_base_bringup')
     return LaunchDescription([
         DeclareLaunchArgument('lidar_port', default_value='/dev/ydlidar'),
+        DeclareLaunchArgument('visualization', default_value='rviz'),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(base, 'launch', 'robot_base.launch.py')),
             launch_arguments={
-                'visualization': 'rviz', 'slam': 'true', 'lidar': 'true',
+                'visualization': LaunchConfiguration('visualization'),
+                'slam': 'true', 'lidar': 'true',
                 'lidar_filter': 'true', 'lidar_port': LaunchConfiguration('lidar_port'),
             }.items()),
     ])
