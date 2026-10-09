@@ -28,11 +28,16 @@ def generate_launch_description():
             }.items()),
         # mapping.launch.py already owns slam_toolbox and map->odom. Nav2 only
         # starts the planners/controllers here; no second SLAM or AMCL instance.
+        #
+        # ⚠️ 用本包的 nav2_navigation.launch.py，【不用】nav2_bringup 的
+        #    navigation_launch.py —— 后者会连带启动 route_server 等用不到的节点，
+        #    其中 route_server 配置较慢会偶发拖垮整个 lifecycle bringup，
+        #    导致 bt_navigator 起不来（RViz 点目标点无反应）。详见该文件注释。
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(os.path.join(nav2, 'launch', 'navigation_launch.py')),
+            PythonLaunchDescriptionSource(os.path.join(bringup, 'launch', 'nav2_navigation.launch.py')),
             launch_arguments={
                 'params_file': os.path.join(bringup, 'config', 'nav2_params.yaml'),
-                'use_sim_time': 'false', 'autostart': 'true', 'use_composition': 'False',
+                'use_sim_time': 'false', 'autostart': 'true',
             }.items()),
         Node(
             package='robot_base_bringup', executable='chassis_bridge.py',

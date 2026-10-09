@@ -266,8 +266,23 @@ collision_monitor:
     use_sim_time: false
     base_frame_id: base_footprint
     odom_frame_id: odom
-    cmd_vel_in_topic: cmd_vel_smoothed
-    cmd_vel_out_topic: cmd_vel
+    # ⚠️ 这两个名字必须与 nav2_bringup/launch/navigation_launch.py 的重映射对上。
+    #
+    # 那个 launch 里 controller_server 和 velocity_smoother 都被加了
+    #     remappings + [('cmd_vel', 'cmd_vel_nav')]
+    # 即"凡是用到 cmd_vel 这个名字的地方都改叫 cmd_vel_nav"。
+    #
+    # 因此正确链路是：
+    #     controller_server  ->  cmd_vel_nav  ->  velocity_smoother  ->  cmd_vel_smoothed
+    #
+    # 原来这里写的是 in=cmd_vel_smoothed / out=cmd_vel，两个都错：
+    #   in  = cmd_vel_smoothed -> 没有任何节点发布，限幅器收不到输入
+    #   out = cmd_vel          -> 被上面那条重映射改写成 cmd_vel_nav，
+    #                             与控制器输出撞成同一个话题
+    # 后果：/cmd_vel 上一帧数据都没有，chassis_bridge 收不到速度指令，
+    #       车在 RViz 里点了目标点也纹丝不动。
+    cmd_vel_in_topic: cmd_vel_nav
+    cmd_vel_out_topic: cmd_vel_smoothed
     transform_tolerance: 0.3
     source_timeout: 0.5
     stop_pub_timeout: 1.0

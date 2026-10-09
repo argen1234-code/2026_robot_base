@@ -37,7 +37,15 @@ class ChassisBridge(Node):
         self.remote_command = (0.0, 0.0)
         self.last_remote = None
         self.mode = 3
-        self.create_subscription(Twist, 'cmd_vel', self.on_command, 10)
+        # ⚠️ 订阅的是 Nav2 整条速度链的【末端话题】，不是笼统的 cmd_vel。
+        #
+        # nav2_bringup/launch/navigation_launch.py 里给 controller_server 和
+        # velocity_smoother 都加了 remappings + [('cmd_vel', 'cmd_vel_nav')]，
+        # 于是实际链路是：
+        #     controller_server -> cmd_vel_nav -> velocity_smoother -> cmd_vel_smoothed
+        # 没有任何节点会往 /cmd_vel 上发东西，订阅 /cmd_vel 会一帧都收不到，
+        # 表现为 RViz 里点了目标点车却不动。
+        self.create_subscription(Twist, 'cmd_vel_smoothed', self.on_command, 10)
         self.create_subscription(Twist, '/remote_cmd_vel', self.on_remote, 10)
         self.create_subscription(Int8, '/robot_mode', self.on_mode, 10)
         self.mode_pub = self.create_publisher(Int8, '/robot_mode', 10)

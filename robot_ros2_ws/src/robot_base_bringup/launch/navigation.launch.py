@@ -13,6 +13,11 @@ from launch_ros.actions import Node
 def generate_launch_description():
     bringup = get_package_share_directory('robot_base_bringup')
     base_launch = os.path.join(bringup, 'launch', 'robot_base.launch.py')
+    # ⚠️ 用本包的精简 Nav2 启动，不用 nav2_bringup 的 navigation_launch.py
+    #    （它会连带启动 route_server 等，偶发拖垮 lifecycle bringup，
+    #      详见 nav2_navigation.launch.py 注释）。
+    #    本文件是"载入已保存地图 + AMCL 定位"的路径，仍需 bringup_launch.py
+    #    提供 map_server + amcl，因此保留它，但地图是必需的。
     nav_launch = os.path.join(get_package_share_directory('nav2_bringup'), 'launch', 'bringup_launch.py')
     nav_params = os.path.join(bringup, 'config', 'nav2_params.yaml')
     return LaunchDescription([
