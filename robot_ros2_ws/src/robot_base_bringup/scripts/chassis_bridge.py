@@ -105,11 +105,28 @@ class ChassisBridge(Node):
         if self.mode == 2:
             fresh = self.last_remote is not None and time.monotonic() - self.last_remote < self.timeout
             linear, angular = self.remote_command if fresh else (0.0, 0.0)
-            # Firmware remote mode uses the verified WeChat turn sign.
-            angular = -angular
         else:
             fresh = self.last_command is not None and time.monotonic() - self.last_command < self.timeout
             linear, angular = self.command if fresh else (0.0, 0.0)
+
+        # ⚠️ 角速度必须取反，两种模式都要。
+        #
+        # 固件的 Remote_WeChat_Update(mode 2) 与 Remote_ROS_Update(mode 3)
+        # 对 wz 的处理【完全相同】，都是 out_wz = cmd_vel.vz * vz_scale，
+        # 最后都写进同一个 chassis->Wz_set。也就是说固件这一侧的转向符号
+        # 只有一种约定：正的 wz 会让车【右转】，与 ROS REP-103
+        # （逆时针为正 / 左转为正）相反。
+        #
+        # 原来这行取反只写在 mode 2 分支里（注释 "the verified WeChat turn
+        # sign" 就是当初调微信遥控时验证出来的），mode 3 漏了。后果很严重：
+        #   DWB 要求左转 -> 车实际右转 -> 误差变大 -> DWB 加大左转指令
+        #   -> 车转得更右 …… 正反馈一路加到满舵，车原地疯狂自旋、
+        #   线速度恒为 0，进度检查必然失败，于是"中止->重规划->再自旋"死循环。
+        #   表现为：到达目标点附近自旋、二次设置目标点无响应。
+        #
+        # 实测证据：指令 wz=+0.185 rad/s（左转）时，map 坐标系下 yaw 实际
+        # 变化 -18.6°（右转），符号相反。
+        angular = -angular
         try:
             self.device.write(speed_frame(linear, angular, self.max_linear, self.max_angular,
                                           mode=self.mode))
