@@ -2,6 +2,7 @@
 build/
 install/
 log/
+.env.wechat.local
 
 # Python
 __pycache__/
