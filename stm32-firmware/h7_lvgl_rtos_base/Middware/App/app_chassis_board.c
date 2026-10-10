@@ -321,6 +321,8 @@ void chassis_set_remote_param(ChassisRemoteParam_t param, float value)
         case CHASSIS_REMOTE_PARAM_BT_WZ:           chassis_move.remote.bt_wz = value; break;
         case CHASSIS_REMOTE_PARAM_WECHAT_VX_SCALE: chassis_move.remote.wechat_vx_scale = value; break;
         case CHASSIS_REMOTE_PARAM_ROS_MAX_SPEED:   chassis_move.remote.ros_max_speed = value; break;
+        case CHASSIS_REMOTE_PARAM_ROS_VZ_SCALE:    chassis_move.remote.ros_vz_scale = value; break;
+        case CHASSIS_REMOTE_PARAM_ROS_MAX_WZ:      chassis_move.remote.ros_max_wz = value; break;
         default: break;
     }
     taskEXIT_CRITICAL();
@@ -335,10 +337,11 @@ void chassis_set_pid_param(ChassisPidParam_t param, double value)
     taskENTER_CRITICAL();
     switch (param)
     {
-        case CHASSIS_PID_PARAM_KP:      chassis_move.pid_param.kp = value; break;
-        case CHASSIS_PID_PARAM_KI:      chassis_move.pid_param.ki = value; break;
-        case CHASSIS_PID_PARAM_KD:      chassis_move.pid_param.kd = value; break;
-        case CHASSIS_PID_PARAM_MAX_OUT: chassis_move.pid_param.max_out = value; break;
+        case CHASSIS_PID_PARAM_KP:       chassis_move.pid_param.kp = value; break;
+        case CHASSIS_PID_PARAM_KI:       chassis_move.pid_param.ki = value; break;
+        case CHASSIS_PID_PARAM_KD:       chassis_move.pid_param.kd = value; break;
+        case CHASSIS_PID_PARAM_MAX_OUT:  chassis_move.pid_param.max_out = value; break;
+        case CHASSIS_PID_PARAM_MAX_IOUT: chassis_move.pid_param.max_iout = value; break;
         default: break;
     }
     chassis_apply_pid_params(&chassis_move);

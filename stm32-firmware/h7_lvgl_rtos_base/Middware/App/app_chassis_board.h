@@ -34,8 +34,28 @@
 //#define MOTOR_SPEED_PID_KP       1.22f
 //#define MOTOR_SPEED_PID_KI       0.09f
 //#define MOTOR_SPEED_PID_KD       0.08f
-#define MOTOR_SPEED_PID_MAX_OUT  150.0f
-#define MOTOR_SPEED_PID_MAX_IOUT 40.0f
+/* ⚠️ 必须等于 bsp_motor.h 的 PWM_MAX（TIM8 ARR=99，故 duty 范围 0~99）。
+   原来写 150 会让 PID 自认为还能输出 142，而执行器在 99 就静默夹住了 ——
+   等于"抗积分饱和的阈值是假的"。实测对齐到 99 不损失最高速。
+   PWM_MAX 在本头文件不可见（只有 .c 里 include 了 bsp_motor.h），所以直接写字面量。 */
+#define MOTOR_SPEED_PID_MAX_OUT  99.0f
+
+/* 积分项上限。单位是【未乘 Ki 的 ErrorInt 累加和】，积分能贡献的最大 duty = Ki * max_iout。
+   ⚠️ 这是【天花板】不是【速率】：累积快慢由 Ki*Error0 决定，与本值无关。
+      所以抬高它不改变环路动态，只是把一个人为的夹子拿掉。
+
+   为什么必须抬高（真机实测）：
+     原地转时轮速 setpoint 只有 12~18 counts（满量程 120），而轮子越过静摩擦
+     大约需要 duty 20。堵转时可达输出为
+         Out_max = Kp*setpoint + Ki*max_iout = 1.05*sp + 0.1*40
+     即 sp=12 -> 16.6、sp=18 -> 22.9 —— 积分项最多只值 4 个 duty，等于积分被关掉。
+     后果：sp=12 时车三秒一个 count 都不动；sp=18 只能转到设定值的约 44%，
+     最终表现为"原地转弯只有指令角速度的 30%、且动作卡顿"。
+
+   990 = PWM_MAX/Ki = 99/0.1，语义是"积分单独就足以让输出饱和，再高无意义"。
+   ⚠️ 本值与 Ki 耦合：若把 Ki 改成 0.05，990 就不再等于 PWM_MAX/Ki（应改 1980）。
+      也可以不重刷，用 chassis_set_pid_param(CHASSIS_PID_PARAM_MAX_IOUT, x) 实时调。 */
+#define MOTOR_SPEED_PID_MAX_IOUT 990.0f
 
 /* ============================================================
  *  IMU attitude data structures
@@ -99,8 +119,12 @@ extern volatile ChassisJY901SDebug_t g_chassis_jy901s_debug;
  * ============================================================ */
 
 typedef struct {
-    double speed;              /* Current speed (rpm, encoder feedback) */
-    double speed_set;          /* Target speed (rpm) */
+    /* ⚠️ 单位是【每 10ms 控制周期内的编码器计数增量】，不是 rpm。
+       Encoder_Rpm_Get()（bsp_encoder.c）读走定时器计数后【立刻清零】，
+       所以它返回的是"自上次调用以来的脉冲增量"；函数名里的 Rpm 是误导。
+       满量程参考：ROS_LINE_MAX_SPEED = 120 counts ≈ 小车 1 m/s。 */
+    double speed;              /* Measured encoder count delta per 10ms period (NOT rpm) */
+    double speed_set;          /* Target encoder count delta per 10ms period (NOT rpm) */
     double angle;              /* Current angle */
     double angle_set;          /* Target angle */
     uint32_t last_update_tick;  /* Encoder last update tick */
@@ -159,8 +183,10 @@ typedef struct {
     double kp;          /* Proportional gain */
     double ki;          /* Integral gain */
     double kd;          /* Derivative gain */
-    double max_out;     /* Output limit */
-    double max_iout;    /* Integral output limit */
+    double max_out;     /* Output limit (should equal bsp_motor.h PWM_MAX) */
+    /* Ceiling on the RAW ErrorInt sum (units: error*cycles, no dt scaling).
+       The integral's max duty contribution is ki * max_iout, NOT max_iout. */
+    double max_iout;    /* Integral ceiling (raw sum units, see MOTOR_SPEED_PID_MAX_IOUT) */
 } chassis_pid_param_t;
 
 /* ============================================================
@@ -219,14 +245,22 @@ typedef enum {
     CHASSIS_REMOTE_PARAM_BT_SPEED = 0,
     CHASSIS_REMOTE_PARAM_BT_WZ,
     CHASSIS_REMOTE_PARAM_WECHAT_VX_SCALE,
-    CHASSIS_REMOTE_PARAM_ROS_MAX_SPEED
+    CHASSIS_REMOTE_PARAM_ROS_MAX_SPEED,
+    /* 室内 ROS 链路的转向标定项。新加这两个是为了能【不重刷固件】就在台架上
+       标定转向：因为麦轮原地转有打滑损失，指令角速度要通过 ros_vz_scale 放大
+       才能让车真的转到指令值，而放大系数必须实测（见 ROS_LINE_VZ_SCALE 注释）。 */
+    CHASSIS_REMOTE_PARAM_ROS_VZ_SCALE,
+    CHASSIS_REMOTE_PARAM_ROS_MAX_WZ
 } ChassisRemoteParam_t;
 
 typedef enum {
     CHASSIS_PID_PARAM_KP = 0,
     CHASSIS_PID_PARAM_KI,
     CHASSIS_PID_PARAM_KD,
-    CHASSIS_PID_PARAM_MAX_OUT
+    CHASSIS_PID_PARAM_MAX_OUT,
+    /* 新增：积分上限。原来只能在编译期用宏改，现在可实时调，
+       便于台架上找一个"刚好能起步、又不深度饱和"的值。 */
+    CHASSIS_PID_PARAM_MAX_IOUT
 } ChassisPidParam_t;
 
 /* ============================================================
