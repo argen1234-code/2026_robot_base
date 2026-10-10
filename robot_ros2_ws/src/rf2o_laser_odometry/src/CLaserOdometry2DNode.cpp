@@ -240,6 +240,32 @@ void CLaserOdometry2DNode::publish()
   odom.twist.twist.linear.x = rf2o_ref.lin_speed;    //linear speed
   odom.twist.twist.linear.y = 0.0;
   odom.twist.twist.angular.z = rf2o_ref.ang_speed;   //angular speed
+
+  /* 协方差。⚠️ 原先一个都没填，于是整条对角线全是 0 —— 对
+   * robot_localization 的 EKF 而言 0 协方差意味着"完美测量"，会让滤波器
+   * 完全追随这一路，等于把其它传感器都废掉（而且 0 协方差在数值上也不安全）。
+   *
+   * 这里的取值反映各自由度的可信度，都是【起始值】，需实机调：
+   *   pose  x/y  = 0.02   米制、尺度正确（扫描配准的优势）
+   *   pose  yaw  = 0.05   航迹推算，实测静止漂 0.29 °/s，所以不可信
+   *   twist vx   = 4e-4   （σ≈0.02 m/s）平移主力量，但仍给其它源留出话语权
+   *   twist vy   = 1.0    源码里 lin.y 被硬编码为 0，是虚假的"无横移"声明，别信
+   *   twist wz   = 2.5e-3 旋转是 rf2o 最弱的方向（原地转/长廊退化）
+   *   z/roll/pitch 取极小值（平面车，本来就不该被观测） */
+  odom.pose.covariance = {
+      0.02, 0.0,  0.0,  0.0,  0.0,  0.0,
+      0.0,  0.02, 0.0,  0.0,  0.0,  0.0,
+      0.0,  0.0,  1e-6, 0.0,  0.0,  0.0,
+      0.0,  0.0,  0.0,  1e-6, 0.0,  0.0,
+      0.0,  0.0,  0.0,  0.0,  1e-6, 0.0,
+      0.0,  0.0,  0.0,  0.0,  0.0,  0.05};
+  odom.twist.covariance = {
+      4e-4, 0.0,  0.0,  0.0,  0.0,  0.0,
+      0.0,  1.0,  0.0,  0.0,  0.0,  0.0,
+      0.0,  0.0,  1e-6, 0.0,  0.0,  0.0,
+      0.0,  0.0,  0.0,  1e-6, 0.0,  0.0,
+      0.0,  0.0,  0.0,  0.0,  1e-6, 0.0,
+      0.0,  0.0,  0.0,  0.0,  0.0,  2.5e-3};
   //publish the message
   odom_pub->publish(odom);
 
