@@ -173,6 +173,10 @@ def wheel_twist_from_counts(counts, dt_s, counts_per_mps, track, rest_counts,
     ⚠️ still 时返回全 0 —— 这是 ZUPT（零速修正），EKF 靠它把静止时的速度钉在 0。
        注意给的是"0"，与标定系数无关，所以标定没做也能生效。
     ⚠️ wz 不可信：麦轮打滑使其高估（净打滑 ≈0.53），下游不要融合它。
+    ⚠️ 符号约定：固件【前进 = 负的 Vx】，所以前进时 counts 是负的 —— 调用方
+       必须传 invert=True（chassis_bridge 的 wheel_invert 默认为 True）。
+       搞错会让发布的 vx 与指令反向，而 EKF 同时收到 rf2o(+)/轮速(-) 两路
+       矛盾的平移证据、把前进量压掉（实测指令 4.69 m -> EKF 只报 0.32 m）。
     """
     c = [-x for x in counts] if invert else list(counts)
     cfl, cfr, crl, crr = c
@@ -186,8 +190,24 @@ def wheel_twist_from_counts(counts, dt_s, counts_per_mps, track, rest_counts,
         dt_s = WHEEL_COUNT_PERIOD_S           # 周期字段还没填好时的兜底
     left = 0.5 * (cfl + crl)
     right = 0.5 * (cfr + crr)
-    vx = (0.5 * (left + right) / dt_s) / counts_per_mps
-    vy = (0.25 * (cfl - cfr + crl - crr) / dt_s) / counts_per_mps
+    # ⚠️⚠️ 符号：本固件【前进时 motor_speed 为负】，所以【平移通道要取反】。
+    #
+    #   推导（不依赖真机数据，只用控制环必然成立的条件）：
+    #     1) PID 的反馈约定要求 motor_speed 与 speed_set 同号 —— 否则就是正反馈，
+    #        轮子会飞转；而实测没有，所以二者同号。
+    #     2) ROS 前进 -> 桥接发 vx_frame = -v（固件约定"前进=负Vx"，
+    #        见 chassis_protocol.speed_frame 的 `vx = -clamp(linear_x)`）
+    #        -> 固件 Vx_set = vx_frame*120 < 0 -> 四轮 speed_set 全负
+    #        -> 故【前进时四轮计数全为负】。
+    #     3) 纯 Wz 时桥接再取反一次 -> motor[FL]=+Wz, motor[FR]=-Wz
+    #        -> ROS 左转时 FL/RL 为负、FR/RR 为正
+    #        -> 与探针实测的 [-26,+26,-26,+26]（当时确实是左转、陀螺确认为 CCW）吻合。
+    #     结论：固件的 Vx 与 Wz 都相对 ROS 反了一次，于是
+    #         均值(∝Vx) 反一次 -> 【错】,  差分(∝Wz) 反两次 -> 【对】。
+    #       所以平移取反、旋转不取反。（曾经两者都不反，导致发布的 vx 与 DWB 的
+    #       指令反向，EKF 同时收到 rf2o(+)/轮速(-) 两路矛盾的平移证据。）
+    vx = -(0.5 * (left + right) / dt_s) / counts_per_mps
+    vy = -(0.25 * (cfl - cfr + crl - crr) / dt_s) / counts_per_mps
     wz = ((right - left) / dt_s) / (counts_per_mps * track)
     return vx, vy, wz, False
 

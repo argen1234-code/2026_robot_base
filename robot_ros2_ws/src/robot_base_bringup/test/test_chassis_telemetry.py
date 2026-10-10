@@ -115,19 +115,27 @@ class WheelOdomTest(unittest.TestCase):
         self.assertGreater(wz, 0.0, '左转（逆时针）必须为 wz > 0（REP-103）')
 
     def test_forward_drive_is_vx_positive_and_no_yaw(self):
-        vx, vy, wz, still = wheel_twist_from_counts([24, 24, 24, 24], DT, K,
+        # ⚠️ 本固件【前进时四轮计数为负】（固件 Vx 与 ROS 相反，见
+        #    wheel_twist_from_counts 的推导）。所以这里用【负计数】表示前进，
+        #    并要求输出的 vx 为【正】。这条曾经写反，导致发布的 vx 与指令反向。
+        vx, vy, wz, still = wheel_twist_from_counts([-24, -24, -24, -24], DT, K,
                                                     WHEEL_TRACK_M, REST)
         self.assertFalse(still)
-        self.assertGreater(vx, 0.0, '前进必须 vx > 0')
+        self.assertGreater(vx, 0.0, '前进(-24 计数) 必须给出 vx > 0')
         self.assertAlmostEqual(wz, 0.0, places=9)
         self.assertAlmostEqual(vy, 0.0, places=9)
 
-    def test_invert_flips_signs(self):
-        a = wheel_twist_from_counts([24, 24, 24, 24], DT, K, WHEEL_TRACK_M, REST)
-        b = wheel_twist_from_counts([24, 24, 24, 24], DT, K, WHEEL_TRACK_M, REST,
+    def test_backward_counts_give_negative_vx(self):
+        vx, _, _, _ = wheel_twist_from_counts([24, 24, 24, 24], DT, K,
+                                             WHEEL_TRACK_M, REST)
+        self.assertLess(vx, 0.0, '正计数=后退 -> vx < 0')
+
+    def test_invert_flips_every_channel(self):
+        a = wheel_twist_from_counts([-24, -24, -24, -24], DT, K, WHEEL_TRACK_M, REST)
+        b = wheel_twist_from_counts([-24, -24, -24, -24], DT, K, WHEEL_TRACK_M, REST,
                                     invert=True)
-        self.assertGreater(a[0], 0.0)
-        self.assertLess(b[0], 0.0)
+        self.assertGreater(a[0], 0.0, '默认口径: -24 计数 = 前进')
+        self.assertLess(b[0], 0.0, 'invert 后整体取反')
 
     def test_scale_is_linear_and_period_matters(self):
         # 加倍计数 -> 加倍速度；周期减半 -> 速度加倍（这两条是"周期会变"的防线）
