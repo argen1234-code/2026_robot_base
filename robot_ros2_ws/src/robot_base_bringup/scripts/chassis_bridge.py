@@ -71,18 +71,11 @@ class ChassisBridge(Node):
         #    必须按 README 的直线标定步骤实测修正。
         self.declare_parameter('wheel_counts_per_mps', 12000.0)
         self.declare_parameter('wheel_track', WHEEL_TRACK_M)
-        # ⚠️ 符号【尚未确认】，默认保持 False（=按"正计数为前进"解释）。
-        #    为什么要写这么长：实测出现了【互相矛盾】的两条证据，按公式 vx 与 wz
-        #    是同一个符号因子乘出来的，不该能各自出错：
-        #      (a) 一次指令原地【左转】的探针实测四轮为 [-26,+26,-26,+26]，
-        #          本模块的公式给出 wz>0（CCW）—— 与陀螺确认的实际转向一致，
-        #          说明符号【是对的】。
-        #      (b) 一次导航目标中 指令 ∫vx = +4.687 m，而 /wheel/odom 的
-        #          ∫vx = -1.323 m —— 符号【是反的】。
-        #    结论：不知道真正的约定，绝不能盲翻这个开关（翻转会连带把 wz 弄反）。
-        #    定位办法（单变量）：把 ekf.yaml 的 odom1_config 全置 false（即
-        #    EKF 完全不融合轮速），再复跑同一个目标点 —— 若导航恢复正常，
-        #    问题就在轮速这一路；若依旧失败，则与轮速无关，去看 ZUPT/其它。
+        # 逐轮符号的整体翻转，默认 False（=按 wheel_twist_from_counts 里已经
+        # 内置好的固件约定解释）。留着它只是台架排查用的逃生阀：
+        # ⚠️ 不要用它去"修符号"—— 它会同时把 vx 和 wz 一起翻转，而本固件只有
+        #    【平移】那一路需要取反（推导见 chassis_telemetry.wheel_twist_from_counts
+        #    的注释）。平移的取反已经写在该函数里了，正常情况下这里保持 False。
         self.declare_parameter('wheel_invert', False)
         self.declare_parameter('wheel_rest_counts', 1.0)
         # 静止/运动两档协方差（ZUPT 的关键）：静止档必须远小于 rf2o 的 4e-4

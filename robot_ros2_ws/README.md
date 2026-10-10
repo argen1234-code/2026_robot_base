@@ -541,8 +541,18 @@ ros2 run robot_base_bringup chassis_bridge.py --ros-args \
 
 #### 回退与降级（两者都要知道）
 
-* **整体回退到"rf2o 独占 odom"**：`ekf:=false`，并把 launch 里 rf2o 的
-  `publish_tf` 改回 `True`、`odom_topic` 改回 `/odom`。
+* **整体回退到"rf2o 独占 odom"（= v0.2.0 里程碑的行为）**：一个开关即可：
+
+  ```bash
+  ros2 launch robot_base_bringup mapping_navigation.launch.py motor_enable:=true ekf:=false
+  ```
+
+  `ekf` 开关同时决定 rf2o 与 EKF 的接线（由 launch 里的 OpaqueFunction 在运行期
+  读取），两种模式下都**恰好一个** `odom→base_footprint` 发布者、且 `/odom` 的
+  话题名不变。实测：`ekf:=false` 时只有 rf2o、`/odom` 由它发、该 TF 10 Hz；
+  `ekf:=true` 时 rf2o 的 `publish_tf=False`、`odom_topic=/odom_rf2o`，TF 由 EKF 发。
+  ⚠️ 早先的写法把 rf2o 的参数写死，`ekf:=false` 时**没有任何节点发这条 TF**，
+  整条链断掉（表现为"膨胀层覆盖全图"）——已修正。
 * ⚠️ **`motor_enable:=false` 时没有 `/wheel/odom` 与 `/imu/data`**：这两路来自
   `chassis_bridge`，而它只在 `motor_enable:=true` 时启动（且独占 `/dev/stm32`）。
   此时 EKF 只剩 rf2o 一路，**行为退化成与改动前相同（静止漂移会回归）**。
