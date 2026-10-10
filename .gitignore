@@ -18,3 +18,9 @@ __pycache__/
 # tools/pid_host_test 是用 gcc 编译真实 pid.c 做主循环验证的临时工具，
 # 只提交源码，不提交可执行文件
 tools/pid_host_test/test_pid
+
+# tf2_tools view_frames 的输出是一次性调试图，不入库
+frames.gv
+frames.pdf
+frames_*.gv
+frames_*.pdf
