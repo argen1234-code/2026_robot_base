@@ -54,99 +54,18 @@ sys.path.insert(0, str(
 from chassis_protocol import speed_frame  # noqa: E402
 
 # ---------------------------------------------------------------------------
-# STM32 -> Jetson 遥测帧（Drivers/Hardware/bsp_usb.c: USB_SendSensorTelemetry）
+# STM32 -> Jetson 遥测帧解析。
+#
+# ⚠️ 解析逻辑【只有一份】，在 robot_base_bringup/scripts/chassis_telemetry.py ——
+#    与 chassis_bridge.py 共用。不要在本地再抄一份，改帧格式时必然漏改。
+#    该模块的 docstring 里记着两个已经踩过的坑（car_mode 是 JetsonMode_t；
+#    gyro 单位是 °/s、acc 单位是 g、motor_speed 是"每 10ms 计数增量"），
+#    动遥测相关代码前请先读它。
 # ---------------------------------------------------------------------------
-FRAME_MAGIC = b'\xcc\x55'
-# 版本 -> 帧长。v2 不动 v1 的任何字节，只在 151 之后【追加】诊断段，
-# 所以同一个解析器必须按版本号选长度（见 bsp_usb.h 的 usb_sensor_telemetry_t）。
-FRAME_SIZES = {1: 151, 2: 183}
-# v1 字段偏移（帧内 0 基）。只列本脚本用得到的。
-OFF = {
-    'version': 2, 'flags': 3, 'car_mode': 4, 'navigation_active': 9,
-    'sequence': 12,
-    'mag_yaw': 54, 'imu_roll': 66, 'imu_pitch': 70, 'imu_yaw': 74,
-    'gyro_x': 78, 'gyro_y': 82, 'gyro_z': 86,
-    'motor_speed': 102,          # 4 个 float，连续 16 字节
-}
-# v2 追加段偏移（紧接 v1 的 150 字节之后）。布局：
-#   150 u16 loop_period_ms   152 u16 busy_feedback   154 u16 busy_roadcls
-#   156 u16 busy_control     158 u16 busy_send       160 4×i16 speed_set
-#   168 4×i16 duty           176 f32 dist_counts     180 u16 tx_busy_count
-#   182 校验和 -> 帧长 183
-OFF_V2 = {
-    'loop_period_ms': 150, 'busy_feedback_ms': 152, 'busy_roadcls_ms': 154,
-    'busy_control_ms': 156, 'busy_send_ms': 158,
-    'speed_set': 160, 'duty': 168,
-    'dist_counts': 176, 'tx_busy_count': 180,
-}
-# 遥测 flags 位（bsp_usb.h）
-FLAG_MAG_VALID = 0x02
-FLAG_IMU_VALID = 0x04
-
-# ⚠️ 遥测里的 car_mode 字段【不是】 CarMode_t，而是 JetsonMode_t：
-#    app_chassis_board.c 里 telemetry.car_mode = chassis_telemetry_mode(chassis)，
-#    那个函数把 CAR_MODE_* 映射成 JETSON_MODE_*。所以：
-#        1=GPS_ROS  2=REMOTE  3=INDOOR(=CAR_MODE_ROS_INDOOR)  4=GPS_ONLY  0=IDLE
-#    （曾经把这里当成 CarMode_t 用，导致误报"固件没接受帧"。）
-JETSON_MODES = {
-    0: 'IDLE', 1: 'GPS_ROS', 2: 'REMOTE', 3: 'INDOOR(ROS)', 4: 'GPS_ONLY',
-}
-# 期望值：固件接受我们 mode=3 帧之后应稳定在这一档
-EXPECTED_TELEMETRY_MODE = 3
-
-# JY901S 陀螺满量程 ±2000°/s（bsp_JY901S.c: gyro = raw/32768*2000），
-# 所以遥测里的 gyro_z 单位是【°/s】，不是 rad/s。积分出来是【度】。
-DEG2RAD = math.pi / 180.0
-
-
-def parse_frame(buf):
-    """解析一帧遥测。按帧内版本号选长度，头部/版本/校验任一不过就返回 None。"""
-    if len(buf) < 3 or buf[:2] != FRAME_MAGIC:
-        return None
-    version = buf[OFF['version']]
-    size = FRAME_SIZES.get(version)
-    if size is None or len(buf) != size:
-        return None
-    checksum = 0
-    for b in buf[2:size - 1]:
-        checksum ^= b
-    if checksum != buf[size - 1]:
-        return None
-
-    def f32(off):
-        return struct.unpack_from('<f', buf, off)[0]
-
-    def i16(off):
-        return struct.unpack_from('<h', buf, off)[0]
-
-    def u16(off):
-        return struct.unpack_from('<H', buf, off)[0]
-
-    out = {
-        'version': version,
-        'flags': buf[OFF['flags']],
-        'car_mode': buf[OFF['car_mode']],
-        'navigation_active': buf[OFF['navigation_active']],
-        'sequence': u16(OFF['sequence']),
-        'mag_yaw': f32(OFF['mag_yaw']),
-        'imu_yaw': f32(OFF['imu_yaw']),
-        'gyro_z': f32(OFF['gyro_z']),
-        'motor_speed': [f32(OFF['motor_speed'] + 4 * i) for i in range(4)],
-    }
-
-    if version >= 2:
-        out.update({
-            'loop_period_ms': u16(OFF_V2['loop_period_ms']),
-            'busy_feedback_ms': u16(OFF_V2['busy_feedback_ms']),
-            'busy_roadcls_ms': u16(OFF_V2['busy_roadcls_ms']),
-            'busy_control_ms': u16(OFF_V2['busy_control_ms']),
-            'busy_send_ms': u16(OFF_V2['busy_send_ms']),
-            'speed_set': [i16(OFF_V2['speed_set'] + 2 * i) for i in range(4)],
-            'duty': [i16(OFF_V2['duty'] + 2 * i) for i in range(4)],
-            'dist_counts': f32(OFF_V2['dist_counts']),
-            'tx_busy_count': u16(OFF_V2['tx_busy_count']),
-        })
-    return out
+from chassis_telemetry import (  # noqa: E402
+    FRAME_MAGIC, FRAME_SIZES, OFF, OFF_V2,
+    FLAG_MAG_VALID, FLAG_IMU_VALID, JETSON_MODES,
+    EXPECTED_TELEMETRY_MODE, DEG2RAD, parse_frame, FrameAssembler)
 
 
 class OdomWatcher:
@@ -205,6 +124,109 @@ def mean(values):
     return sum(values) / len(values) if values else float('nan')
 
 
+def calibrate_wheel_scale(args):
+    """轮速标定：直线前进一段，用实测米数反推 wheel_counts_per_mps。
+
+    为什么用固件的 dist_counts 而不是自己积分：`dist_counts` 是固件把四轮计数
+    按周期累加出来的（Σ c_mean），**与周期无关**；而 chassis_bridge 的
+    `wheel_counts_per_mps` 用的正是同一口径（"每米行程累加多少个每周期计数"），
+    所以    distance_m = dist_counts / wheel_counts_per_mps   两边一致，直接反推即可。
+
+    ⚠️ 本模式要【独占串口并驱动电机】，所以必须先把栈停掉（或 motor_enable:=false），
+       并确认车前方有一段干净直线。全程只发前进指令，Enter / Ctrl-C 都会立即停轮。
+    """
+    print('=== 轮速标定模式 ===')
+    print('⚠️ 会驱动小车【向前】直线行驶；请先确认前方通畅，并停掉 ROS 栈'
+          '（chassis_bridge 独占串口）。')
+    try:
+        dev = serial.Serial(args.port, baudrate=115200, timeout=0,
+                            write_timeout=0.2, exclusive=True)
+    except (serial.SerialException, OSError) as exc:
+        sys.exit(f'无法打开 {args.port}: {exc}\n'
+                 f'（被 chassis_bridge 占用？用 motor_enable:=false 启动）')
+
+    asm = FrameAssembler()
+    latest = [None]
+
+    def pump():
+        while not stop.is_set():
+            try:
+                w = dev.in_waiting
+                if not w:
+                    time.sleep(0.002)
+                    continue
+                chunk = dev.read(w)
+            except (serial.SerialException, OSError):
+                return
+            for f in asm.feed(chunk):
+                latest[0] = f
+
+    speed = float(input('前进速度 m/s（默认 0.10，回车确认）: ').strip() or 0.10)
+    stop = threading.Event()
+    t = threading.Thread(target=pump, daemon=True)
+    t.start()
+    try:
+        # 先静止读几帧，拿到起始 dist_counts
+        time.sleep(1.0)
+        if latest[0] is None:
+            sys.exit('收不到遥测帧：固件在跑吗？')
+        d0 = latest[0]['dist_counts']
+        print(f'\n起始 dist_counts = {d0:.1f}')
+        input('把车摆到起点、量好参考标记，然后按 Enter 开始前进...')
+
+        print(f'前进中（{speed} m/s）… 到终点按 Enter 停止')
+        stopper = threading.Event()
+
+        def wait_enter():
+            input()
+            stopper.set()
+
+        threading.Thread(target=wait_enter, daemon=True).start()
+        while not stopper.is_set() and not stop.is_set():
+            # 用 max_linear 兜住上限，免得输入大于 0.20 时被静默截断
+            dev.write(speed_frame(speed, 0.0, max_linear=max(speed, 0.20), mode=3))
+            time.sleep(0.05)
+        # 停轮 + 多补几帧零速
+        for _ in range(20):
+            dev.write(speed_frame(0.0, 0.0, mode=3))
+            time.sleep(0.02)
+        time.sleep(0.5)
+        d1 = latest[0]['dist_counts'] if latest[0] else d0
+    except KeyboardInterrupt:
+        for _ in range(10):
+            dev.write(speed_frame(0.0, 0.0, mode=3))
+            time.sleep(0.02)
+        raise SystemExit('\n[Ctrl-C] 已停轮，未完成标定')
+    finally:
+        stop.set()
+        t.join(timeout=1.0)
+        try:
+            for _ in range(10):
+                dev.write(speed_frame(0.0, 0.0, mode=3))
+                dev.flush()
+                time.sleep(0.02)
+        except (serial.SerialException, OSError):
+            pass
+        dev.close()
+
+    delta = d1 - d0
+    print(f'\n终止 dist_counts = {d1:.1f}   行程计数 Δ = {delta:+.1f}')
+    if abs(delta) < 1.0:
+        sys.exit('计数增量太小：车没动？检查电机使能/模式。')
+    metres = float(input('用卷尺量出【实际前进距离】米数: ').strip())
+    if metres <= 0:
+        sys.exit('米数必须为正')
+    k = delta / metres
+    print(f'\n=== 结果 ===')
+    print(f'  wheel_counts_per_mps = {k:.1f}   （= Δ计数 / 实际米数）')
+    print(f'  当前占位值是 12000，回退倍数 {12000.0 / k:.2f}x')
+    print(f'\n把它写进 chassis_bridge 的参数（或用 launch 覆盖）：')
+    print(f'  wheel_counts_per_mps:={k:.1f}')
+    print('⚠️ 这是【直线】标定结果：原地转时麦轮侧滑会让编码器口径明显高估，'
+          '所以轮速的 vyaw 依旧不能用于融合（配置里已如此）。')
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -221,7 +243,13 @@ def main():
     ap.add_argument('--no-odom', action='store_true',
                     help='完全跳过 ROS，只对拍指令与固件陀螺')
     ap.add_argument('--yes', action='store_true', help='跳过启动前的确认停顿')
+    ap.add_argument('--calibrate-wheel-scale', action='store_true',
+                    help='轮速标定模式：直线前进一段，用实测米数反推 '
+                         'wheel_counts_per_mps（见 calibrate_wheel_scale）')
     args = ap.parse_args()
+
+    if args.calibrate_wheel_scale:
+        return calibrate_wheel_scale(args)
 
     if abs(args.rate) > 0.45:
         sys.exit('refuse: --rate 超过 chassis_bridge 的 max_angular=0.45，'
@@ -261,7 +289,7 @@ def main():
 
     tele = []       # [(t, dict)]  遥测样本
     log = []        # [(t, wz_sent)]
-    rx = bytearray()
+    assembler = FrameAssembler()
     stop_flag = threading.Event()
     # [上次发帧时刻, 观察到的最长发帧间隔]。间隔 >0.5s 会让固件看门狗把车停掉。
     last_send = [0.0, 0.0]
@@ -283,32 +311,9 @@ def main():
                 chunk = dev.read(waiting)
             except (serial.SerialException, OSError):
                 return
-            if chunk:
-                rx.extend(chunk)
-            # 按 CC 55 重新同步，逐帧解（帧长取决于帧内的版本号）
-            while True:
-                start = rx.find(FRAME_MAGIC)
-                if start < 0:
-                    del rx[:-1]              # 只留最后一个字节，防止半截 magic
-                    break
-                if len(rx) < start + 3:
-                    if start:
-                        del rx[:start]
-                    break
-                size = FRAME_SIZES.get(rx[start + 2])
-                if size is None:
-                    # 未知版本号：只跳过 magic 继续找，别让一个坏字节把整段堵死
-                    del rx[:start + 2]
-                    continue
-                if len(rx) < start + size:
-                    if start:
-                        del rx[:start]
-                    break
-                frame = bytes(rx[start:start + size])
-                del rx[:start + size]
-                parsed = parse_frame(frame)
-                if parsed:
-                    tele.append((time.monotonic(), parsed))
+            # 重新同步与切帧交给共用模块（与 chassis_bridge.py 同一份实现）
+            for parsed in assembler.feed(chunk):
+                tele.append((time.monotonic(), parsed))
 
     pump_thread = threading.Thread(target=pump, daemon=True)
     pump_thread.start()
