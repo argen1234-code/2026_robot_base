@@ -38,6 +38,7 @@
 
 import argparse
 import math
+import statistics
 import struct
 import sys
 import threading
@@ -56,15 +57,27 @@ from chassis_protocol import speed_frame  # noqa: E402
 # STM32 -> Jetson 遥测帧（Drivers/Hardware/bsp_usb.c: USB_SendSensorTelemetry）
 # ---------------------------------------------------------------------------
 FRAME_MAGIC = b'\xcc\x55'
-FRAME_SIZE = 151
-FRAME_VERSION = 1
-# 字段偏移（帧内 0 基）。只列本脚本用得到的，其余按布局推算保留。
+# 版本 -> 帧长。v2 不动 v1 的任何字节，只在 151 之后【追加】诊断段，
+# 所以同一个解析器必须按版本号选长度（见 bsp_usb.h 的 usb_sensor_telemetry_t）。
+FRAME_SIZES = {1: 151, 2: 183}
+# v1 字段偏移（帧内 0 基）。只列本脚本用得到的。
 OFF = {
     'version': 2, 'flags': 3, 'car_mode': 4, 'navigation_active': 9,
     'sequence': 12,
     'mag_yaw': 54, 'imu_roll': 66, 'imu_pitch': 70, 'imu_yaw': 74,
     'gyro_x': 78, 'gyro_y': 82, 'gyro_z': 86,
     'motor_speed': 102,          # 4 个 float，连续 16 字节
+}
+# v2 追加段偏移（紧接 v1 的 150 字节之后）。布局：
+#   150 u16 loop_period_ms   152 u16 busy_feedback   154 u16 busy_roadcls
+#   156 u16 busy_control     158 u16 busy_send       160 4×i16 speed_set
+#   168 4×i16 duty           176 f32 dist_counts     180 u16 tx_busy_count
+#   182 校验和 -> 帧长 183
+OFF_V2 = {
+    'loop_period_ms': 150, 'busy_feedback_ms': 152, 'busy_roadcls_ms': 154,
+    'busy_control_ms': 156, 'busy_send_ms': 158,
+    'speed_set': 160, 'duty': 168,
+    'dist_counts': 176, 'tx_busy_count': 180,
 }
 # 遥测 flags 位（bsp_usb.h）
 FLAG_MAG_VALID = 0x02
@@ -87,30 +100,53 @@ DEG2RAD = math.pi / 180.0
 
 
 def parse_frame(buf):
-    """解析一帧遥测。buf 必须是恰好 151 字节且头部/校验都通过。"""
-    if len(buf) != FRAME_SIZE or buf[:2] != FRAME_MAGIC:
+    """解析一帧遥测。按帧内版本号选长度，头部/版本/校验任一不过就返回 None。"""
+    if len(buf) < 3 or buf[:2] != FRAME_MAGIC:
         return None
-    if buf[OFF['version']] != FRAME_VERSION:
+    version = buf[OFF['version']]
+    size = FRAME_SIZES.get(version)
+    if size is None or len(buf) != size:
         return None
     checksum = 0
-    for b in buf[2:FRAME_SIZE - 1]:
+    for b in buf[2:size - 1]:
         checksum ^= b
-    if checksum != buf[FRAME_SIZE - 1]:
+    if checksum != buf[size - 1]:
         return None
 
     def f32(off):
         return struct.unpack_from('<f', buf, off)[0]
 
-    return {
+    def i16(off):
+        return struct.unpack_from('<h', buf, off)[0]
+
+    def u16(off):
+        return struct.unpack_from('<H', buf, off)[0]
+
+    out = {
+        'version': version,
         'flags': buf[OFF['flags']],
         'car_mode': buf[OFF['car_mode']],
         'navigation_active': buf[OFF['navigation_active']],
-        'sequence': struct.unpack_from('<H', buf, OFF['sequence'])[0],
+        'sequence': u16(OFF['sequence']),
         'mag_yaw': f32(OFF['mag_yaw']),
         'imu_yaw': f32(OFF['imu_yaw']),
         'gyro_z': f32(OFF['gyro_z']),
         'motor_speed': [f32(OFF['motor_speed'] + 4 * i) for i in range(4)],
     }
+
+    if version >= 2:
+        out.update({
+            'loop_period_ms': u16(OFF_V2['loop_period_ms']),
+            'busy_feedback_ms': u16(OFF_V2['busy_feedback_ms']),
+            'busy_roadcls_ms': u16(OFF_V2['busy_roadcls_ms']),
+            'busy_control_ms': u16(OFF_V2['busy_control_ms']),
+            'busy_send_ms': u16(OFF_V2['busy_send_ms']),
+            'speed_set': [i16(OFF_V2['speed_set'] + 2 * i) for i in range(4)],
+            'duty': [i16(OFF_V2['duty'] + 2 * i) for i in range(4)],
+            'dist_counts': f32(OFF_V2['dist_counts']),
+            'tx_busy_count': u16(OFF_V2['tx_busy_count']),
+        })
+    return out
 
 
 class OdomWatcher:
@@ -249,18 +285,27 @@ def main():
                 return
             if chunk:
                 rx.extend(chunk)
-            # 按 CC 55 重新同步，逐帧解
+            # 按 CC 55 重新同步，逐帧解（帧长取决于帧内的版本号）
             while True:
                 start = rx.find(FRAME_MAGIC)
                 if start < 0:
                     del rx[:-1]              # 只留最后一个字节，防止半截 magic
                     break
-                if len(rx) < start + FRAME_SIZE:
+                if len(rx) < start + 3:
                     if start:
                         del rx[:start]
                     break
-                frame = bytes(rx[start:start + FRAME_SIZE])
-                del rx[:start + FRAME_SIZE]
+                size = FRAME_SIZES.get(rx[start + 2])
+                if size is None:
+                    # 未知版本号：只跳过 magic 继续找，别让一个坏字节把整段堵死
+                    del rx[:start + 2]
+                    continue
+                if len(rx) < start + size:
+                    if start:
+                        del rx[:start]
+                    break
+                frame = bytes(rx[start:start + size])
+                del rx[:start + size]
                 parsed = parse_frame(frame)
                 if parsed:
                     tele.append((time.monotonic(), parsed))
@@ -364,6 +409,59 @@ def report(tele, log, phases, odom, max_write_gap=0.0):
         elif duty < 0.9:
             print(f'  ⚠️ INDOOR(ROS) 只占 {duty:.0%} 的时间，其余掉回 IDLE —— '
                   '说明发帧有 >500ms 的空档，固件看门狗把车停了，结果不可靠。')
+
+    # ---- v2 诊断：下位机控制环周期 / 耗时分布 / 链路丢帧 ----
+    # 这一段回答"车为什么慢"里最容易被忽略的一层：控制环到底跑多快。
+    if tele and tele[0][1].get('version', 1) >= 2:
+        n2 = len(tele)
+        span = tele[-1][0] - tele[0][0]
+        print('\n---- 下位机控制环实测（v2 遥测） ----')
+        if n2 >= 2 and span > 0:
+            seqs = [d['sequence'] for _, d in tele]
+            sd = [((seqs[i] - seqs[i - 1]) & 0xFFFF) for i in range(1, n2)]
+            jumped = sum(1 for x in sd if x > 1)
+            print(f'  遥测到达 {n2 / span:.1f} 帧/s；sequence 跳变(>1) {jumped}/{len(sd)} 次'
+                  f'  -> {"无丢帧，该速率即固件真实发送率" if jumped == 0 else "有丢帧"}')
+        lp = [d['loop_period_ms'] for _, d in tele]
+        med = statistics.median(lp)
+        print(f'  固件自报 loop_period_ms: 中位 {med:.0f} ms  min {min(lp)}  max {max(lp)}'
+              f'  => 控制环约 {1000.0 / med:.1f} Hz（osDelay(10) 期望 100 Hz）')
+        segs = (('busy_feedback_ms', '传感器刷新+SD'),
+                ('busy_roadcls_ms', '路面识别+语音'),
+                ('busy_control_ms', '模式+运动学+PID'),
+                ('busy_send_ms', '电机输出+遥测+蓝牙'))
+        tot = 0.0
+        for key, seg_name in segs:
+            vals = [d[key] for _, d in tele]
+            m = statistics.median(vals)
+            tot += m
+            print(f'    {seg_name:<16} 中位 {m:5.1f} ms   max {max(vals):5.0f}')
+        print(f'    四段合计 {tot:.1f} + osDelay(10) = {tot + 10:.1f} ms'
+              f'，实测周期 {med:.0f} ms')
+        print(f'    => 差额 ≈ {med - tot - 10:.0f} ms 未被上述四段覆盖：多为被更高'
+              f'优先级任务抢占（如 LVGL 刷屏），也含 1ms 量化的误差')
+        # 只在"有目标速度"的采样上取统计量——否则大量静止采样会把中位数压成 0
+        moving = [d for _, d in tele if any(abs(v) > 0 for v in d['speed_set'])]
+        if moving:
+            # ⚠️ 取【绝对值】的统计量：正反两段的目标互为相反数，直接取中位数会是 0。
+            #    符号正确性由上面的"机构自检"和 phase 表负责，这里只看量级够不够。
+            print(f'  四轮 目标/实际/duty 的【绝对量级】（只统计有目标速度的 '
+                  f'{len(moving)} 个采样；actual 应追上 target，duty 长期贴 99 = 力矩到顶）')
+            for i2, wheel_name in enumerate(('FL', 'FR', 'RL', 'RR')):
+                tgt = statistics.median([abs(d['speed_set'][i2]) for d in moving])
+                act = statistics.median([abs(d['motor_speed'][i2]) for d in moving])
+                dty = statistics.median([abs(d['duty'][i2]) for d in moving])
+                ratio = f'{act / tgt:.2f}' if tgt > 1e-9 else '  - '
+                print(f'    {wheel_name}: |target| {tgt:7.1f}  |actual| {act:7.1f}  '
+                      f'|duty| {dty:7.1f}  |actual|/|target| {ratio}')
+        else:
+            print('  四轮：本次全程没有目标速度（没转过），跳过 target/actual 对比')
+        print(f'  CDC 忙丢帧累计 tx_busy_count = {tele[-1][1]["tx_busy_count"]}')
+        dd = tele[-1][1]['dist_counts'] - tele[0][1]['dist_counts']
+        print(f'  dist_counts 本段增量 {dd:+.1f}'
+              f'（⚠️非标准单位，需直线跑已知距离实测标定成米）')
+    elif tele:
+        print('\n(遥测为 v1，无控制环诊断字段；刷入含 v2 遥测的固件后可见)')
 
     # 按指令窗口切出分析区间（None 收尾）
     seg_bounds = []
@@ -485,31 +583,64 @@ def report(tele, log, phases, odom, max_write_gap=0.0):
 
 def selftest():
     """用合成数据跑通 report() 与全部判决逻辑，不需要硬件/ROS。"""
-    import struct as _struct
 
-    # --- 帧解析自检 ---
-    buf = bytearray(FRAME_SIZE)
-    buf[0], buf[1] = 0xCC, 0x55
-    buf[OFF['version']] = FRAME_VERSION
-    buf[OFF['flags']] = FLAG_MAG_VALID | FLAG_IMU_VALID
-    _struct.pack_into('<H', buf, OFF['sequence'], 1234)
-    for off, val in ((OFF['mag_yaw'], 350.0), (OFF['imu_yaw'], 12.5),
-                     (OFF['gyro_z'], -0.42)):
-        _struct.pack_into('<f', buf, off, val)
-    for i in range(4):
-        _struct.pack_into('<f', buf, OFF['motor_speed'] + 4 * i,
-                          [18.0, -18.0, 18.0, -18.0][i])
-    ck = 0
-    for b in buf[2:FRAME_SIZE - 1]:
-        ck ^= b
-    buf[FRAME_SIZE - 1] = ck
-    r = parse_frame(bytes(buf))
-    assert r and r['sequence'] == 1234 and abs(r['gyro_z'] + 0.42) < 1e-6
-    assert r['motor_speed'] == [18.0, -18.0, 18.0, -18.0]
-    bad = bytearray(buf)
-    bad[FRAME_SIZE - 1] ^= 0xFF
-    assert parse_frame(bytes(bad)) is None, '坏校验和应被拒'
-    print('帧解析/校验 OK')
+    # --- 帧解析自检：v1 与 v2 都要能解，坏校验/坏版本/错长度都要被拒 ---
+    def build(version):
+        size = FRAME_SIZES[version]
+        buf = bytearray(size)
+        buf[0], buf[1] = 0xCC, 0x55
+        buf[OFF['version']] = version
+        buf[OFF['flags']] = FLAG_MAG_VALID | FLAG_IMU_VALID
+        struct.pack_into('<H', buf, OFF['sequence'], 1234)
+        for off, val in ((OFF['mag_yaw'], 350.0), (OFF['imu_yaw'], 12.5),
+                         (OFF['gyro_z'], -0.42)):
+            struct.pack_into('<f', buf, off, val)
+        for i in range(4):
+            struct.pack_into('<f', buf, OFF['motor_speed'] + 4 * i,
+                             [18.0, -18.0, 18.0, -18.0][i])
+        if version >= 2:
+            struct.pack_into('<H', buf, OFF_V2['loop_period_ms'], 71)
+            struct.pack_into('<H', buf, OFF_V2['busy_feedback_ms'], 12)
+            struct.pack_into('<H', buf, OFF_V2['busy_roadcls_ms'], 3)
+            struct.pack_into('<H', buf, OFF_V2['busy_control_ms'], 1)
+            struct.pack_into('<H', buf, OFF_V2['busy_send_ms'], 2)
+            for i in range(4):
+                struct.pack_into('<h', buf, OFF_V2['speed_set'] + 2 * i,
+                                 [18, -18, 18, -18][i])
+                struct.pack_into('<h', buf, OFF_V2['duty'] + 2 * i,
+                                 [42, -42, 42, -42][i])
+            struct.pack_into('<f', buf, OFF_V2['dist_counts'], 123.5)
+            struct.pack_into('<H', buf, OFF_V2['tx_busy_count'], 7)
+        ck = 0
+        for b in buf[2:size - 1]:
+            ck ^= b
+        buf[size - 1] = ck
+        return bytes(buf)
+
+    for ver in (1, 2):
+        frame = build(ver)
+        r = parse_frame(frame)
+        assert r and r['version'] == ver, (ver, r)
+        assert r['sequence'] == 1234 and abs(r['gyro_z'] + 0.42) < 1e-6, r
+        assert r['motor_speed'] == [18.0, -18.0, 18.0, -18.0], r
+        if ver == 2:
+            assert r['loop_period_ms'] == 71, r
+            assert r['speed_set'] == [18, -18, 18, -18], r['speed_set']
+            assert r['duty'] == [42, -42, 42, -42], r['duty']
+            assert abs(r['dist_counts'] - 123.5) < 1e-3, r['dist_counts']
+            assert r['tx_busy_count'] == 7, r
+        else:
+            assert 'loop_period_ms' not in r, 'v1 不该有 v2 字段'
+        bad = bytearray(frame)
+        bad[FRAME_SIZES[ver] - 1] ^= 0xFF
+        assert parse_frame(bytes(bad)) is None, f'坏校验和应被拒 v{ver}'
+    # 长度/版本不匹配必须被拒（避免把 v2 当 v1 切）
+    assert parse_frame(build(2)[:151]) is None, 'v2 帧截成 151 不应通过'
+    assert parse_frame(build(1) + b'\x00' * 32) is None, 'v1 帧补长不应通过'
+    bad_ver = bytearray(build(1))
+    bad_ver[OFF['version']] = 9
+    assert parse_frame(bytes(bad_ver)) is None, '未知版本应被拒'
+    print('帧解析/校验 OK（v1=151 与 v2=183 各自可解，坏校验/坏版本/错长度均被拒）')
 
     # --- 合成一次"符号正确、速率只有指令 83%"的测量 ---
     T0 = 1000.0
@@ -523,6 +654,7 @@ def selftest():
     tele, log = [], []
     t = T0
     yaw_imu, yaw_odom = 100.0, 0.0
+    seq = 0
     # 正转段 gyro_z>0（CCW+）；imu_yaw 是罗盘约定 CW+，故反向走
     for label, wz, dur_s in plan:
         log.append((t, None if wz is None else wz))
@@ -532,15 +664,27 @@ def selftest():
         while t < t_start + dur_s:
             yaw_imu -= rate_dps * 0.01
             yaw_odom += rate_dps * DEG2RAD * 0.01
+            seq += 1
+            # 带上 v2 的字段，好让 report() 里的 v2 诊断段真的被执行到
             tele.append((t, {
-                'flags': FLAG_MAG_VALID | FLAG_IMU_VALID,
+                'version': 2, 'flags': FLAG_MAG_VALID | FLAG_IMU_VALID,
                 'car_mode': EXPECTED_TELEMETRY_MODE, 'navigation_active': 1,
-                'sequence': 0,
+                'sequence': seq,
                 'mag_yaw': (yaw_imu + 5.0) % 360.0,
                 'imu_yaw': yaw_imu % 360.0, 'gyro_z': bias_dps + rate_dps,
                 'motor_speed': ([18.0, -18.0, 18.0, -18.0] if wz > 0
                                 else ([-18.0, 18.0, -18.0, 18.0] if wz < 0
                                       else [0.0, 0.0, 0.0, 0.0])),
+                'loop_period_ms': 71, 'busy_feedback_ms': 12,
+                'busy_roadcls_ms': 3, 'busy_control_ms': 1, 'busy_send_ms': 2,
+                'speed_set': ([18, -18, 18, -18] if wz > 0
+                              else ([-18, 18, -18, 18] if wz < 0
+                                    else [0, 0, 0, 0])),
+                'duty': ([42, -42, 42, -42] if wz > 0
+                         else ([-42, 42, -42, 42] if wz < 0
+                               else [0, 0, 0, 0])),
+                'dist_counts': yaw_odom * 10.0,
+                'tx_busy_count': 0,
             }))
             t += 0.01
         log.append((t, None))

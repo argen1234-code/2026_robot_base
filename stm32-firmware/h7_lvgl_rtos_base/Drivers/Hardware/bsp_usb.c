@@ -6,8 +6,14 @@
 #define SCENE_FRAME_SIZE      4U
 #define GPS_ROUTE_FRAME_SIZE 23U
 #define RX_FRAME_MAX_SIZE    GPS_ROUTE_FRAME_SIZE
-#define SENSOR_FRAME_VERSION   1U
-#define SENSOR_FRAME_SIZE    151U
+/* ⚠️ v2：帧尾追加内部控制状态与耗时字段（见 usb_sensor_telemetry_t）。
+   v1 的 151 字节布局原样保留，所以 151 -> 183 只是"后面多接了一段"。
+   若以后再加字段，继续往后追、并把版本号再 +1，不要改动已有字段的位置。 */
+#define SENSOR_FRAME_VERSION   2U
+#define SENSOR_FRAME_SIZE    183U
+
+/* 遥测帧因 CDC 忙被丢弃的累计次数 */
+static uint16_t s_sensor_tx_busy_count = 0U;
 
 static uint8_t   rx_buf[RX_FRAME_MAX_SIZE];
 static uint8_t   rx_idx = 0;
@@ -152,6 +158,18 @@ static void USB_CopyDouble(uint8_t *buf, uint16_t *offset, double value)
     *offset = (uint16_t)(*offset + sizeof(double));
 }
 
+/* 16 位小端拷贝。int16 字段也走这里（先转成 uint16_t，位型不变）。 */
+static void USB_CopyU16(uint8_t *buf, uint16_t *offset, uint16_t value)
+{
+    memcpy(&buf[*offset], &value, sizeof(uint16_t));
+    *offset = (uint16_t)(*offset + sizeof(uint16_t));
+}
+
+uint16_t USB_GetSensorTxBusyCount(void)
+{
+    return s_sensor_tx_busy_count;
+}
+
 void USB_SendSensorTelemetry(const usb_sensor_telemetry_t *telemetry)
 {
     uint8_t buf[SENSOR_FRAME_SIZE];
@@ -201,8 +219,37 @@ void USB_SendSensorTelemetry(const usb_sensor_telemetry_t *telemetry)
     USB_CopyDouble(buf, &offset, telemetry->route_latitude);
     USB_CopyDouble(buf, &offset, telemetry->route_longitude);
 
+    /* ---- v2 追加段：内部控制状态 + 控制环耗时 ---- */
+    USB_CopyU16(buf, &offset, telemetry->loop_period_ms);
+    USB_CopyU16(buf, &offset, telemetry->busy_feedback_ms);
+    USB_CopyU16(buf, &offset, telemetry->busy_roadcls_ms);
+    USB_CopyU16(buf, &offset, telemetry->busy_control_ms);
+    USB_CopyU16(buf, &offset, telemetry->busy_send_ms);
+    for (i = 0U; i < 4U; i++)
+    {
+        USB_CopyU16(buf, &offset, (uint16_t)telemetry->speed_set[i]);
+    }
+    for (i = 0U; i < 4U; i++)
+    {
+        USB_CopyU16(buf, &offset, (uint16_t)telemetry->duty[i]);
+    }
+    USB_CopyFloat(buf, &offset, telemetry->dist_counts);
+    USB_CopyU16(buf, &offset, telemetry->tx_busy_count);
+
+    /* 长度自检：与 SENSOR_FRAME_SIZE 不符就直接不发（宁可整帧不出去，
+       也不要发出错位的帧让上位机解析出垃圾）。改字段后这里会立刻暴露。 */
     if (offset != (SENSOR_FRAME_SIZE - 1U)) return;
     for (i = 2U; i < offset; i++) checksum ^= buf[i];
     buf[offset] = checksum;
-    CDC_Transmit_FS(buf, SENSOR_FRAME_SIZE);
+
+    /* ⚠️ CDC_Transmit_FS 在上一帧还没发完时返回 USBD_BUSY 并【直接丢帧】
+       （见 usbd_cdc_if.c 的 TxState 判据）。这里累计丢帧数供上位机判断
+       遥测率是不是被 USB 限制住了。 */
+    if (CDC_Transmit_FS(buf, SENSOR_FRAME_SIZE) == USBD_BUSY)
+    {
+        if (s_sensor_tx_busy_count < 0xFFFFU)
+        {
+            s_sensor_tx_busy_count++;
+        }
+    }
 }

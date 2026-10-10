@@ -96,6 +96,24 @@ typedef struct {
     double target_longitude;
     double route_latitude;
     double route_longitude;
+
+    /* ============================================================
+     *  v2 追加字段（帧尾）。加这些的目的是让上位机能看到下位机的
+     *  【内部控制状态】与【控制环耗时】，用来诊断"原地转只到指令 30%"
+     *  这类问题——此前只能看到传感器值，看不到 PID 的目标/输出/耗时。
+     *
+     *  ⚠️ v1 的 151 字节布局原样保留、一个字节都没动，这里只往后追加。
+     *     帧长随之变为 SENSOR_FRAME_SIZE(v2)=183，版本号升为 2。
+     * ============================================================ */
+    uint16_t loop_period_ms;    /* chassis_task 实测循环周期（ms） */
+    uint16_t busy_feedback_ms;  /* chassis_feedback_update 耗时（ms） */
+    uint16_t busy_roadcls_ms;   /* 路面识别(+SD服务) 耗时（ms） */
+    uint16_t busy_control_ms;   /* mode_change+set_control+control_loop 耗时（ms） */
+    uint16_t busy_send_ms;      /* chassis_send_cmd 耗时（ms） */
+    int16_t  speed_set[4];      /* 四轮【目标】速度，counts/10ms 周期 */
+    int16_t  duty[4];           /* 四轮实际下发的 duty（-99..99） */
+    float    dist_counts;       /* 轮速积分出的行驶距离，⚠️非标准单位，见 .c 注释 */
+    uint16_t tx_busy_count;     /* USB CDC 忙导致遥测帧被丢弃的累计次数 */
 } usb_sensor_telemetry_t;
 
 void       USB_Init(void);
@@ -104,5 +122,7 @@ cmd_vel_t  USB_GetCmdVel(void);
 scene_cmd_t USB_GetSceneCmd(void);
 gps_route_cmd_t USB_GetGpsRouteCmd(void);
 void       USB_SendSensorTelemetry(const usb_sensor_telemetry_t *telemetry);
+/* 遥测帧因 USB CDC 忙而被丢弃的累计次数（诊断遥测带宽用）。 */
+uint16_t   USB_GetSensorTxBusyCount(void);
 
 #endif

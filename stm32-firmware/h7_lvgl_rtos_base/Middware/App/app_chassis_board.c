@@ -99,6 +99,28 @@ static float chassis_smoothed_wz = 0.0f;
 static uint32_t chassis_smooth_last_tick = 0U;
 static uint32_t chassis_scene_sequence = 0U;
 
+/* ============================================================
+ *  v2 遥测诊断量：控制环实测周期 + 各段耗时 + 轮速积分距离
+ *  只被 chassis_task 写、被 chassis_send_sensor_telemetry 读，不参与控制。
+ *
+ *  为什么需要：实测遥测率只有 14.2 Hz 而 osDelay(10) 期望 100 Hz，且
+ *  sequence 每帧 +1（没有丢帧）——说明【控制环本身就只有约 14 Hz】，
+ *  不是 USB 带宽问题。轮速 PID 与 PWM 都跑在这个频率上，这正是
+ *  "原地转又慢又卡"的一大来源。这几个字段用来定位 61 ms 花在哪。
+ * ============================================================ */
+static uint16_t chassis_dbg_loop_period_ms = 0U;
+static uint16_t chassis_dbg_busy_ms[4] = { 0U, 0U, 0U, 0U }; /* feedback/roadcls/control/send */
+static uint32_t chassis_dbg_last_loop_tick = 0U;
+
+/* 轮速积分出的"行驶距离"。
+   ⚠️ 单位【不是米】，是 "counts/周期" 的累加值（四轮取平均），量纲非标。
+      四轮同向走时求和得平移量、原地转时四轮符号相反自动抵消，所以这个量
+      天然只反映【平移】不反映自转，正合"行驶距离"的语义。
+      要与真实米数对应，需要实测标定：让它直线跑一段已知距离，用
+      实际米数 / dist_counts 得到比例系数。IMU 的 yaw 也已在遥测里，
+      将来想升级成 (x,y) 轨迹，可用它把该位移旋到世界系。 */
+static double chassis_dbg_dist_counts = 0.0;
+
 volatile uint8_t g_chassis_gps_route_count_debug = 0U;
 volatile ChassisGPSRouteResult_t g_chassis_gps_route_last_result_debug = CHASSIS_GPS_ROUTE_RESULT_NONE;
 volatile ChassisGPSRouteStorageStatus_t g_chassis_gps_route_storage_status_debug = CHASSIS_GPS_ROUTE_STORAGE_NONE;
@@ -1664,6 +1686,12 @@ void chassis_feedback_update(chassis_move_t *chassis)
         chassis->motor[i].last_update_tick = now;
     }
 
+    /* 把四轮计数增量累加成"行驶距离"（⚠️非标准单位，见变量定义处注释）。
+       取四轮平均：直线同向累加，原地转时符号相反而抵消，所以只反映平移。 */
+    chassis_dbg_dist_counts +=
+        ((double)chassis->motor[0].speed + (double)chassis->motor[1].speed +
+         (double)chassis->motor[2].speed + (double)chassis->motor[3].speed) * 0.25;
+
     /* Drain the interrupt-side USB CDC ring before parsing the byte stream. */
     {
         uint8_t usb_rx_data[64U];
@@ -2336,6 +2364,27 @@ static void chassis_send_sensor_telemetry(chassis_move_t *chassis)
         route_slot = 0U;
     }
 
+    /* ---- v2 追加段：内部控制状态 + 控制环耗时 ----
+       ⚠️ 这一帧是【节流到 50ms】才发的，但 loop_period_ms / busy_* 量的是
+          chassis_task 每一环的真实值（每环都更新，只是隔几环才被发出去一次），
+          所以读到的仍是真实周期，不是"50ms 的倍数"。 */
+    telemetry.loop_period_ms   = chassis_dbg_loop_period_ms;
+    telemetry.busy_feedback_ms = chassis_dbg_busy_ms[0];
+    telemetry.busy_roadcls_ms  = chassis_dbg_busy_ms[1];
+    telemetry.busy_control_ms  = chassis_dbg_busy_ms[2];
+    telemetry.busy_send_ms     = chassis_dbg_busy_ms[3];
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        /* speed 是 double 的 counts/周期，量级远小于 int16，直接取整即可。
+           用四舍五入而不是截断，避免 0.6 被读成 0 引起误判。 */
+        double tgt = chassis->motor[i].speed_set;
+        double dty = chassis->motor[i].speed_pid.Out;
+        telemetry.speed_set[i] = (int16_t)(tgt >= 0.0 ? tgt + 0.5 : tgt - 0.5);
+        telemetry.duty[i]      = (int16_t)(dty >= 0.0 ? dty + 0.5 : dty - 0.5);
+    }
+    telemetry.dist_counts  = (float)chassis_dbg_dist_counts;
+    telemetry.tx_busy_count = USB_GetSensorTxBusyCount();
+
     USB_SendSensorTelemetry(&telemetry);
 }
 
@@ -2406,8 +2455,25 @@ void chassis_task(void *pvParameters)
     /* -- Main loop (100Hz) -- */
     while (1)
     {
+        uint32_t t_loop, t0, t1, t2, t3, t4;
+
+        /* ---- v2 诊断：量出本环真实周期与各段耗时 ----
+           HAL_GetTick() 只有 1 ms 分辨率，单段不足 1 ms 会读到 0，
+           这本身就是"该段不是瓶颈"的结论。
+           ⚠️ 若 loop_period_ms 明显大于 (四段之和 + osDelay(10))，差值就是
+              【被更高优先级任务抢走的时间】（例如 LVGL 刷屏），而非本任务在做活。 */
+        t_loop = HAL_GetTick();
+        if (chassis_dbg_last_loop_tick != 0U)
+        {
+            uint32_t dt = t_loop - chassis_dbg_last_loop_tick;
+            chassis_dbg_loop_period_ms = (dt > 0xFFFFU) ? 0xFFFFU : (uint16_t)dt;
+        }
+        chassis_dbg_last_loop_tick = t_loop;
+
+        t0 = HAL_GetTick();
         chassis_feedback_update(&chassis_move);   /* Sensors + USB data refresh */
         chassis_service_gps_route_sd(&chassis_move); /* SD primary route store; Flash fallback */
+        t1 = HAL_GetTick();
 
         /*
          * 复用现有 10 ms 底盘任务，不创建新任务。BSP 只在 ACC、GYRO 均更新后
@@ -2423,11 +2489,21 @@ void chassis_task(void *pvParameters)
             voice_tick = HAL_GetTick();
             App_Voice_Recognition_Update(&chassis_move);
         }
+        t2 = HAL_GetTick();
         
         chassis_mode_change(&chassis_move);       /* Mode switch */
 		    chassis_set_control(&chassis_move);       /* Control targets (priority-adjusted) */
         chassis_control_loop(&chassis_move);      /* Kinematics + PID */
+        t3 = HAL_GetTick();
+
         chassis_send_cmd(&chassis_move);          /* Motor output + USB telemetry */
+        t4 = HAL_GetTick();
+
+        chassis_dbg_busy_ms[0] = (uint16_t)(t1 - t0);   /* 传感器刷新 + SD 服务 */
+        chassis_dbg_busy_ms[1] = (uint16_t)(t2 - t1);   /* 路面识别 + 语音 */
+        chassis_dbg_busy_ms[2] = (uint16_t)(t3 - t2);   /* 模式仲裁 + 运动学 + PID */
+        chassis_dbg_busy_ms[3] = (uint16_t)(t4 - t3);   /* 电机输出 + 遥测 + 蓝牙 */
+
         osDelay(10);
     }
 }
