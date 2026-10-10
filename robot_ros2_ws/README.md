@@ -1,6 +1,6 @@
 # 2026_robot_base
 
-四轮底盘的 ROS 2 Jazzy（Ubuntu 24.04）工作空间。真机室内导航通过 MCU USB CDC 模式 3 接收前进和旋转速度指令；单雷达的 rf2o 负责里程计。该方案仍需实车速度和方向标定。
+四轮底盘的 ROS 2 Jazzy（Ubuntu 24.04）工作空间。真机室内导航通过 MCU USB CDC 模式 3 接收前进和旋转速度指令；里程计由 robot_localization 的 EKF 融合「激光配准 rf2o + MCU 四轮轮速 + IMU 陀螺」产生。该方案仍需实车速度和方向标定。
 
 仓库保留的 `diff_drive_controller`/`robot_base_driver` 是旧的双轮桩实现，不读取真实编码器，也不适用于当前四轮 CAD 模型；真机建图和导航不启用它。请勿把其命令回声里程计当作闭环反馈。
 
@@ -13,7 +13,8 @@
 | `robot_base_driver` | ros2_control `SystemInterface` 硬件插件（当前为桩实现） |
 | `robot_base_bringup` | 拉起整套栈的 launch 与控制器参数 |
 | `ydlidar_ros2_driver` | 激光雷达驱动（从 [ros2_hunble_nav_jeston_orin_nano_super](https://github.com/argen1234-code/ros2_hunble_nav_jeston_orin_nano_super) 移植） |
-| `rf2o_laser_odometry` | 激光里程计（同上仓库移植），当前 odom 的来源 |
+| `rf2o_laser_odometry` | 激光里程计（同上仓库移植），现为 EKF 的一路输入（发布 `/odom_rf2o`）|
+| `robot_localization` | EKF：融合轮速+IMU+rf2o，独占发布 `/odom` 与 `odom → base_footprint` |
 
 依赖方向：`msgs` → `driver` → `bringup`；`description` 独立。
 
@@ -192,7 +193,10 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -p stamped:=true
 | 话题 | 类型 | 说明 |
 |---|---|---|
 | `/cmd_vel` | `geometry_msgs/TwistStamped` | 速度指令输入（**必须带 `header.stamp`**） |
-| `/odom` | `nav_msgs/Odometry` | 里程计（激光里程计 rf2o），同时发布 `odom → base_footprint` TF |
+| `/odom` | `nav_msgs/Odometry` | EKF 融合后的里程计（`/odometry/filtered` 重映射而来），同时发布 `odom → base_footprint` TF |
+| `/odom_rf2o` | `nav_msgs/Odometry` | rf2o 的原始输出，EKF 的一路输入（不再发 TF）|
+| `/wheel/odom` | `nav_msgs/Odometry` | 四轮计数算出的轮速里程计（静止时提供 ZUPT）|
+| `/imu/data` | `sensor_msgs/Imu` | MCU 的陀螺角速度（加计仅诊断；姿态按约定标为未知）|
 | `/joint_states` | `sensor_msgs/JointState` | 关节状态 |
 | `/scan` | `sensor_msgs/LaserScan` | 雷达**原始**扫描，10 Hz，`frame_id: laser_frame` |
 | `/scan_filtered` | `sensor_msgs/LaserScan` | 角度过滤**后**的扫描 —— slam_toolbox 用这个 |
@@ -450,10 +454,14 @@ map → odom → base_footprint → base_link → laser_frame
                   │              ├─ front_caster_link
                   │              └─ rear_caster_link
                   │
-      ┌───────────┴────────────┬─────────────────────┐
-      │                        │                     │
-  slam_toolbox      rf2o_laser_odometry   robot_state_publisher
-  （map→odom）        （odom→base_footprint）        （URDF）
+      ┌───────────┴──────────────┬────────────────────────┐
+      │                          │                        │
+  slam_toolbox          ekf_filter_node          robot_state_publisher
+  （map→odom）     （odom→base_footprint）★唯一         （URDF）
+                     ▲        ▲        ▲
+                     │        │        │
+              /odom_rf2o  /wheel/odom  /imu/data
+              （rf2o）   （chassis_bridge）（chassis_bridge）
 ```
 
 ⚠️ **`controllers.yaml` 里 `base_frame_id` 必须是 `base_footprint`，不能是 `base_link`。**
@@ -463,6 +471,10 @@ diff_drive_controller 会发布 `odom → <base_frame_id>`，而 URDF 里 robot_
 **两个父节点**（`odom` 和 `base_footprint`）—— TF 要求每帧只能有一个父节点，
 结果是树结构非法，`base_footprint` 整条边被静默丢弃、从树上消失。
 
+⚠️ **`odom → base_footprint` 这条边只能有一个发布者，现在是 `ekf_filter_node`。**
+所以 rf2o 的 `publish_tf` 必须是 `False`、`diff_drive_controller` 的
+`enable_odom_tf` 必须是 `false`。三个里任意两个同时发就树结构非法。
+
 排查方法（教程里的那两条命令）：
 
 ```bash
@@ -470,32 +482,86 @@ ros2 run rqt_tf_tree rqt_tf_tree --force-discover   # 图形化，可刷新
 ros2 run tf2_tools view_frames                      # 生成 PDF + frames.gv
 ```
 
-### 里程计：激光里程计（rf2o）
+### 里程计：EKF 融合（轮速 + IMU陀螺 + rf2o）
 
-**当前 odom 的来源是激光雷达，不是轮子。**
+**odom 由 `robot_localization` 的 EKF 产生**，三路输入各有强弱，正好互补：
 
+| 输入 | 话题 | 强在 | 弱在 |
+|---|---|---|---|
+| rf2o 激光配准 | `/odom_rf2o` | **平移**（米制、尺度正确）| 旋转（原地转/长廊退化，**漂移的来源**）|
+| IMU 陀螺 `gyro_z` | `/imu/data` | **旋转** | 平移（测不到）|
+| 四轮轮速 | `/wheel/odom` | 静止时给"**没动**"这个强约束 | 麦轮侧滑 → 有系统偏差 |
+| （slam_toolbox）| TF `map→odom` | 绝对修正 | — |
+
+#### 它解决什么问题：车静置久了位姿漂走
+
+此前 odom 只有 rf2o 一路：它每帧都产生微小虚假运动并积分（实测静止 yaw 漂
+**0.29 °/s**），而 slam_toolbox 的扫描处理被 `minimum_travel_*` 门控、**静止时不做
+纠正** —— 于是位姿跟着 odom 漂。实测放一段时间就能漂到明显错误的位置。
+
+修法是把"静止"这个信息喂给滤波器：**四轮计数为 0 时，`/wheel/odom` 以极小协方差
+（1e-5）发布零速**（ZUPT，零速修正），EKF 的速度于是被强拉向 0、位姿被钉住。
+运动时同一路改用大协方差（2.5e-3），让 rf2o 主导平移 —— **所以轮速没标定也不会
+污染平移**（这是刻意设计，见 [ekf.yaml](src/robot_base_bringup/config/ekf.yaml) 注释）。
+
+#### ⚠️ 陀螺零偏必须扣（EKF 没有零偏状态）
+
+`robot_localization` 的 EKF 状态量里**没有陀螺零偏**，所以零偏得在发布前扣掉，
+否则用陀螺换来的 yaw 改善会被它吃掉。`chassis_bridge` 里做了**静基座零偏估计**：
+判据是"本模式指令为 0 + 四轮计数为 0 + |gyro−零偏| < 3 °/s"，先攒 50 个静止样本取
+中位数，之后极慢泄漏自适应。实测零偏中位数约 **±0.07 °/s**（各次运行不同），
+实时值发布在 `/imu/gyro_bias`（可读出后用 `gyro_bias:=` 硬写、去掉自动估计）。
+
+#### ⚠️ 轮速标定（未做之前 odom 平移仍然可用，但轮速量级不准）
+
+`motor_speed[i]` 是**每个控制周期**的带符号整数计数增量（FL,FR,RL,RR），而**控制
+周期会变**（实测 35~71 ms），所以：
+
+* **距离** 与周期无关：`distance_m = dist_counts / wheel_counts_per_mps`
+* **速度** 需要周期：`v = c / (loop_period_ms/1000) / wheel_counts_per_mps`
+
+`wheel_counts_per_mps` 的含义是"**每米行程累加多少个每周期计数**"，占位值 **12000**
+（由固件命令尺度 `ROS_LINE_MAX_SPEED=120` 反推：120 counts/10ms × 100 个周期/秒），
+但实测周期不是 10 ms，所以占位值预计偏差可达数倍 —— **必须实测标定**：
+
+```bash
+# 停掉栈（标定脚本要独占串口），前方留一段 ≥1 m 直线
+python3 tools/twist_sign_probe.py --calibrate-wheel-scale
 ```
-/scan_filtered ─┬─→ rf2o_laser_odometry ─→ /odom + odom→base_footprint 的 TF（短时先验，会漂）
-                └─→ slam_toolbox ────────→ map→odom 的 TF（扫描匹配修正）
+脚本会自己开环驱动小车直线前进（Enter 停止），用固件 `dist_counts` 的增量除以你输入
+的实际米数，直接吐出 `wheel_counts_per_mps`，再用参数覆盖：
+
+```bash
+ros2 run robot_base_bringup chassis_bridge.py --ros-args \
+  -p port:=/dev/stm32 -p enabled:=true -p wheel_counts_per_mps:=<标定值>
 ```
 
-#### 为什么这么做
+⚠️ 这是**直线**标定结果：原地转时麦轮侧滑会让编码器口径明显高估，所以**轮速的
+`vyaw` 永远不能用于融合**（配置里已如此，`odom1_config` 只开 vx）。
 
-`robot_base_driver.read()` **还是桩实现**（把速度命令回声成状态再积分），
-轮式里程计完全没有反映真实运动。而雷达是真的 —— 所以激光里程计给出的才是真实运动。
-**这带来一个实际好处：你现在推着车走就能建出真实地图，不用等电机接好。**
+#### 回退与降级（两者都要知道）
 
-#### ⚠️ TF 归属：不能两边都发
+* **整体回退到"rf2o 独占 odom"**：`ekf:=false`，并把 launch 里 rf2o 的
+  `publish_tf` 改回 `True`、`odom_topic` 改回 `/odom`。
+* ⚠️ **`motor_enable:=false` 时没有 `/wheel/odom` 与 `/imu/data`**：这两路来自
+  `chassis_bridge`，而它只在 `motor_enable:=true` 时启动（且独占 `/dev/stm32`）。
+  此时 EKF 只剩 rf2o 一路，**行为退化成与改动前相同（静止漂移会回归）**。
+  这是预期，不是故障 —— 没有 MCU 链路就没有 MCU 数据。
+* 单点回退：去掉陀螺 yaw → `ekf.yaml` 的 `imu0_config[11]=false`；去掉轮速融合 →
+  `odom1_config` 全 `false`；停零偏扣除 → `-p subtract_gyro_bias:=false`。
 
-`odom → base_footprint` 现在由 rf2o 发布，因此
-[controllers.yaml](src/robot_base_bringup/config/controllers.yaml) 里
-`diff_drive_controller` 的 **`enable_odom_tf` 必须为 `false`**。
-两个节点同时发这条 TF 会让它有两个来源，树结构非法（RViz 报 `TF_REPEATED_DATA`）。
+#### 已知局限
 
-同理，launch 里**去掉了** `'/diff_drive_controller/odom' → '/odom'` 的重映射，
-`/odom` 现在只有 rf2o 一个发布者。轮式里程计仍可在 `/diff_drive_controller/odom` 单独查看。
+* rf2o 的 twist 是**最近 5 帧的滑动平均**（约 0.5 s 相位滞后），所以 EKF 平移会带
+  滞后；且停车后约 0.5 s 内 rf2o 的 vx 还没衰减到 0，会短暂顶住轮速的 ZUPT
+  （协方差差 40 倍，零速仍占优，但可能有瞬态）。
+* 本车在 ROS 室内模式下从不横移（固件 `Vy_set` 恒 0、`nav2` 的 `max_vel_y=0`），
+  而 `vy` 没有任何可信观测，所以 EKF 的 `vy` 会一直≈0。
+* 磁力计是坏的（`mag_*` 恒为 0，而 flags 的 `MAG_VALID` 位照置），JY901S 自己的
+  `imu_yaw` 因此在漂（实测 0.2 °/s）—— 所以 `/imu/data` 按 `sensor_msgs/Imu` 约定
+  把 `orientation_covariance[0]` 置 **−1**（"姿态未知"），下游不要把它当姿态用。
 
-#### 实测
+#### 实测（改动前，作对照基线）
 
 车静止不动时，rf2o 的 `/odom` 会因雷达测量噪声缓慢漂移（实测约 10cm）：
 
@@ -639,7 +705,7 @@ ros2 topic echo /map --once | head -5
 ```
 
 ⚠️ 但**不要用 cmd_vel 假装让车动** —— 那样轮子（桩实现）会伪造里程计，
-而 rf2o 的 TF 和它冲突，地图会变成沿虚构轨迹铺开的伪影。
+而 EKF 的 TF 用的正是这份桩里程计（通过 rf2o/轮速），地图会变成沿虚构轨迹铺开的伪影。
 （这也是为什么 `enable_odom_tf` 必须是 `false`：`diff_drive_controller` 的
 `/cmd_vel` 仍然接在轮子上，但它不再影响 odom。）
 
@@ -727,7 +793,7 @@ Fixed Frame 不存在时 RViz 什么都渲染不出来。launch 里已用 rviz2 
 
 **⚠️ 但光改 Fixed Frame 不够 —— `odom -> base_footprint` 这条 TF 必须真的有人发布。**
 
-`controllers.yaml` 里 `enable_odom_tf` 是 `false`，因为真机路径下这条 TF 由 rf2o 发布、
+`controllers.yaml` 里 `enable_odom_tf` 是 `false`，因为真机路径下这条 TF 由 EKF 发布、
 `diff_drive_controller` 刻意让出以免两个节点抢同一条。而 gazebo.launch.py **不启动 rf2o** ——
 若不同时把 `enable_odom_tf` 改回 `true`，就【没有任何节点】发布 `odom` 坐标系，后果是：
 
@@ -829,7 +895,8 @@ xacro src/robot_base_description/urdf/robot_base.urdf.xacro \
 
 ## 尚未包含
 
-- IMU 接入与 `robot_localization` EKF 融合（雷达已接入，见上）
+- ~~IMU 接入与 `robot_localization` EKF 融合~~（已完成：见「里程计：EKF 融合」。
+  ⚠️ 轮速标定还没做，`wheel_counts_per_mps` 是占位值 12000，见那一节的标定步骤）
 - Nav2 导航（AMCL / costmap / planner；SLAM 建图已可用，见上）
 - Gazebo 仿真（需另装 `ros-jazzy-ros-gz`）
 - 真机硬件（`robot_base_driver` 的 read/write 仍是桩实现，详见「接真机」）
