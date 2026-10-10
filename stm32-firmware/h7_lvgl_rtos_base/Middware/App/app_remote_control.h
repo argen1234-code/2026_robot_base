@@ -35,7 +35,7 @@ typedef struct chassis_move_s chassis_move_t;
    ⚠️ 这仍是【估算】：打滑系数随地面与载重变化。请用 twist_sign_probe 看 ss_ratio，
       再用 chassis_set_remote_param(CHASSIS_REMOTE_PARAM_ROS_VZ_SCALE, x) 实时标定，
       目标是 ss_ratio ≈ 1.0（= 车真的转到指令角速度）。 */
-#define ROS_LINE_VZ_SCALE     60.0f
+#define ROS_LINE_VZ_SCALE     71.0f
 #define ROS_LINE_MAX_SPEED    120.0f
 /* ⚠️ 必须与 VZ_SCALE 同步抬高，否则 setpoint 会先在这里被夹掉：
    setpoint = clamp(ω * VZ_SCALE, ±MAX_WZ)。40/60 = 0.67 rad/s 的指令上限。 */
