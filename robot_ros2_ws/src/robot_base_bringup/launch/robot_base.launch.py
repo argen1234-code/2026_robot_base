@@ -7,43 +7,27 @@
   1. robot_state_publisher   —— 发布 TF（由 URDF 决定）
   2. ros2_control_node       —— 加载 robot_base_driver 硬件插件
   3. joint_state_broadcaster —— 发布 /joint_states
-  4. diff_drive_controller   —— 接收 cmd_vel；只发布 /diff_drive_controller/odom
-                                 （enable_odom_tf=false，不发 TF；且硬件插件目前是
-                                 桩实现，那份 odom 是命令回声、不是真实轮速）
+  4. diff_drive_controller   —— 接收 cmd_vel，发布 /odom 与 odom->base_link TF
   5. ydlidar_ros2_driver     —— 发布 /scan（激光雷达，可用 lidar:=false 关掉）
   6. scan_to_scan_filter_chain —— 对 /scan 做角度过滤，发布 /scan_filtered
                                  （RViz 与下游订阅的是过滤后的这一份）
-  7. rf2o_laser_odometry     —— 激光里程计，发布 /odom_rf2o（不再发 TF）
-  7b. ekf_filter_node        —— robot_localization EKF，融合「轮速 + IMU陀螺 + rf2o」，
-                                 发布 /odom 与 odom->base_footprint 的 TF（可用 ekf:=false 关掉）
+  7. rf2o_laser_odometry     —— 激光里程计，发布 /odom 与 odom->base_footprint 的 TF
   8. slam_toolbox            —— 2D SLAM 异步建图，
                                  发布 /map 与 map->odom 的 TF（可用 slam:=false 关掉）
 
 话题流向：ydlidar -> /scan -> [角度滤波] -> /scan_filtered -> slam_toolbox -> /map
-          chassis_bridge -> /wheel/odom + /imu/data ─┐
-          rf2o -> /odom_rf2o ────────────────────────┼-> ekf -> /odom
-                                                     ┘
 
 TF 树（与 TF2 教程里的移动机器人树形图一致）：
     map -> odom -> base_footprint -> base_link -> laser_frame
      ▲      ▲            ▲
      │      │            └─ URDF（robot_state_publisher）
-     │      └─ ekf_filter_node（融合轮速+IMU+rf2o）★ 唯一发布者
+     │      └─ rf2o_laser_odometry（激光里程计）
      └─ slam_toolbox
-
-⚠️ odom->base_footprint 只能有一个发布者：现在归 EKF。所以 rf2o 的 publish_tf
-   必须是 False（见 rf2o_node），diff_drive_controller 的 enable_odom_tf 也是
-   false（见 controllers.yaml）。两条都发会让这条 TF 有两个父节点、树结构非法。
-⚠️ /wheel/odom 与 /imu/data 由 chassis_bridge 发布，而它只在 motor_enable:=true
-   时启动（且独占 /dev/stm32）。所以 motor_enable:=false 时 EKF 只有 rf2o 一路输入、
-   退化成与改动前相同的行为（静止漂移会回归）—— 这是预期，不是故障。
 
 启动后验证：
     ros2 control list_controllers          # 两个控制器都应为 active
     ros2 topic echo /odom --once
     ros2 topic hz /scan                    # 雷达应约 10 Hz
-    ros2 topic hz /imu/data                # 约 14 Hz（取决于 MCU 遥测节流）
-    ros2 run tf2_tools view_frames         # odom->base_footprint 应只有一条边
 """
 
 import os
@@ -51,8 +35,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
-    DeclareLaunchArgument, EmitEvent, LogInfo, OpaqueFunction,
-    RegisterEventHandler)
+    DeclareLaunchArgument, EmitEvent, LogInfo, RegisterEventHandler)
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.events import matches_action
@@ -84,7 +67,6 @@ def generate_launch_description():
     use_lidar = LaunchConfiguration('lidar')
     use_lidar_filter = LaunchConfiguration('lidar_filter')
     use_slam = LaunchConfiguration('slam')
-    use_ekf = LaunchConfiguration('ekf')
     foxglove_address = LaunchConfiguration('foxglove_address')
     foxglove_port = LaunchConfiguration('foxglove_port')
 
@@ -228,66 +210,26 @@ def generate_launch_description():
     #    ⚠️ TF 归属：odom -> base_footprint 现在由本节点发布，
     #       controllers.yaml 里 diff_drive_controller 的 enable_odom_tf
     #       必须同时为 false，否则两个节点抢同一条 TF。
-    # 7)+7b) 里程计来源的选择 —— 一个 `ekf` 开关同时决定 rf2o 与 EKF 的接线。
-    #
-    #   ekf:=true （默认）  rf2o -> /odom_rf2o（不发 TF）+ 轮速/IMU -> EKF -> /odom + TF
-    #   ekf:=false          rf2o -> /odom + odom->base_footprint 的 TF
-    #                        （= v0.2.0 里程碑的行为，用于对照/回退）
-    #
-    # ⚠️ 为什么必须用 OpaqueFunction 在【运行期】读开关再决定 rf2o 的参数：
-    #    LaunchConfiguration 是替换变量，构造期拿不到它的值。早先我把 rf2o 的
-    #    publish_tf 写死成 False、odom_topic 写死成 /odom_rf2o，于是 `ekf:=false`
-    #    时【没有任何节点发布 odom->base_footprint】—— 整条 TF 链断掉，代价地图
-    #    的 Sensor origin 落到图外、无法 raytrace（障碍只标不清、越积越多），
-    #    表现为"膨胀层覆盖全图"。这是个把回退路径写坏的实现错误。
-    #    现在两个分支都保证【恰好一个】odom->base_footprint 发布者。
-    def odom_source_nodes(context, *args, **kwargs):
-        use_ekf_bool = str(context.launch_configurations.get('ekf', 'true')).lower() in (
-            'true', '1', 'yes', 'on')
-        rf2o = Node(
-            package='rf2o_laser_odometry',
-            executable='rf2o_laser_odometry_node',
-            name='rf2o_laser_odometry',
-            parameters=[{
-                # 用角度过滤后的数据。rf2o 是扫描配准，用原始 /scan 也行，
-                # 但过滤掉后方 90° 能减少车体自身/拖线的干扰。
-                'laser_scan_topic': '/scan_filtered',
-                # EKF 模式下 rf2o 降级成 EKF 的一路输入（发到 /odom_rf2o），
-                # /odom 留给 EKF；回退模式下 rf2o 自己就是 /odom 的发布者。
-                # 这样 nav2_params.yaml 里那些 odom_topic: /odom 的消费者两种
-                # 模式都不用改。
-                'odom_topic': '/odom_rf2o' if use_ekf_bool else '/odom',
-                # ⚠️ 两种模式下都只能有一方发这条 TF：
-                #   EKF 模式 -> rf2o 关（否则同一条边两个父节点，TF 树非法）
-                #   回退模式 -> rf2o 开（这就是 v0.2.0 的行为）
-                'publish_tf': not use_ekf_bool,
-                # base_frame_id 决定这条 TF 的 child（回退模式下）以及 odom
-                # 消息里的 base_frame。
-                'base_frame_id': 'base_footprint',
-                'odom_frame_id': 'odom',
-                # 留空表示不从上位姿初始化，从原点开始
-                'init_pose_from_topic': '',
-                'freq': 10.0,      # 与雷达 10Hz 一致
-            }],
-            output='screen',
-        )
-        if not use_ekf_bool:
-            return [rf2o]
-        ekf = Node(
-            package='robot_localization',
-            executable='ekf_node',
-            name='ekf_filter_node',
-            parameters=[
-                os.path.join(bringup_share, 'config', 'ekf.yaml'),
-                {'use_sim_time': False},
-            ],
-            # EKF 的默认输出话题是 /odometry/filtered；重映射成 /odom，让
-            # nav2_params.yaml 里的 odom_topic: /odom 不用改。
-            remappings=[('/odometry/filtered', '/odom')],
-            output='screen',
-        )
-        return [rf2o, ekf]
-
+    rf2o_node = Node(
+        package='rf2o_laser_odometry',
+        executable='rf2o_laser_odometry_node',
+        name='rf2o_laser_odometry',
+        parameters=[{
+            # 用角度过滤后的数据。rf2o 是扫描配准，用原始 /scan 也行，
+            # 但过滤掉后方 90° 能减少车体自身/拖线的干扰。
+            'laser_scan_topic': '/scan_filtered',
+            'odom_topic': '/odom',
+            'publish_tf': True,
+            # base_frame_id 必须是 base_footprint：它决定 rf2o 发布
+            # odom -> <base_frame_id>，写 base_link 会让 base_link 又有两个父节点。
+            'base_frame_id': 'base_footprint',
+            'odom_frame_id': 'odom',
+            # 留空表示不从上位姿初始化，从原点开始
+            'init_pose_from_topic': '',
+            'freq': 10.0,      # 与雷达 10Hz 一致
+        }],
+        output='screen',
+    )
 
     # 8) 2D SLAM 异步建图。
     #    订阅 /scan_filtered，发布 /map 与 map->odom 的 TF。
@@ -370,10 +312,6 @@ def generate_launch_description():
             'slam', default_value='true',
             description='是否启动 slam_toolbox 建图（发布 /map 与 map->odom）。'),
         DeclareLaunchArgument(
-            'ekf', default_value='true',
-            description='是否启动 robot_localization EKF（融合轮速+IMU+rf2o，'
-                        '并独占 odom->base_footprint）。关闭则回退到 rf2o 独占 odom。'),
-        DeclareLaunchArgument(
             'lidar_filter', default_value='true',
             description='是否对雷达数据做角度过滤（发布 /scan_filtered）。'),
         DeclareLaunchArgument(
@@ -389,9 +327,7 @@ def generate_launch_description():
         wheel_states,
         lidar_node,
         laser_filter_node,
-        # rf2o 与 EKF 由 OpaqueFunction 按 ekf 开关成对创建（见上方注释），
-        # 保证两种模式下 odom->base_footprint 都【恰好一个】发布者。
-        OpaqueFunction(function=odom_source_nodes),
+        rf2o_node,
         slam_node,
         slam_configure,
         slam_activate,
