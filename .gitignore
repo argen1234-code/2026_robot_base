@@ -14,3 +14,7 @@
 
 # Test/build caches
 .pytest_cache/
+__pycache__/
+# tools/pid_host_test 是用 gcc 编译真实 pid.c 做主循环验证的临时工具，
+# 只提交源码，不提交可执行文件
+tools/pid_host_test/test_pid
