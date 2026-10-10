@@ -35,14 +35,49 @@
   <link name="base_link"/>
   <joint name="cad_mount_joint" type="fixed">
     <parent link="base_link"/><child link="cad_base_link"/>
-    <origin xyz="0 0 0" rpy="0 0 3.141592653589793"/>
+    <!-- ⚠️ x=-0.0062 是为了把车体【居中到 base_link 原点】。
+         CAD 导出的模型其几何中心并不在 cad_base_link 原点：实测车身包络中心
+         x=+0.00620、四轮中心 x=+0.00621（两个独立测量互相印证，非网格误差），
+         即旋转中心比原点靠前 6.2mm。base_link 作为运动学中心理应落在旋转中心上，
+         所以这里给一个 -0.0062 的平移把它掰回来。
+
+         居中后整车包络（base_link 系，含轮子）：
+             x: [-0.2250, +0.2250]   长 0.450 m
+             y: [-0.1606, +0.1684]   宽 0.329 m
+         ⚠️ 本值一旦改动，nav2_params.yaml 里两个 costmap 的 footprint 必须同步重算。 -->
+    <origin xyz="-0.0062 0 0" rpy="0 0 3.141592653589793"/>
   </joint>
 
   <!-- The lidar +Y axis is the confirmed vehicle-forward direction. -->
   <link name="laser_frame"/>
   <joint name="laser_joint" type="fixed">
     <parent link="base_link"/><child link="laser_frame"/>
-    <origin xyz="0.15 0 0.15" rpy="0 0 -1.5707963267948966"/>
+    <!-- ⚠️ 雷达装在【前轮轴线】上，即左前轮与右前轮中心连线的正上方（y=0）。
+
+         由 CAD 实测（mecanum_car_model.urdf，cad_base_link 系）：
+             前轮 x_cad = -0.17778   （左右两个前轮 x 相同）
+             后轮 x_cad = +0.16537
+         cad_mount_joint 把 CAD 绕 z 转 180° 再平移 -0.0062，故换算到 base_link：
+             x_base = -x_cad - 0.0062
+         前轮：x_base = +0.17778 - 0.0062 = +0.1716   ← 本行取值
+         后轮：x_base = -0.16537 - 0.0062 = -0.1716
+         两轴中点正好落在 0，与"base_link 是四轮旋转中心"的约定自洽，
+         可用来交叉验算（见上方 cad_mount_joint 注释里的 -0.0062）。
+
+         为什么不放在 0.21：那是贴着车体前缘（包络前沿约 +0.231）装的，
+         雷达本体（半径约 3.5cm）会探出车体约 14mm。移到前轮轴线后雷达
+         完全落在车体内，且与旋转中心的距离更短。
+
+         ⚠️ 改动本行后需复核两项：
+            1) laser_filters.yaml 的车尾扇区是按【雷达自身】角度定义的，
+               位置变了扇形覆盖的物理区域随之变化；
+            2) 同一文件里 filter2 的 lower_threshold=0.20 是照"雷达扫到
+               自己的安装结构"实测调出来的，挪位置后自回波会变，必要时重测。
+
+         rpy z=-90°：雷达坐标系相对 base_link 转了 -90°，
+         因此雷达的 +Y 对应 base_link 的 +X。这就是 laser_filters.yaml 里
+         "扫描角 +90° 才是车头方向" 的来源 —— 改动本行前请一并确认那边。 -->
+    <origin xyz="0.1716 0 0.15" rpy="0 0 -1.5707963267948966"/>
   </joint>
 
   <xacro:if value="$(arg use_gazebo)">

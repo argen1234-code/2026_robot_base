@@ -118,7 +118,14 @@ local_costmap:
       width: 3
       height: 3
       resolution: 0.05
-      robot_radius: 0.30
+      # ⚠️ 用【多边形轮廓】而不是 robot_radius 圆。
+      #    以下四个点是实测的整车包络（把 mecanum_car_model 各 STL 的角点按
+      #    link 位姿变换到 base_link 后求并集，含四个驱动轮 —— 轮子比车身宽）。
+      #    车体已在 URDF 里居中过（见 cad_mount_joint 注释），故 x 对称。
+      #        长 0.450 m   宽 0.329 m
+      #    用 footprint 时【不要】再写 robot_radius，两者互斥。
+      #    ⚠️ 改了 URDF 的车体尺寸或 cad_mount_joint 的平移量，这里要同步重算。
+      footprint: "[[-0.2250,-0.1606],[-0.2250,0.1684],[0.2250,0.1684],[0.2250,-0.1606]]"
       footprint_padding: 0.0
       plugins: [obstacle_layer, inflation_layer]
       obstacle_layer:
@@ -151,7 +158,14 @@ global_costmap:
       robot_base_frame: base_footprint
       resolution: 0.05
       track_unknown_space: true
-      robot_radius: 0.30
+      # ⚠️ 用【多边形轮廓】而不是 robot_radius 圆。
+      #    以下四个点是实测的整车包络（把 mecanum_car_model 各 STL 的角点按
+      #    link 位姿变换到 base_link 后求并集，含四个驱动轮 —— 轮子比车身宽）。
+      #    车体已在 URDF 里居中过（见 cad_mount_joint 注释），故 x 对称。
+      #        长 0.450 m   宽 0.329 m
+      #    用 footprint 时【不要】再写 robot_radius，两者互斥。
+      #    ⚠️ 改了 URDF 的车体尺寸或 cad_mount_joint 的平移量，这里要同步重算。
+      footprint: "[[-0.2250,-0.1606],[-0.2250,0.1684],[0.2250,0.1684],[0.2250,-0.1606]]"
       footprint_padding: 0.0
       plugins: [static_layer, obstacle_layer, inflation_layer]
       static_layer:

@@ -35,6 +35,8 @@ Panels:
       Expanded:
         - /Global Options1
         - /Map1
+        - /Global Costmap1
+        - /Local Costmap1
         - /RobotModel1
         - /LaserScan1
         - /TF1
@@ -90,6 +92,59 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /map_updates
+      Use Timestamp: false
+      Value: true
+    # ── 全局代价地图 ─────────────────────────────────────────────────────────
+    #   Color Scheme 用 costmap：按代价着色（致命=青蓝 / 膨胀=红黄渐变 / 未知=灰）
+    #   想只看障碍轮廓、不看膨胀梯度，把 Color Scheme 改成 map。
+    #
+    #   ⚠️ QoS 用 Volatile 而不是 Transient Local：
+    #     Volatile 订阅者比 Transient Local 弱，两种发布者都能连上；
+    #     反过来（发布者 Volatile + 订阅者 Transient Local）会完全收不到数据。
+    #     nav2 的代价地图带 always_send_full_costmap: true，1~2 秒内必到完整一帧，
+    #     所以不需要靠 latched 拿首帧。
+    - Alpha: 0.7
+      Class: rviz_default_plugins/Map
+      Color Scheme: costmap
+      Draw Behind: false
+      Enabled: true
+      Name: Global Costmap
+      Topic:
+        Depth: 1
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /global_costmap/costmap
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /global_costmap/costmap_updates
+      Use Timestamp: false
+      Value: true
+    # ── 局部代价地图 ─────────────────────────────────────────────────────────
+    #   3x3m 滚动窗口，跟着车走，只有 obstacle + inflation 两层（没有静态层）。
+    - Alpha: 0.7
+      Class: rviz_default_plugins/Map
+      Color Scheme: costmap
+      Draw Behind: false
+      Enabled: true
+      Name: Local Costmap
+      Topic:
+        Depth: 1
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /local_costmap/costmap
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /local_costmap/costmap_updates
       Use Timestamp: false
       Value: true
     - Alpha: 1
