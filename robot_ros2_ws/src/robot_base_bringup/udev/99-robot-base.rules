@@ -1,6 +1,46 @@
-# STM32H743 USB CDC used by the chassis bridge.
-# Match the unique USB serial number so the alias survives USB reordering.
+# 机器人底座 USB 串口命名规则：给两个设备固定别名。
+#
+# 安装（本文件由 CMake 装到 share/ 下，从那里拷到 /etc）：
+#   sudo install -m 0644 install/robot_base_bringup/share/robot_base_bringup/udev/99-robot-base.rules \
+#        /etc/udev/rules.d/99-robot-base.rules
+#   sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=tty
+#   ls -l /dev/stm32 /dev/ydlidar
+#
+# 改完务必过一遍语法：        udevadm verify /etc/udev/rules.d/99-robot-base.rules
+# 属性值必须来自【实际设备】，不要照抄本文件的旧值：
+#   udevadm info -a -n /dev/ttyACM0 | grep -E "looking at|ATTRS\{(devpath|idVendor|idProduct|serial)\}"
+#
+# ⚠️ 旧部署里可能还存在一个 /etc/udev/rules.d/99-stm32.rules（同一台机器上的重复副本，
+#    不在本仓库里）。装本文件后应删掉它，避免两条规则各说各话：
+#   sudo rm -f /etc/udev/rules.d/99-stm32.rules
+
+# ---------------------------------------------------------------------------
+# STM32H743 USB CDC（底盘电机控制器）-> /dev/stm32
+#
+# ⚠️ 主规则按【物理端口 devpath】绑定，与下面雷达同一写法。
+#
+# 为什么不再按序列号绑定：STM32 的 USB 序列号本意是芯片唯一（固件
+# usbd_desc.c 的 Get_SerialNum() 由芯片 UID 派生），但实测会失效 ——
+# 2026-10-10 接调试器/复位后重新枚举时，主机读到的序列号变成了厂商串
+# "STMicroelectronics"，于是按序列号匹配的规则不再命中、/dev/stm32 直接消失，
+# chassis_bridge 开不了口，现象是：
+#     Cannot open MCU /dev/stm32: [Errno 2] No such file or directory
+# 序列号什么时候读得出来不确定，不能拿它当唯一依据。
+#
+# 本机 USB 拓扑（udevadm info -a -n /dev/ttyACM0 实测）：
+#   总线 1 -> 集线器 1-2 (0bda:5489) -> STM32 在物理口 1-2.2
+#   所以 devpath 取短格式 "2.2"（雷达用 "2.3"，是同一个 hub 的另一个口）。
+# ⚠️ 换到别的 USB 口就会失效 —— 换口要改这里的值（或靠下面的序列号兜底规则）。
+SUBSYSTEM=="tty", KERNEL=="ttyACM*", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", ATTRS{devpath}=="2.2", GROUP="dialout", MODE="0660", SYMLINK+="stm32"
+
+# 序列号兜底规则。udev 的多条规则是【或】关系，命中哪条都加同一个 SYMLINK，
+# 两条同时命中只是重复创建同一个软链接，无害。
+# 留它的意义：把 STM32 插到【别的】物理口时，上面那条 devpath 规则失效，
+# 而这条按芯片唯一序列号匹配的规则仍然成立（前提是这次枚举序列号读得出来）。
+# 哪天确认序列号读取稳定了，可以只留这条、删掉上面那条。
 SUBSYSTEM=="tty", KERNEL=="ttyACM*", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", ATTRS{serial}=="3159396C3430", GROUP="dialout", MODE="0660", SYMLINK+="stm32"
 
-# YDLIDAR T-mini Pro (CP2102). Keep this separate from the STM32 CDC port.
+# ---------------------------------------------------------------------------
+# YDLIDAR T-mini Pro (CP2102) -> /dev/ydlidar
+# CP2102 的序列号是通用值 "0001"（同型号设备全都一样），只能按物理口区分。
 SUBSYSTEM=="tty", KERNEL=="ttyUSB*", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{devpath}=="2.3", GROUP="dialout", MODE="0660", SYMLINK+="ydlidar"

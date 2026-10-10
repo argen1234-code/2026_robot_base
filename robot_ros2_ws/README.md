@@ -100,7 +100,7 @@ ros2 launch robot_base_bringup navigation.launch.py map:=$HOME/maps/robot_map.ya
 ros2 launch robot_base_bringup navigation.launch.py map:=$HOME/maps/robot_map.yaml motor_enable:=true mcu_port:=/dev/stm32
 ```
 
-`chassis_bridge` 按 STM32 `develop` 固件 `bsp_usb.c` 的 12 字节 USB CDC 帧发送模式 3、速度 float 和 XOR 校验；ROS 前进速度会按固件约定转换为负 Vx。桥接限速为 0.20 m/s、0.45 rad/s，命令超时 0.25 秒即周期发送零速，短于 MCU 的 0.5 秒离线保护。STM32 通过唯一序列号固定为 `/dev/stm32`，不要把它配置成雷达的 `/dev/ydlidar`。固件室内模式不支持倒车和横移，桥接会拒绝倒车命令。首次上电请架空车轮并备好物理急停；完成实际方向、轮廓尺寸和制动距离标定前，不要无人值守运行。
+`chassis_bridge` 按 STM32 `develop` 固件 `bsp_usb.c` 的 12 字节 USB CDC 帧发送模式 3、速度 float 和 XOR 校验；ROS 前进速度会按固件约定转换为负 Vx。桥接限速为 0.20 m/s、0.45 rad/s，命令超时 0.25 秒即周期发送零速，短于 MCU 的 0.5 秒离线保护。STM32 与雷达的稳定设备名由 `src/robot_base_bringup/udev/99-robot-base.rules` 统一提供（`/dev/stm32` 与 `/dev/ydlidar`），两者都按 USB **物理口** `devpath` 绑定，不要把二者配成同一个名字。⚠️ 早先 STM32 是按 USB 序列号绑定的，但实测该序列号会失效，详见下方「STM32 端口绑定」。固件室内模式不支持倒车和横移，桥接会拒绝倒车命令。首次上电请架空车轮并备好物理急停；完成实际方向、轮廓尺寸和制动距离标定前，不要无人值守运行。
 
 首次部署 udev 规则（规则模板位于 `src/robot_base_bringup/udev/99-robot-base.rules`）：
 
@@ -237,7 +237,9 @@ USB 转串口设备时都会变。雷达参数文件里写死一个编号，换�
 解决办法是用 udev 规则把雷达固定映射成一个稳定名字 `/dev/ydlidar`。
 （方法参考 [USB端口绑定教程](https://gitee.com/gwmunan/ros2/wikis/%E5%AE%9E%E6%88%98%E6%95%99%E7%A8%8B/USB%E7%AB%AF%E5%8F%A3%E7%BB%91%E5%AE%9A)）
 
-本机已完成配置，规则在 `/etc/udev/rules.d/99-ydlidar.rules`：
+本机已完成配置。规则**模板在仓库里**：`src/robot_base_bringup/udev/99-robot-base.rules`
+（那个文件同时管 STM32 和雷达两个设备，安装命令见本文档开头「首次部署 udev 规则」），
+装好后生效于 `/etc/udev/rules.d/99-robot-base.rules`。雷达那一条是：
 
 ```
 KERNEL=="ttyUSB*", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{devpath}=="2.3", GROUP="dialout", MODE="0660", SYMLINK+="ydlidar"
@@ -258,11 +260,43 @@ KERNEL=="ttyUSB*", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{devp
 udevadm info -a -n /dev/ttyUSB0 | grep -E "looking at|ATTRS\{(devpath|idVendor|idProduct|serial)\}"
 ```
 
-改完 `/etc/udev/rules.d/99-ydlidar.rules` 后让规则生效：
+改完 `/etc/udev/rules.d/99-robot-base.rules` 后让规则生效（并顺手过一遍语法校验）：
 
 ```bash
+sudo udevadm verify /etc/udev/rules.d/99-robot-base.rules
 sudo udevadm control --reload-rules && sudo service udev restart && sudo udevadm trigger
+ls -l /dev/stm32 /dev/ydlidar
 ```
+
+### STM32 端口绑定（udev）
+
+STM32 的 `/dev/stm32` 原先按 **USB 序列号** 绑定（序列号由固件 `usbd_desc.c` 的
+`Get_SerialNum()` 从芯片 UID 派生，本意是芯片唯一、换口不改名）。**实测会失效：**
+
+> 接调试器 / 复位后重新枚举时，主机读到的序列号会变成厂商串 `STMicroelectronics`，
+> 按序列号匹配的规则于是不再命中，`/dev/stm32` 直接消失、`chassis_bridge` 开不了口：
+> `Cannot open MCU /dev/stm32: [Errno 2] No such file or directory`，且每 5 秒重试一次。
+
+所以现在**主规则改成按物理口 `devpath` 绑定**（与雷达同一写法），另外**保留一条按
+序列号的规则作为兜底** —— udev 的多条规则是「或」关系，同时命中只是重复创建同一个
+软链接、无害；这样把 STM32 插到别的口时，只要这次序列号读得出来，名字照样正确。
+
+| 属性 | 值 | 说明 |
+|---|---|---|
+| `idVendor` / `idProduct` | `0483` / `5740` | ST Microelectronics 内置 USB CDC |
+| `devpath` | `2.2` | USB **物理口**编号，与雷达的 `2.3` 同属集线器 `1-2` |
+| `serial` | `3159396C3430` | ⚠️ 本应芯片唯一，但**会读成 `STMicroelectronics`**，只能当兜底 |
+
+**排查这类问题的三步**（不依赖 ROS）：
+
+```bash
+ls -l /dev/stm32 /dev/ydlidar
+udevadm info -a -n /dev/ttyACM0 | grep -E "looking at|ATTRS\{(devpath|idVendor|idProduct|serial)\}"
+udevadm trigger --subsystem-match=tty    # 重新触发一遍规则
+```
+
+⚠️ 若旧部署里还留着 `/etc/udev/rules.d/99-stm32.rules`（同机重复副本，不在仓库里），
+装本规则后请删掉它：`sudo rm -f /etc/udev/rules.d/99-stm32.rules`
 
 验证（应看到 `ydlidar -> ttyUSB0`）：
 
