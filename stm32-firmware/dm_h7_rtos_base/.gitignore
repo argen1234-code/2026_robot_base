@@ -1,0 +1,24 @@
+# GCC build output
+build/
+
+# Keil build output
+MDK-ARM/dm_h7_rtos_base/
+MDK-ARM/*_Build/
+MDK-ARM/*.uvguix.*
+MDK-ARM/*.log
+MDK-ARM/*.build_log.htm
+MDK-ARM/*.map
+MDK-ARM/*.axf
+MDK-ARM/*.hex
+MDK-ARM/*.bin
+MDK-ARM/*.lst
+MDK-ARM/*.o
+MDK-ARM/*.d
+MDK-ARM/*.crf
+MDK-ARM/*.dep
+
+# Logs
+*.log
+
+# Editor (root .gitignore already ignores .vscode/)
+.vscode/
