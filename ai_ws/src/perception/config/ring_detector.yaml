@@ -1,0 +1,27 @@
+ring_detector_node:
+  ros__parameters:
+    device: 0
+    width: 640
+    height: 480
+    fps: 10.0
+    # TODO: replace with the calibrated Orbbec RGB intrinsics at 640x480.
+    camera_fx: 600.0
+    camera_fy: 600.0
+    camera_cx: 320.0
+    camera_cy: 240.0
+    frame_id: 'camera_optical_frame'
+    publish_debug_image: true
+    test_image: ''
+
+    # Measured print (2026-11-02):
+    # outer black ring 167/127 mm (width 20), white gap 127/108 mm,
+    # inner black ring 108/66 mm (width 21). Radii: 83.5/63.5/54/33 mm.
+    outer_outer_d_mm: 167.0
+    outer_inner_d_mm: 127.0
+    white_inner_d_mm: 108.0
+    inner_inner_d_mm: 66.0
+
+    # Camera mounting (used by the approach stage later)
+    camera_forward_offset_m: 0.12
+    camera_height_m: 0.50
+    camera_pitch_deg: 20.0        # TODO: replace with the measured tilt

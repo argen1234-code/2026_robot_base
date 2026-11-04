@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>largemodel</name>
+  <version>0.0.0</version>
+  <description>语音识别/合成、云端大模型与视觉节点</description>
+  <maintainer email="3106214334@qq.com">argen1234-code</maintainer>
+  <license>TODO: License declaration</license>
+
+  <build_depend>interfaces</build_depend>
+  <exec_depend>interfaces</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>action_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>tf2_geometry_msgs</exec_depend>
+  <exec_depend>nav2_msgs</exec_depend>
+
+  <!-- System dependencies needed for Python packages -->
+  <depend>build-essential</depend>
+  <depend>cmake</depend>
+  <depend>espeak-ng</depend>
+  <depend>libespeak-ng-dev</depend>
+  <depend>libonnxruntime-dev</depend>
+  <depend>portaudio19-dev</depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

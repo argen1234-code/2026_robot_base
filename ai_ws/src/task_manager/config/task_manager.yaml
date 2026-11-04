@@ -1,0 +1,48 @@
+velocity_mux:
+  ros__parameters:
+    nav_topic: 'cmd_vel_nav'
+    search_topic: 'cmd_vel_search'
+    follow_topic: 'cmd_vel_follow'
+    output_topic: 'cmd_vel'
+    mode_topic: 'task_mode'
+    stop_topic: 'stop_request'
+    scan_topic: '/scan'
+    publish_rate_hz: 20.0
+    cmd_timeout_s: 0.4
+    dry_run: true                 # Set false on the bench with wheels off the ground
+    lidar_safety: true
+    require_scan: false
+    scan_timeout_s: 1.0
+    safety_sector_deg: 50.0
+    safety_center_angle_rad: 0.0
+    safety_distance_m: 0.25
+    min_valid_range_m: 0.12
+
+target_searcher:
+  ros__parameters:
+    search_speed_rad_s: 0.35
+    search_direction: 1.0         # +1 = counter-clockwise, -1 = clockwise
+    search_timeout_s: 20.0        # 0.35 rad/s * 20 s ~ 400 deg
+    valid_frames_required: 3
+
+    # Approach after the target is confirmed
+    approach_enabled: true
+    base_standoff_m: 1.0          # desired base-centre to user distance
+    camera_forward_offset_m: 0.12 # camera is 12 cm forward of base centre
+    camera_height_m: 0.50
+    target_height_m: 1.20         # chest height; tune for the user
+    bearing_tolerance_rad: 0.08
+    max_linear_m_s: 0.15
+    max_angular_rad_s: 0.40
+    linear_gain: 0.60
+    angular_gain: 1.00
+    target_lost_timeout_s: 0.60
+
+    command_topic: 'task_command'
+    summon_topic: 'summon_request'
+    stop_topic: 'stop_request'
+    mode_topic: 'task_mode'
+    search_cmd_topic: 'cmd_vel_search'
+    target_debug_topic: '/perception/target_debug'
+    target_pose_topic: '/perception/target_pose'
+    state_topic: 'task_state'

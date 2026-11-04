@@ -1,0 +1,23 @@
+hand_detector_node:
+  ros__parameters:
+    device: 0
+    width: 640
+    height: 480
+    fps: 10.0
+    max_num_hands: 1
+    model_complexity: 0        # 0 = lite, faster on Pi 5
+    min_detection_confidence: 0.5
+    min_tracking_confidence: 0.5
+    publish_debug_image: true
+    frame_id: 'usb_camera_optical_frame'
+
+    # TODO: replace with calibrated USB camera intrinsics at 640x480.
+    camera_fx: 600.0
+    camera_fy: 600.0
+    camera_cx: 320.0
+    camera_cy: 240.0
+
+    # Monocular distance proxy for the hand bbox.
+    hand_height_m: 0.20
+    min_distance_m: 0.20
+    max_distance_m: 3.0

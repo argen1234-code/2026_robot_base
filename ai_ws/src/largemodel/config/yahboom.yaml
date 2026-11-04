@@ -1,0 +1,108 @@
+###############---------------------------------------------国内版-----------------------------------------------------#################
+asr:                                    # ASR node parameters / 语音节点参数
+  ros__parameters:
+    VAD_MODE: 2                         # VAD sensitivity / vad灵敏度
+    sample_rate: 16000                  # ASR recording audio sample rate / asr录音音频采样率
+    frame_duration_ms:  30              # VAD frame size in ms / vad帧大小单位ms
+    use_oline_asr: False                # Whether to use online ASR (True for online, False for offline) / 是否使用在线asr识别（True使用在线，False使用离线）
+    mic_serial_port: "/dev/ttyUSB0"     # Microphone serial port alias / 麦克风串口别名
+    mic_index: 0                        # Microphone index / 麦克风索引
+    language: 'zh'                      # ASR language / asr语言
+    regional_setting : "China"          #international：国际版  China：国内版 # international: International version, China: Domestic version
+
+model_service:                          # Model service node parameters / 模型服务器节点参数
+  ros__parameters:
+    language: 'zh'                      # Large model interface language / 大模型接口语言
+    useolinetts: False                   # Whether to use online TTS (True for online, False for offline) / 是否使用在线语音合成（True使用在线，False使用离线）
+    llm_platform: 'deepseek'              # Currently selected large model platform / 当前选用的大模型平台
+    # Available platforms: 'ollama', 'tongyi', 'spark', 'qianfan' / 可选平台: 'ollama', 'tongyi', 'spark', 'qianfan'
+    regional_setting : "China"          #international：国际版  China：国内版 # international: International version, China: Domestic version
+    camera_type: 'usb'                 # Camera type: 'csi', 'usb' / 摄像头类型: 'csi', 'usb'
+    mjpeg_stream_url: 'http://172.17.0.1:8080/camera.mjpg' # MJPEG stream URL for CSI camera in Docker / Docker中CSI摄像头的MJPEG流URL
+    enable_tools: True                 # Enable tool calling (False = lower latency for voice chat) / 是否启用工具调用
+
+    # -------------------- Summon / navigation --------------------
+    enable_summon_fastpath: True       # Regex fast path for "过来" / "停下"; bypasses the LLM
+    map_frame: 'map'
+    base_frame: 'base_link'
+    camera_frame: 'camera_optical_frame'   # Must be the optical frame used by the intrinsics below
+    laser_frame: 'laser'
+    lidar_topic: '/scan'
+    range_source: 'auto'               # auto | lidar | ground
+    enable_lidar_fusion: True
+    lidar_range_window_deg: 8.0
+    lidar_min_range_m: 0.20
+    # TODO: replace with your calibrated USB camera intrinsics (640x480 defaults)
+    camera_fx: 600.0
+    camera_fy: 600.0
+    camera_cx: 320.0
+    camera_cy: 240.0
+    standoff_distance_m: 1.0           # Stop this far from the user
+    max_user_distance_m: 6.0           # Reject detections farther than this
+
+    # -------------------- Navigation task node --------------------
+    # (kept as a separate node; parameters are listed in the nav_task block below)
+
+tts_only_node:                          # TTS only node parameters / 纯语音合成节点参数
+  ros__parameters:
+    language: 'zh'                      # TTS language / 语音合成语言
+    useolinetts: False                   # Whether to use online TTS / 是否使用在线语音合成
+    regional_setting : "China"          #international：国际版  China：国内版 # international: International version, China: Domestic version
+
+nav_task:                               # Navigation task node / 导航任务节点
+  ros__parameters:
+    map_frame: 'map'
+    base_frame: 'base_link'
+    action_name: 'navigate_to_pose'     # Must match the Nav2 action server
+    goal_topic: 'nav_goal'
+    stop_topic: 'stop_request'
+    enable_topic: 'nav_enable'
+    status_topic: 'nav_status'
+    max_goal_age_s: 5.0
+    max_goal_distance_m: 20.0
+
+motion_gate:                            # Velocity gate / 速度门控
+  ros__parameters:
+    input_topic: 'cmd_vel_nav'          # Nav2 controller output
+    output_topic: 'cmd_vel'             # Base driver input
+    stop_topic: 'stop_request'
+    enable_topic: 'nav_enable'
+    scan_topic: '/scan'
+    cmd_timeout_s: 0.5
+    publish_rate_hz: 20.0
+    lidar_safety: False                 # Enable after verifying /scan is clear and aligned
+    require_scan: False
+    scan_timeout_s: 1.0
+    safety_sector_deg: 50.0
+    safety_center_angle_rad: 0.0          # Laser-frame angle of the robot's forward direction
+    safety_distance_m: 0.22
+    min_valid_range_m: 0.12
+
+
+###############---------------------------------------------International Edition-----------------------------------------------------#################
+# asr:                                    # ASR node parameters / 语音节点参数
+#   ros__parameters:
+#     VAD_MODE: 2                         # VAD sensitivity / vad灵敏度
+#     sample_rate: 16000                  # ASR recording audio sample rate / asr录音音频采样率
+#     frame_duration_ms:  30              # VAD frame size in ms / vad帧大小单位ms
+#     use_oline_asr: False                # Whether to use online ASR (True for online, False for offline) / 是否使用在线asr识别（True使用在线，False使用离线）
+#     mic_serial_port: "/dev/ttyUSB0"     # Microphone serial port alias / 麦克风串口别名
+#     mic_index: 0                        # Microphone index / 麦克风索引
+#     language: 'en'                      # ASR language / asr语言
+#     regional_setting : "international"          #international：国际版  China：国内版 # international: International version, China: Domestic version
+
+# model_service:                          # Model service node parameters / 模型服务器节点参数
+#   ros__parameters:
+#     language: 'en'                      # Large model interface language / 大模型接口语言
+#     useolinetts: False                  # Whether to use online TTS (True for online, False for offline) / 是否使用在线语音合成（True使用在线，False使用离线）
+#     llm_platform: 'deepseek'              # Currently selected large model platform / 当前选用的大模型平台
+#     # Available platforms: 'ollama', 'openrouter' / 可选平台: 'ollama',  'openrouter'
+#     regional_setting : "international"          #international：国际版  China：国内版 # international: International version, China: Domestic version
+#     camera_type: 'usb'                 # Camera type: 'csi', 'usb' / 摄像头类型: 'csi', 'usb'
+#     mjpeg_stream_url: 'http://172.17.0.1:8080/camera.mjpg' # MJPEG stream URL for CSI camera in Docker / Docker中CSI摄像头的MJPEG流URL
+
+# tts_only_node:                          # TTS only node parameters / 纯语音合成节点参数
+#   ros__parameters:
+#     language: 'en'                      # TTS language / 语音合成语言
+#     useolinetts: False                   # Whether to use online TTS / 是否使用在线语音合成
+#     regional_setting : "international"          #international：国际版  China：国内版 # international: International version, China: Domestic version

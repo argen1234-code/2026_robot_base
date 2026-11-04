@@ -1,0 +1,10 @@
+# Request
+string prompt
+int32 width
+int32 height
+int32 num_images
+---
+# Response
+bool success
+string[] image_urls
+string message
