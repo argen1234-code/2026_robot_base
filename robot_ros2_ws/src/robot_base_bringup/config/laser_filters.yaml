@@ -1,8 +1,8 @@
 # =============================================================================
 # laser_filters 滤波链配置
 # =============================================================================
-# 作用：订阅雷达原始数据 /scan，经角度滤波后发布 /scan_filtered。
-#       RViz、slam_toolbox、rf2o_laser_odometry 订阅的都是过滤后的这一份。
+# 作用：订阅雷达原始数据 /scan，经滤波后发布 /scan_filtered。
+#       RViz、slam_toolbox、rf2o_laser_odometry、Nav2 代价地图订阅的都是这一份。
 #
 # 节点 scan_to_scan_filter_chain 默认话题就是 scan -> scan_filtered，
 # 在根命名空间下即 /scan -> /scan_filtered，无需重映射。
@@ -11,50 +11,39 @@
 #    下面的顶层 key 就是节点名，对不上参数不会被加载（表现为滤波无效）。
 #
 # ⚠️ 该节点还需要 TF —— 没有 TF 时它会打印 "Ignoring Scan: Waiting for TF"
-#    并且不输出任何数据。单独调试时记得同时发一条 base_link -> laser_frame。
+#    并且不输出任何数据。
 #
+# ⚠️ 2026-11-05：雷达在 base_footprint 的 +X 端（约 +0.2225 m，离地 0.0862 m）。
+#    laser_frame yaw 已从 -90° 修正为 +90°：
+#      raw -90° → base_link 0°（车头）；raw +90° → base_link 180°（车尾，
+#      自回波来自雷达后侧安装结构）。
+#    新车自回波已实测，见下。
 # =============================================================================
-# 当前方案：屏蔽车尾 90°，保留以车头为中心的 270°。
-# 雷达安装在车头，laser_frame 的 +Y（绿色轴）指向前方；LaserScan 的角度
-# 以 laser_frame +X 为 0，因此车头方向为 +90°，车尾方向为 -90°。
-# =============================================================================
-# 曾经试过串联 5 级滤波（角度 + 距离 + 车体 + 阴影 + 散斑），已全部移除，
-# 原因见文件末尾「为什么去掉了其余 4 个滤波器」。
+# 当前方案（2026-11-04 新两轮车实测后更新）：
+#   0.20 ~ 10.0 m 距离截断 + 车尾后向盲区角度掩码。
+#
+#   新车自回波实测（/home/pi/rosbags/self_echo_new_20261104_233247，
+#   22 s、222 帧、430 束/帧，整车静止）：
+#     · 每帧 <0.10 m 的回波 56.1 束（39~71 束）；0.10~0.50 m 没有额外回波
+#       —— 自回波全部落在 0.10 m 以内；
+#     · 持续性自回波 23 束，raw 扫描角 +86.0°..+104.5°（经 TF 对应
+#       base_link 车尾，不是车头），中位 0.087 m，最大 0.100 m；
+#     · 车头方向 raw ≈ -90° 没有持续性近距离回波；
+#       2026-11-05 速度测试中正前方箱体出现在 raw -105°，距离从
+#       2.758 m 降到 1.439 m（Δ1.319 m），与前进 1.31 m 吻合。
+#
+#   2026-11-05 后向盲区掩码：
+#     · raw +90° = base_link 车尾方向；实测自回波 +86.0°..+104.5°；
+#     · 按 URDF 车体后向理论阴影 mask raw +66°..+114°（1.152..1.990 rad）；
+#     · URDF 车体后向理论阴影约 raw +66°..+114°，但实测 0.1~0.5 m
+#       没有车体回波，说明扫描平面高于车体，只掩实际自回波扇区。
+#     · lower_threshold=0.20 对最大自回波有约 10 cm 余量。若想保留更近的
+#       真实障碍，可降到 0.15 m（仍有 5 cm 余量），但不要低于 0.12 m。
 # =============================================================================
 
 scan_to_scan_filter_chain:
   ros__parameters:
-
-    # -------------------------------------------------------------------------
-    # 屏蔽车尾方向 ±45°（雷达坐标角 -135° 到 -45°），保留车头左右各 135°。
-    # -------------------------------------------------------------------------
-    # 使用 in-place 遮罩，保持整圈扫描及角度元数据不变；屏蔽束替换为
-    # NaN。rf2o 只会忽略非有限值，不能用 range_max + 1（会被当作实测距离）。
     filter1:
-      name: rear_sector
-      type: laser_filters/LaserScanAngularBoundsFilterInPlace
-      params:
-        lower_angle: -2.35619449  # -135°，车尾扇区一侧边界
-        upper_angle: -0.78539816  #  -45°，车尾扇区另一侧边界
-        wrap_angle: false
-        replace_with_nan: true
-
-    # -------------------------------------------------------------------------
-    # 2) 距离截断 —— ⚠️ 导航能否工作的关键，不要删
-    # -------------------------------------------------------------------------
-    # 上面的车尾遮罩挡不住【雷达自身的近距离回波】：实测 /scan_filtered 里
-    # 仍有 19 个束在 0.1m 以内（最近 0.042m），是雷达扫到了自己的安装结构。
-    #
-    # 这些"假障碍"随点云进到 nav2 代价地图后，经 inflation_radius=0.50 膨胀，
-    # 会把【机器人自己所处的格子】也标成致命：
-    #     全局代价地图里 机器人位置代价 = 99（致命）
-    #     -> 全局规划器起点即在障碍中 -> "Failed to create plan"
-    #     -> RViz 里点了目标点车纹丝不动
-    #
-    # 阈值 0.20m：车身回波都 < 0.1m 全部落在其内；而机器人半径是 0.30m，
-    # 任何 0.30m 以内的"障碍"本来就在车体内，对导航没有意义。
-    # 被丢弃的束替换为 inf（非有限值），rf2o 与 nav2 都会忽略。
-    filter2:
       name: range
       type: laser_filters/LaserScanRangeFilter
       params:
@@ -63,64 +52,26 @@ scan_to_scan_filter_chain:
         upper_threshold: 10.0
         lower_replacement_value: .inf
         upper_replacement_value: .inf
+    filter2:
+      name: rear_blind
+      type: laser_filters/LaserScanAngularBoundsFilterInPlace
+      params:
+        # raw laser_frame：+80°..+110°（base_link 车尾，窄掩码对照）
+        lower_angle: 1.3962634
+        upper_angle: 1.9198622
+        replace_with_nan: true
+        wrap_angle: true
 
 # =============================================================================
-# 为什么去掉了其余 4 个滤波器
+# 其余滤波器为什么不启用
 # =============================================================================
-#
-# 1) LaserScanFootprintFilter（车体剔除）—— ⚠️ 会让整条链断掉
+# 1) LaserScanFootprintFilter（车体剔除）—— 会让整条链断掉
 #    实测：不写 inscribed_radius 时每帧报错
 #        "We need an index channel to be able to filter out the footprint"
-#    写 0.0 也同样报错。这两种情况下 /scan_filtered **一帧都不输出**
-#    —— 不是"滤波不生效"，是整条链全断。
-#    必须给一个正数半径（例如 0.15）才正常。既然它没有可用的默认值，
-#    就不放在默认方案里。
+#    写 0.0 也同样报错，且 /scan_filtered 一帧都不输出。
+#    必须给正数半径（例如 0.15）才正常；没有可用默认值，故不放默认方案。
 #
-# 2) LaserScanRangeFilter / ScanShadowsFilter / LaserScanSpeckleFilter
-#    —— 插件默认值本身接近"空操作"：
-#      Range     默认 0.0 ~ 100000.0  -> 不截断任何距离
-#      Shadows   默认 min=max=90      -> 判定窗口极窄，实测启动时报
-#                                      "max_angle must be 90 <= max_angle"
-#    既然默认值等于不干活，又要在配置里写一堆数值才能起作用，
-#    就先不启用，保持链路干净。
-
-# =============================================================================
-# 参考：想启用某项过滤时，把对应段落补回 ros__parameters 下即可
-# =============================================================================
-#
-#   filter2:   # 距离截断 0.15~10m，超出置 inf
-#     name: range
-#     type: laser_filters/LaserScanRangeFilter
-#     params:
-#       use_message_range_limits: false
-#       lower_threshold: 0.15
-#       upper_threshold: 10.0
-#       lower_replacement_value: .inf
-#       upper_replacement_value: .inf
-#
-#   filter3:   # 车体剔除。⚠️ inscribed_radius 必须是正数，否则整条链断掉
-#     name: footprint
-#     type: laser_filters/LaserScanFootprintFilter
-#     params:
-#       inscribed_radius: 0.15
-#
-#   filter4:   # 去阴影虚点（对建图质量影响最大的一个）
-#     name: shadows
-#     type: laser_filters/ScanShadowsFilter
-#     params:
-#       min_angle: 10.0      # ⚠️ 这个插件用【角度】，上面 filter1 用【弧度】
-#       max_angle: 170.0
-#       neighbors: 2
-#       window: 1
-#       remove_shadow_start_point: true
-#
-#   filter5:   # 去孤立噪点
-#     name: speckle
-#     type: laser_filters/LaserScanSpeckleFilter
-#     params:
-#       filter_type: 0       # 0=按相邻点距离, 1=欧氏半径离群点搜索
-#       max_range: 10.0
-#       max_range_difference: 0.1
-#       filter_window: 2
-#
-# 实测参考（5 项全启用、角度取 360° 时）：/scan 354 点/帧 -> 328 点/帧，滤掉约 7%
+# 2) ScanShadowsFilter / LaserScanSpeckleFilter
+#    插件默认值接近空操作（Shadows 默认 min=max=90，启动会报参数错误），
+#    需要调一堆数值才生效。静态场景下先保持链路干净；若实测有孤立噪点，
+#    再按需加 speckle（filter_type 0，max_range_difference 0.1）。

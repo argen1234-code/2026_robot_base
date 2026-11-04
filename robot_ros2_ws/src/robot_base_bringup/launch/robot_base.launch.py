@@ -1,7 +1,7 @@
 """拉起整个机器人底座栈：ros2_control 硬件 + 控制器 + TF。
 
     ros2 launch robot_base_bringup robot_base.launch.py
-    ros2 launch robot_base_bringup robot_base.launch.py visualization:=foxglove
+    ros2 launch robot_base_bringup robot_base.launch.py visualization:=none
 
 启动内容：
   1. robot_state_publisher   —— 发布 TF（由 URDF 决定）
@@ -11,17 +11,26 @@
   5. ydlidar_ros2_driver     —— 发布 /scan（激光雷达，可用 lidar:=false 关掉）
   6. scan_to_scan_filter_chain —— 对 /scan 做角度过滤，发布 /scan_filtered
                                  （RViz 与下游订阅的是过滤后的这一份）
-  7. rf2o_laser_odometry     —— 激光里程计，发布 /odom 与 odom->base_footprint 的 TF
+  7. rf2o_laser_odometry     —— 激光里程计原始输出 /odom_rf2o
+  7b. odom_stabilizer        —— 轮速 ZUPT，输出 /odom_stabilized（不发 TF）
+  7c. wheel_odom             —— 轮速积分，输出 /wheel/odom（不发 TF）
+  7d. ekf_filter_node        —— 融合 rf2o+ZUPT、轮速、IMU gyro z，
+                                 发布 /odom 与唯一的 odom->base_footprint TF
   8. slam_toolbox            —— 2D SLAM 异步建图，
                                  发布 /map 与 map->odom 的 TF（可用 slam:=false 关掉）
 
-话题流向：ydlidar -> /scan -> [角度滤波] -> /scan_filtered -> slam_toolbox -> /map
+话题流向：ydlidar -> /scan -> [距离+后向角度滤波] -> /scan_filtered
+          -> slam_toolbox -> /map
+          -> rf2o -> /odom_rf2o -> odom_stabilizer -> /odom_stabilized
+          /chassis/wheel_speed -> wheel_odom -> /wheel/odom
+          /chassis/imu -> EKF gyro z
+          -> ekf_filter_node -> /odom + odom->base_footprint TF
 
 TF 树（与 TF2 教程里的移动机器人树形图一致）：
-    map -> odom -> base_footprint -> base_link -> laser_frame
+    map -> odom -> base_footprint -> base_link -> link_laser -> laser_frame
      ▲      ▲            ▲
      │      │            └─ URDF（robot_state_publisher）
-     │      └─ rf2o_laser_odometry（激光里程计）
+     │      └─ ekf_filter_node（融合里程计；唯一 odom->base_footprint）
      └─ slam_toolbox
 
 启动后验证：
@@ -58,17 +67,17 @@ def generate_launch_description():
     rviz_config = os.path.join(desc_share, 'rviz', 'robot_base.rviz')
 
     # 雷达参数文件。驱动包自带各型号的 yaml（X2/X4/G1/G2/TG/TminiPro...），
-    # 本机实测插的是 Tmini Pro（230400 bps），所以默认用它。
+    # 本机实测插的是 Tmini Plus（Model Code 151，230400 bps），所以默认用它。
+    # ⚠️ Tmini Plus 不输出强度信息：用 TminiPro.yaml（intensity: true）会持续
+    #    报 Checksum error 并反复切换强度位，故单独保留 TminiPlus.yaml。
     # 换型号只需 --lidar-params-file 指定驱动包里对应的那份 yaml。
-    default_lidar_params = os.path.join(lidar_share, 'params', 'TminiPro.yaml')
+    default_lidar_params = os.path.join(lidar_share, 'params', 'TminiPlus.yaml')
     laser_filters_yaml = os.path.join(bringup_share, 'config', 'laser_filters.yaml')
     slam_params_yaml = os.path.join(bringup_share, 'config', 'slam_toolbox.yaml')
 
     use_lidar = LaunchConfiguration('lidar')
     use_lidar_filter = LaunchConfiguration('lidar_filter')
     use_slam = LaunchConfiguration('slam')
-    foxglove_address = LaunchConfiguration('foxglove_address')
-    foxglove_port = LaunchConfiguration('foxglove_port')
 
     # 带 <ros2_control> 块，硬件由 robot_base_driver 提供
     robot_description = ParameterValue(
@@ -105,6 +114,9 @@ def generate_launch_description():
         output='screen',
     )
 
+    # 默认仍用 joint_state_publisher 提供轮子关节状态。
+    # 新 URDF 里虽然已经有 <ros2_control> 段，但 robot_base_driver 仍是桩实现，
+    # 仓库默认不启动 controller_manager；实际运动走 chassis_bridge + MCU。
     wheel_states = Node(
         package='joint_state_publisher',
         executable='joint_state_publisher',
@@ -160,9 +172,9 @@ def generate_launch_description():
 
     # 5) 激光雷达。ydlidar 驱动是普通 Node（不是 lifecycle），
     #    直接发布 /scan（sensor_msgs/LaserScan）与 /point_cloud。
-    #    frame_id 由参数文件给定为 laser_frame，与 URDF 里的雷达 link 同名，
-    #    因此 TF 链 odom -> base_link -> laser_frame 由 robot_state_publisher 提供，
-    #    不需要额外的 static_transform_publisher。
+    #    frame_id 由参数文件给定为 laser_frame，与 URDF 里的雷达坐标系同名，
+    #    因此 TF 链 odom -> base_footprint -> base_link -> link_laser ->
+    #    laser_frame 由 robot_state_publisher 提供，不需要额外 static TF。
     #
     #    ⚠️ 默认端口 /dev/ydlidar 由 udev 规则绑定（见 README「雷达端口绑定」），
     #       这样插拔/重启后设备名不会变。需要 dialout 组权限；
@@ -184,8 +196,8 @@ def generate_launch_description():
     #    订阅雷达原始数据 /scan，按 config/laser_filters.yaml 里的规则过滤，
     #    重新发布到 /scan_filtered。RViz 与下游（nav2 costmap 等）应订阅后者。
     #
-    #    当前规则：laser_frame +Y 是车头，屏蔽车尾 ±45°（雷达角
-    #             -135° 到 -45°），保留以车头为中心的 270°。
+    #    当前规则（2026-11-04 静态 bag 实测后更新）：laser_frame +Y 是车头，
+    #    只做 0.20–10 m 距离截断，不再屏蔽车尾（车尾扇区实测无自回波）。
     #    改范围只改那个 yaml，不必动本文件。
     #
     #    ⚠️ 关掉滤波（lidar_filter:=false）时 /scan_filtered 不存在，
@@ -218,8 +230,10 @@ def generate_launch_description():
             # 用角度过滤后的数据。rf2o 是扫描配准，用原始 /scan 也行，
             # 但过滤掉后方 90° 能减少车体自身/拖线的干扰。
             'laser_scan_topic': '/scan_filtered',
-            'odom_topic': '/odom',
-            'publish_tf': True,
+            # rf2o 只输出原始激光里程计；/odom 和 odom->base_footprint
+            # 由下面的 odom_stabilizer 发布（轮速静止时冻结，消除静态漂移）。
+            'odom_topic': '/odom_rf2o',
+            'publish_tf': False,
             # base_frame_id 必须是 base_footprint：它决定 rf2o 发布
             # odom -> <base_frame_id>，写 base_link 会让 base_link 又有两个父节点。
             'base_frame_id': 'base_footprint',
@@ -228,6 +242,65 @@ def generate_launch_description():
             'init_pose_from_topic': '',
             'freq': 10.0,      # 与雷达 10Hz 一致
         }],
+        output='screen',
+    )
+
+    # 7b) 零速保持（ZUPT）：订阅 rf2o 与 MCU 轮速。
+    #     实测 rf2o 在整车完全静止时仍会持续漂移（35 s 约 12° yaw），
+    #     静态障碍因此在 odom 系里“漂”。小车静止时冻结输出位姿，
+    #     轮速恢复后用偏置无缝续接 rf2o；没有轮速数据时透传。
+    #     EKF 模式下本节点只输出 /odom_stabilized，不再发 TF。
+    odom_stabilizer_node = Node(
+        package='robot_base_bringup',
+        executable='odom_stabilizer.py',
+        name='odom_stabilizer',
+        parameters=[{
+            'odom_in': '/odom_rf2o',
+            'odom_out': '/odom_stabilized',
+            'wheel_topic': '/chassis/wheel_speed',
+            'target_topic': '/chassis/wheel_target',
+            'odom_frame': 'odom',
+            'base_frame': 'base_footprint',
+            'publish_tf': False,
+            # 实测静止轮速噪声 ±0.12 rad/s：进入静止 0.20，退出 0.30。
+            'stationary_speed_rad_s': 0.20,
+            'release_speed_rad_s': 0.30,
+            'stationary_hold_s': 0.30,
+            'release_hold_s': 0.15,
+            'target_motion_threshold': 0.05,
+            'target_timeout_s': 0.50,
+            'wheel_timeout_s': 0.50,
+        }],
+        output='screen',
+    )
+
+    # 7c) 轮式里程计：/chassis/wheel_speed -> /wheel/odom，供 EKF 融合。
+    wheel_odom_node = Node(
+        package='robot_base_bringup',
+        executable='wheel_odom.py',
+        name='wheel_odom',
+        parameters=[{
+            'wheel_topic': '/chassis/wheel_speed',
+            'odom_topic': '/wheel/odom',
+            'odom_frame': 'odom',
+            'base_frame': 'base_footprint',
+            'wheel_radius': 0.041713,
+            'wheel_separation': 0.148,
+            'publish_rate': 50.0,
+            'wheel_timeout': 0.50,
+        }],
+        output='screen',
+    )
+
+    # 7d) EKF 松耦合：rf2o+ZUPT、轮式 twist、IMU gyro z -> /odom 和
+    #     唯一的 odom -> base_footprint TF。slam_toolbox 继续发 map->odom。
+    ekf_node = Node(
+        package='robot_localization',
+        executable='ekf_node',
+        name='ekf_filter_node',
+        parameters=[os.path.join(bringup_share, 'config', 'ekf.yaml')],
+        # EKF 原生输出 /odometry/filtered，重映射成 Nav2/现有代码使用的 /odom。
+        remappings=[('odometry/filtered', '/odom')],
         output='screen',
     )
 
@@ -247,7 +320,7 @@ def generate_launch_description():
         executable='async_slam_toolbox_node',
         name='slam_toolbox',
         parameters=[
-            slam_params_yaml,
+            LaunchConfiguration('slam_params_file'),
             {'use_sim_time': False},
         ],
         condition=IfCondition(use_slam),
@@ -288,20 +361,31 @@ def generate_launch_description():
         output='screen',
     )
 
-    foxglove_bridge = Node(
+    # Foxglove Studio 通过 WebSocket 连接，不依赖本机 OpenGL/Ogre；
+    # 本机 RoboStack aarch64 的 RViz2 会在 Ogre 初始化时段错误，故默认用它。
+    foxglove = Node(
         package='foxglove_bridge',
         executable='foxglove_bridge',
         name='foxglove_bridge',
-        parameters=[{'address': foxglove_address, 'port': foxglove_port}],
+        parameters=[{
+            'address': LaunchConfiguration('foxglove_address'),
+            'port': LaunchConfiguration('foxglove_port'),
+        }],
         condition=IfCondition(EqualsSubstitution(LaunchConfiguration('visualization'), 'foxglove')),
         output='screen',
     )
 
     return LaunchDescription([
         DeclareLaunchArgument(
-            'visualization', default_value='rviz',
+            'visualization', default_value='foxglove',
             choices=['rviz', 'foxglove', 'none'],
-            description='可视化方式：RViz2、Foxglove Bridge 或不启动。'),
+            description='可视化方式：Foxglove（默认，WebSocket）、RViz2 或不启动。'),
+        DeclareLaunchArgument(
+            'foxglove_address', default_value='0.0.0.0',
+            description='Foxglove Bridge 监听地址。'),
+        DeclareLaunchArgument(
+            'foxglove_port', default_value='8765',
+            description='Foxglove Bridge 监听端口（Studio 里填 ws://<树莓派IP>:8765）。'),
         DeclareLaunchArgument(
             'lidar', default_value='true',
             description='是否启动激光雷达驱动（发布 /scan）。'),
@@ -310,7 +394,10 @@ def generate_launch_description():
             description='YDLidar 参数文件路径。换型号时指向驱动包 params/ 下对应 yaml。'),
         DeclareLaunchArgument(
             'slam', default_value='true',
-            description='是否启动 slam_toolbox 建图（发布 /map 与 map->odom）。'),
+            description='是否启动 slam_toolbox（发布 /map 与 map->odom）。'),
+        DeclareLaunchArgument(
+            'slam_params_file', default_value=slam_params_yaml,
+            description='slam_toolbox 参数 YAML；统一入口会生成 mode/map_file_name 覆盖文件。'),
         DeclareLaunchArgument(
             'lidar_filter', default_value='true',
             description='是否对雷达数据做角度过滤（发布 /scan_filtered）。'),
@@ -319,18 +406,17 @@ def generate_launch_description():
             description='YDLidar 串口设备。默认用 udev 规则绑定的稳定名字 '
                         '/dev/ydlidar（见 README「雷达端口绑定」）；'
                         '没配 udev 规则时可传 /dev/ttyUSB0。'),
-        DeclareLaunchArgument('foxglove_address', default_value='0.0.0.0',
-                              description='Foxglove Bridge 监听地址。'),
-        DeclareLaunchArgument('foxglove_port', default_value='8765',
-                              description='Foxglove Bridge WebSocket 端口。'),
         robot_state_publisher,
         wheel_states,
         lidar_node,
         laser_filter_node,
         rf2o_node,
+        odom_stabilizer_node,
+        wheel_odom_node,
+        ekf_node,
         slam_node,
         slam_configure,
         slam_activate,
         rviz,
-        foxglove_bridge,
+        foxglove,
     ])

@@ -9,6 +9,7 @@ from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -16,15 +17,19 @@ def generate_launch_description():
     nav2 = get_package_share_directory('nav2_bringup')
     return LaunchDescription([
         DeclareLaunchArgument('lidar_port', default_value='/dev/ydlidar'),
-        DeclareLaunchArgument('visualization', default_value='rviz'),
+        DeclareLaunchArgument('visualization', default_value='foxglove'),
         DeclareLaunchArgument('motor_enable', default_value='false'),
         DeclareLaunchArgument('mcu_port', default_value='/dev/stm32'),
         DeclareLaunchArgument('wechat', default_value='false', description='Enable TLS MQTT bridge'),
+        DeclareLaunchArgument(
+            'slam_params_file',
+            default_value=os.path.join(bringup, 'config', 'slam_toolbox.yaml')),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(bringup, 'launch', 'mapping.launch.py')),
             launch_arguments={
                 'lidar_port': LaunchConfiguration('lidar_port'),
                 'visualization': LaunchConfiguration('visualization'),
+                'slam_params_file': LaunchConfiguration('slam_params_file'),
             }.items()),
         # mapping.launch.py already owns slam_toolbox and map->odom. Nav2 only
         # starts the planners/controllers here; no second SLAM or AMCL instance.
@@ -42,9 +47,10 @@ def generate_launch_description():
         Node(
             package='robot_base_bringup', executable='chassis_bridge.py',
             name='chassis_bridge', output='screen',
-            parameters=[{
+            parameters=[os.path.join(bringup, 'config', 'imu_calibration.yaml'), {
                 'port': LaunchConfiguration('mcu_port'),
-                'enabled': LaunchConfiguration('motor_enable'),
+                'enabled': ParameterValue(LaunchConfiguration('motor_enable'),
+                                          value_type=bool),
                 'command_timeout': 0.25, 'max_linear': 0.20, 'max_angular': 0.45,
             }],
             condition=IfCondition(LaunchConfiguration('motor_enable'))),

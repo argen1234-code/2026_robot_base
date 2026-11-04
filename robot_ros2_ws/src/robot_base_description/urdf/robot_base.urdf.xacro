@@ -1,84 +1,737 @@
-<?xml version="1.0"?>
+<?xml version='1.0' encoding='utf-8'?>
 <robot name="robot_base" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <!-- Preserve the SolidWorks geometry and all four wheel joints. -->
-  <xacro:arg name="use_gazebo" default="false"/>
-  <xacro:include filename="$(find mecanum_car_model)/urdf/mecanum_car_model.urdf"/>
+  <!-- ==========================================================================
+       两轮差速底盘模型（CAD 导出，2026-11-04 接入）
+       ==========================================================================
+       坐标约定：CAD base_link = z_up_x_forward，几何来自 robot.urdf。
+       CAD 实测（对全部 STL 顶点做变换后求包围盒）：
+         · 车轮半径 0.041 m，轮宽 0.088 m，接地点 z = -0.103 m；
+         · 左右轮接地点中心 y = ±0.074 m -> 有效轮距 0.148 m；
+         · 驱动轴 x = -0.075 m（CAD 系），base_link 原点在轴前 0.075 m；
+         · 车体包络 x[-0.120,+0.171] y[-0.105,+0.100] z[-0.088,+0.279]；
+         · 雷达圆柱顶面圆心 x=+0.1475, y=0, z=-0.0168（CAD 系，离地 0.0862 m）。
 
-  <link name="base_footprint"/>
-  <joint name="base_footprint_joint" type="fixed">
-    <parent link="base_footprint"/><child link="base_link"/>
-    <origin xyz="0 0 0.069" rpy="0 0 0"/>
+       base_footprint 放在【两轮接地点中点、地面高度】：
+         CAD 坐标 = (-0.075, 0, -0.103)
+         base_footprint -> base_link(CAD) = (0.075, 0, 0.103), rpy=0
+         （2026-11-05 修正：车体不旋转；laser_frame 改为 yaw +90°）
+
+       车轮关节轴已按“正速度 = 前进”统一：左轮 axis=-z、右轮 axis=+z。
+       差速控制器参数必须同步：
+         几何 wheel_radius = 0.041, wheel_separation = 0.148
+         控制/固件用有效滚动半径 wheel_radius = 0.041713（2026-11-05 标定）
+
+       ⚠️ meshes/*.stl 已在本仓库内把毫米坐标烘成米（原 CAD 是 mm）。
+          URDF 里不要再给 <mesh> 加 scale="0.001 ..."，否则会缩成 1/1000；
+          Foxglove 等查看器不保证处理 mesh scale，烘进文件最稳。
+       ========================================================================== -->
+  <xacro:arg name="use_gazebo" default="false"/>
+
+  <link name="base_link">
+    <inertial>
+      <origin xyz="-0.0051398083 -0.0021382631 0.04742393" rpy="0 0 0" />
+      <mass value="1.4681587" />
+      <inertia ixx="0.017290002" iyy="0.02246485" izz="0.015502688" ixy="2.1992707e-05" ixz="-0.00056437299" iyz="0.00021826042" />
+    </inertial>
+    <visual>
+      <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_042_solid_042.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_001_solid_001.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_046_solid_046.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_044_solid_044.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_045_solid_045.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_041_solid_041.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_040_solid_040.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_043_solid_043.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_042_solid_042.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_001_solid_001.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_046_solid_046.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_044_solid_044.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_045_solid_045.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_041_solid_041.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_040_solid_040.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_043_solid_043.stl" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="link_laser">
+    <inertial>
+      <origin xyz="-0.24809391 -0.067257614 0.62490369" rpy="0 0 0" />
+      <mass value="0.044085142" />
+      <inertia ixx="7.6030417e-06" iyy="7.6030416e-06" izz="8.5933119e-06" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_049_solid_049.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_049_solid_049.stl" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_wheel_link">
+    <inertial>
+      <origin xyz="-2.1481237e-06 3.0608298e-05 -0.0084984798" rpy="0 0 0" />
+      <mass value="0.27362524" />
+      <inertia ixx="0.00018914743" iyy="0.00018911792" izz="0.00018961138" ixy="-6.5437074e-09" ixz="-3.4554952e-08" iyz="4.2352821e-07" />
+    </inertial>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_002_solid_002.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_003_solid_003.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_004_solid_004.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_005_solid_005.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_006_solid_006.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_007_solid_007.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_008_solid_008.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_009_solid_009.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_010_solid_010.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_011_solid_011.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_012_solid_012.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_013_solid_013.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_014_solid_014.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_015_solid_015.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_016_solid_016.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_017_solid_017.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_018_solid_018.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_019_solid_019.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_038_solid_038.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_048_solid_048.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_002_solid_002.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_003_solid_003.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_004_solid_004.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_005_solid_005.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_006_solid_006.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_007_solid_007.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_008_solid_008.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_009_solid_009.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_010_solid_010.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_011_solid_011.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_012_solid_012.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_013_solid_013.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_014_solid_014.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_015_solid_015.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_016_solid_016.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_017_solid_017.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_018_solid_018.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_019_solid_019.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_038_solid_038.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 0.59465371 -0.034742386" rpy="1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_048_solid_048.stl" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_wheel_link">
+    <inertial>
+      <origin xyz="-2.1412047e-06 3.0624321e-05 -0.024498476" rpy="0 0 0" />
+      <mass value="0.27362527" />
+      <inertia ixx="0.00018914751" iyy="0.0001891179" izz="0.00018961146" ixy="-6.5383636e-09" ixz="-3.4533487e-08" iyz="4.2354835e-07" />
+    </inertial>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_020_solid_020.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_021_solid_021.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_022_solid_022.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_023_solid_023.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_024_solid_024.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_025_solid_025.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_026_solid_026.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_027_solid_027.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_028_solid_028.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_029_solid_029.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_030_solid_030.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_031_solid_031.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_032_solid_032.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_033_solid_033.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_034_solid_034.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_035_solid_035.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_036_solid_036.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_037_solid_037.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_039_solid_039.stl" />
+      </geometry>
+    </visual>
+    <visual>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_047_solid_047.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_020_solid_020.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_021_solid_021.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_022_solid_022.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_023_solid_023.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_024_solid_024.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_025_solid_025.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_026_solid_026.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_027_solid_027.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_028_solid_028.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_029_solid_029.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_030_solid_030.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_031_solid_031.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_032_solid_032.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_033_solid_033.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_034_solid_034.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_035_solid_035.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_036_solid_036.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_037_solid_037.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_039_solid_039.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.47059391 -0.59465371 -0.18525761" rpy="-1.5707963 0 0" />
+      <geometry>
+        <mesh filename="package://robot_base_description/meshes/part_047_solid_047.stl" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_laser_joint" type="fixed">
+    <origin xyz="0.39559392 0.067257614 -0.65665369" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="link_laser" />
+  </joint>
+  <joint name="left_wheel_joint" type="continuous">
+    <origin xyz="-0.07499999 0.102 -0.061999973" rpy="-1.5707963 0 0" />
+    <parent link="base_link" />
+    <child link="left_wheel_link" />
+    <axis xyz="0 0 -1" />
+    <limit effort="10" velocity="5" />
+  </joint>
+  <joint name="right_wheel_joint" type="continuous">
+    <origin xyz="-0.07499999 -0.118 -0.061999973" rpy="1.5707963 0 0" />
+    <parent link="base_link" />
+    <child link="right_wheel_link" />
+    <axis xyz="0 0 1" />
+    <limit effort="10" velocity="5" />
   </joint>
 
-  <!-- CAD mesh/wheel maximum XY radius is 0.265 m; allow 35 mm for attachments. -->
+  <!-- ==========================================================================
+       运动学/显示补充
+       ========================================================================== -->
+  <link name="base_footprint"/>
+  <!-- 2026-11-05 修正：车体/base_link 保持 CAD +X 朝向，不再整车旋转 180°。
+       之前“模型反了”的根因是 laser_frame 的 yaw 方向错误（见下方
+       laser_frame_joint，已改为 +90°），不是车体本身。 -->
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/><child link="base_link"/>
+    <origin xyz="0.075 0 0.103" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Nav2/Gazebo 用的保守圆形包络：矩形包络 0.291 x 0.236 的外接圆。
+       车体保持 CAD 朝向后，包络圆心仍在 +0.1005。 -->
   <link name="navigation_footprint">
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><cylinder radius="0.30" length="0.01"/></geometry>
+      <geometry><cylinder radius="0.19" length="0.01"/></geometry>
       <material name="navigation_boundary"><color rgba="0.0 0.75 0.85 0.30"/></material>
     </visual>
-    <!-- Nav2 handles clearance in simulation; an extra Gazebo contact disk would drag on the floor. -->
     <xacro:unless value="$(arg use_gazebo)">
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry><cylinder radius="0.30" length="0.01"/></geometry>
+        <geometry><cylinder radius="0.19" length="0.01"/></geometry>
       </collision>
     </xacro:unless>
   </link>
   <joint name="navigation_footprint_joint" type="fixed">
     <parent link="base_footprint"/><child link="navigation_footprint"/>
-    <origin xyz="0 0 0.02" rpy="0 0 0"/>
+    <origin xyz="0.1005 0 0.02" rpy="0 0 0"/>
   </joint>
 
-  <!-- CAD front wheels are at -X. Rotate CAD -X onto base_link +X,
-       which is the measured forward direction of laser_frame +Y. -->
-  <link name="base_link"/>
-  <joint name="cad_mount_joint" type="fixed">
-    <parent link="base_link"/><child link="cad_base_link"/>
-    <!-- ⚠️ x=-0.0062 是为了把车体【居中到 base_link 原点】。
-         CAD 导出的模型其几何中心并不在 cad_base_link 原点：实测车身包络中心
-         x=+0.00620、四轮中心 x=+0.00621（两个独立测量互相印证，非网格误差），
-         即旋转中心比原点靠前 6.2mm。base_link 作为运动学中心理应落在旋转中心上，
-         所以这里给一个 -0.0062 的平移把它掰回来。
-
-         居中后整车包络（base_link 系，含轮子）：
-             x: [-0.2250, +0.2250]   长 0.450 m
-             y: [-0.1606, +0.1684]   宽 0.329 m
-         ⚠️ 本值一旦改动，nav2_params.yaml 里两个 costmap 的 footprint 必须同步重算。 -->
-    <origin xyz="-0.0062 0 0" rpy="0 0 3.141592653589793"/>
-  </joint>
-
-  <!-- The lidar +Y axis is the confirmed vehicle-forward direction. -->
+  <!-- 雷达扫描坐标系：放在雷达圆柱【顶面圆心】（CAD 系 x=0.1475, z=-0.0168）。
+       link_laser 的网格保留在原位；laser_frame 是驱动发布数据用的坐标系。
+       2026-11-05 速度/雷达交叉验证：raw laser_frame -Y（扫描角 -90°）
+       才是物理车头，因此这里 yaw = +90°（不是 -90°）：
+         raw -90° + 90° = base_link 0°（车头）
+         raw +90° + 90° = base_link 180°（车尾/自回波）
+       正前方箱体实测在 raw -105°，映射到 base_link 约 -15°。 -->
   <link name="laser_frame"/>
-  <joint name="laser_joint" type="fixed">
-    <parent link="base_link"/><child link="laser_frame"/>
-    <!-- ⚠️ 雷达装在【前轮轴线】上，即左前轮与右前轮中心连线的正上方（y=0）。
-
-         由 CAD 实测（mecanum_car_model.urdf，cad_base_link 系）：
-             前轮 x_cad = -0.17778   （左右两个前轮 x 相同）
-             后轮 x_cad = +0.16537
-         cad_mount_joint 把 CAD 绕 z 转 180° 再平移 -0.0062，故换算到 base_link：
-             x_base = -x_cad - 0.0062
-         前轮：x_base = +0.17778 - 0.0062 = +0.1716   ← 本行取值
-         后轮：x_base = -0.16537 - 0.0062 = -0.1716
-         两轴中点正好落在 0，与"base_link 是四轮旋转中心"的约定自洽，
-         可用来交叉验算（见上方 cad_mount_joint 注释里的 -0.0062）。
-
-         为什么不放在 0.21：那是贴着车体前缘（包络前沿约 +0.231）装的，
-         雷达本体（半径约 3.5cm）会探出车体约 14mm。移到前轮轴线后雷达
-         完全落在车体内，且与旋转中心的距离更短。
-
-         ⚠️ 改动本行后需复核两项：
-            1) laser_filters.yaml 的车尾扇区是按【雷达自身】角度定义的，
-               位置变了扇形覆盖的物理区域随之变化；
-            2) 同一文件里 filter2 的 lower_threshold=0.20 是照"雷达扫到
-               自己的安装结构"实测调出来的，挪位置后自回波会变，必要时重测。
-
-         rpy z=-90°：雷达坐标系相对 base_link 转了 -90°，
-         因此雷达的 +Y 对应 base_link 的 +X。这就是 laser_filters.yaml 里
-         "扫描角 +90° 才是车头方向" 的来源 —— 改动本行前请一并确认那边。 -->
-    <origin xyz="0.1716 0 0.15" rpy="0 0 -1.5707963267948966"/>
+  <joint name="laser_frame_joint" type="fixed">
+    <parent link="link_laser"/><child link="laser_frame"/>
+    <origin xyz="-0.24809392 -0.067257614 0.63985369"
+            rpy="0 0 1.5707963267948966"/>
   </joint>
+
+  <!-- ros2_control：真机走 USB CDC；仿真走 gz_ros2_control。 -->
+  <ros2_control name="RobotBaseSystem" type="system">
+    <hardware>
+      <xacro:if value="$(arg use_gazebo)">
+        <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+      </xacro:if>
+      <xacro:unless value="$(arg use_gazebo)">
+        <plugin>robot_base_driver/RobotBaseSystem</plugin>
+        <param name="serial_port">/dev/stm32</param>
+        <param name="baud_rate">115200</param>
+      </xacro:unless>
+    </hardware>
+    <joint name="left_wheel_joint">
+      <command_interface name="velocity"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="right_wheel_joint">
+      <command_interface name="velocity"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+  </ros2_control>
 
   <xacro:if value="$(arg use_gazebo)">
     <xacro:include filename="$(find robot_base_description)/urdf/robot_base.gazebo.xacro"/>

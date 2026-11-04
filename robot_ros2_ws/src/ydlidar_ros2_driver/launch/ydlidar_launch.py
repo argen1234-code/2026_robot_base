@@ -42,7 +42,7 @@ def generate_launch_description():
 
     params_declare = DeclareLaunchArgument(
         'params_file',
-        default_value=os.path.join(share_dir, 'params', 'TminiPro.yaml'),
+        default_value=os.path.join(share_dir, 'params', 'TminiPlus.yaml'),
         description='FPath to the ROS2 parameters file to use.')
     static_tf_declare = DeclareLaunchArgument(
         'publish_static_tf', default_value='false',
@@ -62,7 +62,10 @@ def generate_launch_description():
     tf2_node = Node(package='tf2_ros',
                     executable='static_transform_publisher',
                     name='static_tf_pub_laser',
-                    arguments=['0', '0', '0.02', '0', '0', '0', '1',
+                    # 仅在不加载 URDF 单独调试时使用。新两轮模型：
+                    # base_link(CAD) -> laser_frame = (0.1475, 0, -0.0168), yaw -90°.
+                    arguments=['0.1475', '0', '-0.0168',
+                               '0', '0', '-0.70710678', '0.70710678',
                                'base_link', 'laser_frame'],
                     condition=IfCondition(publish_static_tf),
                     )

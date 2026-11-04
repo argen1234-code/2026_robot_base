@@ -4,7 +4,7 @@ project(robot_base_description)
 find_package(ament_cmake REQUIRED)
 
 # 纯资源包：把 urdf / rviz / launch 装到 share/
-install(DIRECTORY urdf rviz launch
+install(DIRECTORY urdf rviz launch meshes
   DESTINATION share/${PROJECT_NAME}
 )
 

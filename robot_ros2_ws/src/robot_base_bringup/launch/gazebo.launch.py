@@ -2,7 +2,7 @@
 
     ros2 launch robot_base_bringup gazebo.launch.py
     ros2 launch robot_base_bringup gazebo.launch.py gui:=false    # 只跑服务器（无 Gazebo 界面）
-    ros2 launch robot_base_bringup gazebo.launch.py visualization:=foxglove
+    ros2 launch robot_base_bringup gazebo.launch.py visualization:=none
 
 与 robot_base.launch.py（真机路径）的区别：
 
@@ -66,8 +66,6 @@ def generate_launch_description():
 
     use_gui = LaunchConfiguration('gui')
     use_slam = LaunchConfiguration('slam')
-    foxglove_address = LaunchConfiguration('foxglove_address')
-    foxglove_port = LaunchConfiguration('foxglove_port')
 
     # use_gazebo:=true 会：
     #   - 把 ros2_control 硬件插件换成 gz_ros2_control/GazeboSimSystem
@@ -262,11 +260,15 @@ def generate_launch_description():
         output='screen',
     )
 
-    foxglove_bridge = Node(
+    foxglove = Node(
         package='foxglove_bridge',
         executable='foxglove_bridge',
         name='foxglove_bridge',
-        parameters=[{'address': foxglove_address, 'port': foxglove_port, 'use_sim_time': True}],
+        parameters=[{
+            'address': LaunchConfiguration('foxglove_address'),
+            'port': LaunchConfiguration('foxglove_port'),
+            'use_sim_time': True,
+        }],
         condition=IfCondition(EqualsSubstitution(LaunchConfiguration('visualization'), 'foxglove')),
         output='screen',
     )
@@ -274,15 +276,15 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('gui', default_value='true',
                               description='是否启动 Gazebo GUI（false = 只跑服务器）。'),
-        DeclareLaunchArgument('visualization', default_value='rviz',
+        DeclareLaunchArgument('visualization', default_value='foxglove',
                               choices=['rviz', 'foxglove', 'none'],
-                              description='可视化方式：RViz2、Foxglove Bridge 或不启动。'),
-        DeclareLaunchArgument('slam', default_value='true',
-                              description='是否启动 slam_toolbox 建图（发布 /map 与 map->odom）。'),
+                              description='可视化方式：Foxglove（默认）、RViz2 或不启动。'),
         DeclareLaunchArgument('foxglove_address', default_value='0.0.0.0',
                               description='Foxglove Bridge 监听地址。'),
         DeclareLaunchArgument('foxglove_port', default_value='8765',
-                              description='Foxglove Bridge WebSocket 端口。'),
+                              description='Foxglove Bridge 监听端口。'),
+        DeclareLaunchArgument('slam', default_value='true',
+                              description='是否启动 slam_toolbox 建图（发布 /map 与 map->odom）。'),
         gz_server,
         gz_client,
         robot_state_publisher,
@@ -294,5 +296,5 @@ def generate_launch_description():
         slam_configure,
         slam_activate,
         rviz,
-        foxglove_bridge,
+        foxglove,
     ])

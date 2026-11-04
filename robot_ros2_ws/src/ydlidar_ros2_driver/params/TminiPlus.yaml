@@ -1,0 +1,36 @@
+# YDLIDAR T-mini Plus（本机实测：Model Code 151 / FW 1.2 / SN 2025110300090362）
+#
+# 与 TminiPro.yaml 的区别：这台 Tmini Plus 不输出强度信息。若照抄
+# TminiPro.yaml 的 intensity: true / intensity_bit: 8，驱动会持续报
+#     Checksum error 0x.... != 0x....
+# 并反复自动切换强度位；改成 intensity: false / intensity_bit: 0 后，
+# 稳定阶段不再出现校验和错误，/scan 稳定 10 Hz（430 点/圈）。
+#
+# 注意：SDK 的强度位自动探测（CYdLidar 的 m_AutoIntensity）默认开启且
+# 驱动没有暴露关闭参数，因此启动瞬间/电机起转的首帧仍可能打印几条
+# Checksum error 并切换强度位；这是探测过程，不代表数据不可用。
+
+ydlidar_ros2_driver_node:
+  ros__parameters:
+    port: /dev/ydlidar
+    frame_id: laser_frame
+    ignore_array: ""
+    baudrate: 230400
+    lidar_type: 1
+    device_type: 0
+    sample_rate: 4
+    intensity_bit: 0
+    abnormal_check_count: 4
+    fixed_resolution: true
+    reversion: true
+    inverted: true
+    auto_reconnect: true
+    isSingleChannel: false
+    intensity: false
+    support_motor_dtr: false
+    angle_max: 180.0
+    angle_min: -180.0
+    range_max: 12.0
+    range_min: 0.03
+    frequency: 12.0
+    invalid_range_is_inf: false

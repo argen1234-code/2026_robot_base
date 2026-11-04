@@ -1,6 +1,13 @@
-"""Load a saved map and start Nav2; motor output is opt-in."""
+"""先验 posegraph + slam_toolbox localization + Nav2。
+
+注意：slam_toolbox 的定位/续建使用 serialize_map 生成的
+`<name>.posegraph` / `<name>.data`，不是 map_saver 的 `.yaml/.pgm`。
+本文件不再启动 map_server/AMCL；map -> odom 由 slam_toolbox
+localization 模式发布。
+"""
 
 import os
+
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
@@ -8,46 +15,58 @@ from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
     bringup = get_package_share_directory('robot_base_bringup')
     base_launch = os.path.join(bringup, 'launch', 'robot_base.launch.py')
-    # ⚠️ 用本包的精简 Nav2 启动，不用 nav2_bringup 的 navigation_launch.py
-    #    （它会连带启动 route_server 等，偶发拖垮 lifecycle bringup，
-    #      详见 nav2_navigation.launch.py 注释）。
-    #    本文件是"载入已保存地图 + AMCL 定位"的路径，仍需 bringup_launch.py
-    #    提供 map_server + amcl，因此保留它，但地图是必需的。
-    nav_launch = os.path.join(get_package_share_directory('nav2_bringup'), 'launch', 'bringup_launch.py')
-    nav_params = os.path.join(bringup, 'config', 'nav2_params.yaml')
+    nav_launch = os.path.join(bringup, 'launch', 'nav2_navigation.launch.py')
+    nav_params = os.path.join(bringup, 'config', 'nav2_params_prior.yaml')
+    default_slam_params = os.path.join(bringup, 'config', 'slam_toolbox.yaml')
+
     return LaunchDescription([
-        DeclareLaunchArgument('map', description='Saved map YAML file'),
+        DeclareLaunchArgument(
+            'slam_params_file', default_value=default_slam_params,
+            description='slam_toolbox localization 参数（含 map_file_name/mode）'),
         DeclareLaunchArgument('lidar_port', default_value='/dev/ydlidar'),
         DeclareLaunchArgument('motor_enable', default_value='false'),
         DeclareLaunchArgument('mcu_port', default_value='/dev/stm32'),
-        DeclareLaunchArgument('wechat', default_value='false', description='Enable TLS MQTT bridge'),
+        DeclareLaunchArgument('visualization', default_value='foxglove',
+                              choices=['rviz', 'foxglove', 'none'],
+                              description='可视化方式：Foxglove（默认）、RViz2 或不启动'),
+        DeclareLaunchArgument('wechat', default_value='false',
+                              description='Enable TLS MQTT bridge'),
+
+        # slam_toolbox localization：发布 map->odom 和 /map；不发 AMCL。
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(base_launch),
             launch_arguments={
-                'visualization': 'rviz', 'slam': 'false', 'lidar': 'true',
-                'lidar_filter': 'true', 'lidar_port': LaunchConfiguration('lidar_port'),
+                'visualization': LaunchConfiguration('visualization'),
+                'slam': 'true', 'lidar': 'true',
+                'lidar_filter': 'true',
+                'lidar_port': LaunchConfiguration('lidar_port'),
+                'slam_params_file': LaunchConfiguration('slam_params_file'),
             }.items()),
+
+        # 只启动 Nav2 的规划/控制链，不启动 map_server/amcl。
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(nav_launch),
             launch_arguments={
-                'map': LaunchConfiguration('map'), 'params_file': nav_params,
-                'use_sim_time': 'false', 'slam': 'false', 'use_localization': 'true',
-                'autostart': 'true', 'use_composition': 'false',
+                'params_file': nav_params,
+                'use_sim_time': 'false', 'autostart': 'true',
             }.items()),
+
+        # chassis_bridge 始终启动，motor_enable 只控制 ARM。
         Node(
             package='robot_base_bringup', executable='chassis_bridge.py',
             name='chassis_bridge', output='screen',
-            parameters=[{
+            parameters=[os.path.join(bringup, 'config', 'imu_calibration.yaml'), {
                 'port': LaunchConfiguration('mcu_port'),
-                'enabled': LaunchConfiguration('motor_enable'),
-                'command_timeout': 0.25, 'max_linear': 0.20, 'max_angular': 0.45,
-            }],
-            condition=IfCondition(LaunchConfiguration('motor_enable'))),
+                'enabled': ParameterValue(LaunchConfiguration('motor_enable'),
+                                          value_type=bool),
+                'command_timeout': 0.25, 'max_linear': 0.24, 'max_angular': 0.55,
+            }]),
         Node(
             package='robot_base_bringup', executable='wechat_bridge.py',
             name='wechat_bridge', output='screen',

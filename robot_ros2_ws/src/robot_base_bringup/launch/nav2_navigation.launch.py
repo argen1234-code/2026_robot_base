@@ -55,12 +55,13 @@ def generate_launch_description():
 
     remappings = [('/tf', 'tf'), ('/tf_static', 'tf_static')]
 
-    def node(pkg, exe, name, extra_remaps=None):
+    def node(pkg, exe, name, extra_remaps=None, extra_params=None):
         return Node(
             package=pkg, executable=exe, name=name,
             namespace=namespace,
             output='screen',
-            parameters=[{'use_sim_time': use_sim_time}, params_file],
+            parameters=([{'use_sim_time': use_sim_time}, params_file]
+                        + (extra_params or [])),
             arguments=['--ros-args', '--log-level', log_level],
             remappings=remappings + (extra_remaps or []),
         )
@@ -79,9 +80,27 @@ def generate_launch_description():
         node('nav2_smoother', 'smoother_server', 'smoother_server'),
         node('nav2_behaviors', 'behavior_server', 'behavior_server',
              [('cmd_vel', 'cmd_vel_nav')]),
-        node('nav2_bt_navigator', 'bt_navigator', 'bt_navigator'),
+        # 使用当前 Nav2 默认 BT（含清图/spin/backup 恢复）；
+        # goal sanitizer 把用户 /goal_pose 经 /goal_pose_safe 交给 bt_navigator。
+        # 参考仓库的旧版 BT XML 与当前 Jazzy bt_navigator 不兼容，
+        # 不在运行时覆盖 default_nav_to_pose_bt_xml。
+        node('nav2_bt_navigator', 'bt_navigator', 'bt_navigator',
+             [('/goal_pose', '/goal_pose_safe')]),
         node('nav2_velocity_smoother', 'velocity_smoother', 'velocity_smoother',
              [('cmd_vel', 'cmd_vel_nav')]),
+
+        Node(
+            package='robot_base_bringup', executable='goal_sanitizer.py',
+            name='goal_sanitizer', output='screen',
+            parameters=[{
+                'use_sim_time': use_sim_time,
+                'max_goal_adjust_m': 1.0,
+                'free_threshold': 20,
+                'lethal_threshold': 90,
+                'clear_start_costmap': True,
+            }],
+            remappings=remappings,
+        ),
 
         Node(
             package='nav2_lifecycle_manager',

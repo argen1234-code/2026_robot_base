@@ -11,7 +11,13 @@ install(DIRECTORY udev
   DESTINATION share/${PROJECT_NAME}
 )
 
-install(PROGRAMS scripts/chassis_bridge.py scripts/wechat_bridge.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS scripts/chassis_bridge.py scripts/wechat_bridge.py
+  scripts/odom_stabilizer.py scripts/wheel_odom.py scripts/odom_tf_replay.py
+  scripts/goal_sanitizer.py
+  DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY behavior_trees
+  DESTINATION share/${PROJECT_NAME}
+)
 install(FILES scripts/chassis_protocol.py scripts/wechat_protocol.py scripts/wechat_map.py
   DESTINATION lib/${PROJECT_NAME})
 

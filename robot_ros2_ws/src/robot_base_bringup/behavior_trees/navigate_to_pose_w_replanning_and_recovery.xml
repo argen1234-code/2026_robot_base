@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4"
+      main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <RecoveryNode name="NavigateRecovery"
+                  number_of_retries="20">
+      <PipelineSequence name="NavigateWithReplanning">
+        <RateController hz="1">
+          <!-- 先连续重试3次（不清地图），3次全败后才清局部+全局代价地图 -->
+          <RecoveryNode name="ComputePathRecovery"
+                        number_of_retries="1">
+            <!-- 内层：先连续尝试3次不清地图 -->
+            <RecoveryNode name="ComputePathToPose_Retry3"
+                          number_of_retries="1">
+              <ComputePathToPose name="ComputePathAction" goal="{goal}"
+                                 path="{path}"
+                                 planner_id="GridBased"/>
+              <Wait name="WaitRetryCompute" wait_duration="0.5"/>
+            </RecoveryNode>
+            <!-- 3次全败后执行：同时清局部+全局代价地图，等待1秒 -->
+            <Sequence name="ClearBothCostmapsAfterTripleFailure">
+              <ClearEntireCostmap name="ClearLocalCostmap-AfterCompute"
+                                  service_name="local_costmap/clear_entirely_local_costmap"/>
+              <ClearEntireCostmap name="ClearGlobalCostmap-Context"
+                                  service_name="global_costmap/clear_entirely_global_costmap"/>
+              <Wait name="WaitAfterClearBoth" wait_duration="1.0"/>
+            </Sequence>
+          </RecoveryNode>
+        </RateController>
+        <RecoveryNode name="FollowPathRecovery"
+                      number_of_retries="3">
+          <FollowPath name="FollowPathAction" path="{path}"
+                      controller_id="FollowPath"/>
+          <Sequence name="LocalRecoveryWithWait">
+            <ClearEntireCostmap name="ClearLocalCostmap-AfterFollow"
+                                service_name="local_costmap/clear_entirely_local_costmap"/>
+            <Wait name="WaitAfterLocalClear" wait_duration="1.0"/>
+          </Sequence>
+        </RecoveryNode>
+      </PipelineSequence>
+      <ReactiveFallback name="RecoveryFallback">
+        <GoalUpdated/>
+        <RoundRobin name="RecoveryActions">
+          <Sequence name="ClearingActions">
+            <ClearEntireCostmap name="ClearLocalCostmap-Subtree"
+                                service_name="local_costmap/clear_entirely_local_costmap"/>
+            <ClearEntireCostmap name="ClearGlobalCostmap-Subtree"
+                                service_name="global_costmap/clear_entirely_global_costmap"/>
+            <Wait name="WaitAfterFallbackClear" wait_duration="1.0"/>
+          </Sequence>
+          <Spin spin_dist="1.57"/>
+          <BackUp backup_dist="0.20" backup_speed="0.15"/>
+        </RoundRobin>
+      </ReactiveFallback>
+    </RecoveryNode>
+  </BehaviorTree>
+</root>

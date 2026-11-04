@@ -1,10 +1,12 @@
 # =============================================================================
 # ros2_control 控制器参数
 # =============================================================================
-# ⚠️ 同步提醒：下面的 wheel_separation 与 wheel_radius 必须与
-#    src/robot_base_description/urdf/robot_base.common.xacro 里的同名参数一致。
-#    两处不一致会导致 odom 的尺度和转向全部算错（走一米报成别的值）。
-#    改几何参数时，这两个文件都要改。
+# ⚠️ 同步提醒：wheel_separation 与 wheel_radius 必须与
+#    stm32-firmware/RobStride05_H743/App/app_config.h 的
+#    APP_TRACK_WIDTH_M / APP_WHEEL_RADIUS_M 一致。
+#    wheel_radius 用 2026-11-05 标定的有效滚动半径 0.041713 m
+#    （几何半径 0.041 m；URDF 视觉网格保持几何尺寸）。
+#    不一致会导致 odom 尺度、轮速下发和实际行走距离全部对错。
 # =============================================================================
 
 # controller_manager 自身的参数。
@@ -47,14 +49,17 @@ joint_state_broadcaster:
 diff_drive_controller:
   ros__parameters:
     type: diff_drive_controller/DiffDriveController
-    # 关节名必须与 robot_base.ros2_control.xacro 里声明的完全一致。
+    # 关节名必须与新 URDF（robot_base.urdf.xacro）里的 ros2_control 段一致。
     # 顺序约定：第一个是左轮，第二个是右轮。
     left_wheel_names: ["left_wheel_joint"]
     right_wheel_names: ["right_wheel_joint"]
 
-    # ⚠️ 占位值，与 robot_base.common.xacro 保持一致
-    wheel_separation: 0.35
-    wheel_radius: 0.05
+    # 2026-11-04 两轮 CAD 模型实测：
+    #   · 轮半径 0.041 m（STL 包围盒 z 直径 0.082 m）；
+    #   · 左右轮接地点中心 y=±0.074 m -> 有效轮距 0.148 m。
+    # ⚠️ 改 URDF/换轮子后必须同步这里，否则差速里程计尺度会错。
+    wheel_separation: 0.148
+    wheel_radius: 0.041713
 
     # 标定用的微调系数：轮距/轮径实测有偏差时改这里，不必动 URDF
     wheel_separation_multiplier: 1.0
@@ -73,7 +78,7 @@ diff_drive_controller:
     #
     # 正确的树（与 TF2 教程里的移动机器人树形图一致）：
     #     map -> odom -> base_footprint -> base_link -> laser_frame
-    #                      └ left/right_wheel_link, front/rear_caster_link
+    #                      └ left/right_wheel_link, link_laser
     base_frame_id: base_footprint
 
     # 里程计协方差对角线，供 EKF（robot_localization）等下游使用

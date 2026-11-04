@@ -18,8 +18,8 @@ def launch(launch_descriptor, argv):
         cmd=[
             get_executable_path(
                 package_name=package, executable_name='static_transform_publisher'),
-            '0', '0', '0.02',
-            '0', '0', '0', '1',
+            '0.1475', '0', '-0.0168',
+            '0', '0', '-0.70710678', '0.70710678',
             'base_link',
             'laser_frame'
         ],

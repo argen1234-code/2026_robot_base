@@ -87,7 +87,7 @@ private:
   std::vector<hardware_interface::CommandInterface::SharedPtr> velocity_commands_;
 
   // 来自 URDF <hardware><param> 的串口配置
-  std::string serial_port_{"/dev/ttyUSB0"};
+  std::string serial_port_{"/dev/stm32"};
   int baud_rate_{115200};
 
   bool motor_enabled_{false};

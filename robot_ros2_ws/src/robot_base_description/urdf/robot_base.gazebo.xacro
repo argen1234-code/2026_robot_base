@@ -75,36 +75,28 @@
        =========================================================================
        不设的话 Gazebo 用默认值，差速车常见症状是转向时打滑、原地转不动。
        ========================================================================= -->
-  <gazebo reference="Link1">
+  <!-- 两轮差速：只给左右驱动轮设摩擦。
+       ⚠️ 新 CAD 模型没有万向轮；Gazebo 里若出现倾倒，需要另加支撑轮
+          或平衡控制器，不能靠这两组摩擦参数解决。 -->
+  <gazebo reference="left_wheel_link">
     <mu1>0.8</mu1>
     <mu2>0.8</mu2>
     <kp>1000000.0</kp>
     <kd>100.0</kd>
   </gazebo>
 
-  <gazebo reference="Link2">
+  <gazebo reference="right_wheel_link">
     <mu1>0.8</mu1>
     <mu2>0.8</mu2>
     <kp>1000000.0</kp>
     <kd>100.0</kd>
-  </gazebo>
-
-  <!-- 万向轮用球体近似，摩擦要【很低】否则会拖住车 -->
-  <gazebo reference="Link3">
-    <mu1>0.8</mu1>
-    <mu2>0.8</mu2>
-  </gazebo>
-
-  <gazebo reference="Link4">
-    <mu1>0.8</mu1>
-    <mu2>0.8</mu2>
   </gazebo>
 
   <!-- =========================================================================
        3) gz_ros2_control 插件
        =========================================================================
        作用：让 Gazebo 里的关节去响应 ros2_control 的命令接口。
-       配合 robot_base.ros2_control.xacro 里把硬件插件换成
+       配合 robot_base.urdf.xacro 里的 <ros2_control> 段把硬件插件换成
        gz_ros2_control/GazeboSimSystem（由 use_gazebo 参数控制）一起生效。
 
        filename 是插件库名（对应 libgz_ros2_control-system.so），

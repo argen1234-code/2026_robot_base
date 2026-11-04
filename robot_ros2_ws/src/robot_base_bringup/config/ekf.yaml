@@ -1,0 +1,63 @@
+# robot_localization EKF：激光里程计 + 轮式里程计 + IMU 的松耦合
+# 单位/坐标系：
+#   odom0 = /odom_stabilized（rf2o + ZUPT，pose x/y/yaw）
+#   odom1 = /wheel/odom（轮速 twist vx/vyaw）
+#   imu0  = /chassis/imu（只用 gyro z；JY901S 融合 yaw 会漂，不融绝对 yaw）
+# 输出：/odom + 唯一的 odom -> base_footprint TF；slam_toolbox 继续发 map -> odom。
+ekf_filter_node:
+  ros__parameters:
+    # Pi 上同时跑 SLAM/Nav2/Foxglove，50 Hz 会频繁 “Failed to meet update rate”。
+    frequency: 30.0
+    sensor_timeout: 0.10
+    two_d_mode: true
+    transform_time_offset: 0.0
+    transform_timeout: 0.0
+    print_diagnostics: true
+    debug: false
+
+    publish_tf: true
+    publish_acceleration: false
+    # EKF 原生输出 /odometry/filtered；launch 里重映射到 /odom。
+
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_footprint
+    world_frame: odom
+
+    # rf2o + ZUPT：只融合 x/y/yaw
+    odom0: /odom_stabilized
+    odom0_config: [true,  true,  false,
+                   false, false, true,
+                   false, false, false,
+                   false, false, false,
+                   false, false, false]
+    odom0_differential: false
+    odom0_relative: false
+    odom0_queue_size: 10
+    odom0_nodelay: false
+
+    # 轮式：只融合 vx 和 vyaw（twist，避免重复积分）
+    odom1: /wheel/odom
+    odom1_config: [false, false, false,
+                   false, false, false,
+                   true,  false, false,
+                   false, false, true,
+                   false, false, false]
+    odom1_differential: false
+    odom1_relative: false
+    odom1_queue_size: 20
+    odom1_nodelay: false
+
+    # IMU：只融合 gyro z（vyaw）
+    imu0: /chassis/imu
+    imu0_config: [false, false, false,
+                  false, false, false,
+                  false, false, false,
+                  false, false, true,
+                  false, false, false]
+    imu0_differential: false
+    imu0_relative: false
+    imu0_queue_size: 20
+    imu0_nodelay: false
+    imu0_remove_gravitational_acceleration: true

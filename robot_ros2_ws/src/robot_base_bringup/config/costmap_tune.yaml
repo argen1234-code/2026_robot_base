@@ -1,0 +1,53 @@
+# =============================================================================
+# 静态障碍调参用的独立代价地图（nav2_costmap_2d 单节点）
+# =============================================================================
+# 配 tools/run_costmap_tuner.sh 使用：回放 bag -> /scan -> laser_filters
+# -> /scan_filtered_tuned -> 本代价地图 -> /costmap + RViz。
+#
+# 参数来自 2026-11-04 静态 bag（35.6 s / 358 帧）实测对比：
+#   · 3x3 m、0.03 m：致命格数量 146~164，连续帧 Jaccard 0.866，
+#     质心标准差约 1.8 cm（小于一个格子）；
+#   · 0.05 m：Jaccard 0.854，略差；
+#   · inf_is_valid: true：Jaccard 降到 0.68，因此保持 false；
+#   · observation_persistence 0.15：没有改善，去掉。
+#
+# 正式导航参数见 nav2_params.yaml 的 local_costmap 段（已同步这套值）。
+# =============================================================================
+costmap_tuner:
+  ros__parameters:
+    # 不用 /clock：bag 播完后代价地图仍按墙钟继续发布，便于 RViz
+    # 观察最后一帧；静态 TF 对旧时间戳同样有效。
+    use_sim_time: false
+    update_frequency: 10.0
+    publish_frequency: 10.0
+    global_frame: odom
+    robot_base_frame: base_footprint
+    rolling_window: true
+    width: 3
+    height: 3
+    resolution: 0.03
+    transform_tolerance: 0.5
+    # 两轮 CAD 模型（base_footprint 在两轮接地点中点）
+    footprint: "[[-0.0450,-0.1180],[-0.0450,0.1180],[0.2460,0.1180],[0.2460,-0.1180]]"
+    footprint_padding: 0.0
+    plugins: ["obstacle_layer", "inflation_layer"]
+    obstacle_layer:
+      plugin: "nav2_costmap_2d::ObstacleLayer"
+      enabled: true
+      observation_sources: scan
+      scan:
+        topic: /scan_filtered_tuned
+        data_type: "LaserScan"
+        max_obstacle_height: 1.5
+        clearing: true
+        marking: true
+        inf_is_valid: false
+        raytrace_max_range: 8.0
+        raytrace_min_range: 0.20
+        obstacle_max_range: 6.0
+        obstacle_min_range: 0.20
+    inflation_layer:
+      plugin: "nav2_costmap_2d::InflationLayer"
+      cost_scaling_factor: 5.0
+      inflation_radius: 0.50
+    always_send_full_costmap: true

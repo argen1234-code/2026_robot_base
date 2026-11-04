@@ -1,0 +1,46 @@
+# 2026-11-05 速度/里程标定结果
+# 方法：直连 STM32，0.10 m/s 前进 12.88 s，目标左右轮各 5 圈；
+#       编码器积分 + 卷尺 + 雷达前向箱体交叉验证。
+measured_at: "2026-11-05T02:17:16"
+command:
+  direction: forward
+  body_speed_m_s: 0.10
+  target_revs_per_wheel: 5.0
+  run_time_s: 12.8805
+
+encoder:
+  left_revs: 4.997757
+  right_revs: 4.998808
+  mean_revs: 4.998283
+  distance_m: 1.287611
+
+tape:
+  distance_m: 1.31
+
+lidar:
+  # 原始 laser_frame 角度；TF(base_link yaw 0 + laser_frame yaw +90)
+  # 把它映射到 base_link 约 -15°（车头附近）。
+  angle_deg: -105
+  start_range_m: 2.758
+  end_range_m: 1.439
+  delta_m: 1.319
+
+result:
+  encoder_distance_m: 1.287611
+  tape_distance_m: 1.31
+  scale_tape_over_encoder: 1.017388
+  effective_circumference_m: 0.262090
+  effective_radius_m: 0.041713
+  geometric_radius_m: 0.041
+
+applied:
+  firmware_app_wheel_radius_m: 0.041713
+  controllers_wheel_radius_m: 0.041713
+  note: "固件需重新编译并烧录后生效；URDF 视觉网格保持几何 0.041 m。"
+
+imu_note:
+  # 13 s 前进段：原始融合 yaw +97°，但 gyro_z 均值仅 -0.104°/s（积分约 -1.35°），
+  # 雷达也显示车体基本直行。结论：JY901S 融合 yaw 在电机运行时不可作为绝对航向，
+  # 轴符号正确（左转 yaw/gyro_z 增大），短时航向请用 gyro_z 积分或激光里程计。
+  yaw_absolute_reliable: false
+  gyro_z_bias_dps: -0.104
