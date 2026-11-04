@@ -33,7 +33,10 @@
  * 速度默认取上限 33（上位机默认也一样）、电流取额定 2.4 A、加速度取手册默认 20。
  * 2.4 A 是额定值不是最大值，空载联调够用；要更大扭矩由操作者显式改。 */
 #define APP_DEFAULT_SPEED_CAP APP_SPEED_MAX_RAD_S
-#define APP_DEFAULT_CURRENT_A 2.4f
+/* 2.4 A 是额定值；原地大角度旋转时实测驱动轮打滑约 3 倍（指令 238° /
+ * 实际 80°），先提高到 4 A 以增加克服脚轮阻力的扭矩。电机最大 11 A，
+ * 4 A 只影响大负载/起转时的峰值，正常直行电流仍远低于此值。 */
+#define APP_DEFAULT_CURRENT_A 4.0f
 #define APP_DEFAULT_ACCEL 20.0f
 
 /* ---- 各类超时 -------------------------------------------------------------
@@ -78,4 +81,18 @@
 #define APP_LED_FRAME_MS 20U          /* 50 帧/秒 */
 #define APP_LED_AUTO_PERIOD_MS 8000U  /* 自动模式每 8 s 换一个特效 */
 #define APP_LED_GAMMA_ENABLED 1U      /* 做一次平方 gamma，低亮度更细腻 */
+
+/* ---- USB CDC 桥（树莓派导航 <-> 底盘） -----------------------------------
+ * 2026-11-04 两轮 CAD 模型实测：
+ *   轮半径 0.041 m；左右轮接地点中心 y=±0.074 m -> 有效轮距 0.148 m。
+ * 必须与 robot_base.urdf.xacro、controllers.yaml 同步；否则下发的轮速与
+ * 实际行走距离不一致。速度上限与 chassis_bridge.py 保持一致。 */
+/* 几何半径 0.041 m；2026-11-05 卷尺/编码器/雷达标定有效滚动半径 0.041713 m。 */
+#define APP_WHEEL_RADIUS_M       0.041713f
+#define APP_TRACK_WIDTH_M        0.148f
+#define APP_USB_MAX_LINEAR_M_S   0.24f
+#define APP_USB_MAX_ANGULAR_RAD_S 0.55f
+#define APP_USB_CMD_TIMEOUT_MS   500U   /* 超过 500 ms 没有合法速度帧 -> 目标清零 */
+#define APP_USB_TELEM_PERIOD_MS  20U    /* 上行遥测 50 Hz */
+#define APP_USB_ARM_TIMEOUT_MS   4000U  /* 准备+使能事务的最长总时长 */
 #endif

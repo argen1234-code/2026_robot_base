@@ -1,6 +1,7 @@
 #include "app_bluetooth.h"
 #include "app_motor.h"
 #include "app_config.h"
+#include "app_usb.h"
 #include "bsp_bluetooth.h"
 #include <ctype.h>
 #include <math.h>
@@ -98,7 +99,7 @@ static void process(uint32_t now)
  if(!strcmp(frame,"ARM") || !strcmp(frame,"~") || !strcmp(frame,"RESUME")) {
   if(g_bt_debug.arm_phase){reply("PENDING ARM\r\n");return;}
   if(g_bt_debug.armed){g_bt_debug.result=RESULT_OK;reply("OK ARM\r\n");return;}
-  if(g_debug.drive.active || AppChassis_Active()){error(RESULT_BUSY);return;}
+  if(g_debug.drive.active || AppChassis_Active() || AppUsb_OwnsMotors()){error(RESULT_BUSY);return;}
   result=AppMotor_PairReady(2);
   if(result==RESULT_OK) {
    g_bt_debug.armed=1;g_bt_debug.result=RESULT_OK;AppMotor_PairTargets(0,0);reply("OK ARM\r\n");return;

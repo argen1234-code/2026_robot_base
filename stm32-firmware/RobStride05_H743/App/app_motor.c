@@ -1,6 +1,7 @@
 #include "app_motor.h"
 #include "app_config.h"
 #include "app_bluetooth.h"
+#include "app_usb.h"
 #include "robstride05.h"
 #include "bsp_time.h"
 #include "main.h"
@@ -373,9 +374,11 @@ static void poll_command(void)
  if(a!=b || (b&1U)){ctx->candidate_valid=0;return;}
  if(!ctx->candidate_valid || memcmp(&c,&ctx->candidate,sizeof(c))){ctx->candidate=c;ctx->candidate_valid=1;return;}
  ctx->last_seen=b;ctx->candidate_valid=0;
- if((g_debug.drive.active || AppChassis_Active() || AppBluetooth_OwnsMotors()) && c.command<=CMD_RUN)r=RESULT_STATE;
+ if((g_debug.drive.active || AppChassis_Active() || AppBluetooth_OwnsMotors() ||
+     AppUsb_OwnsMotors()) && c.command<=CMD_RUN)r=RESULT_STATE;
  else {
-  if(g_debug.drive.active || AppChassis_Active() || AppBluetooth_OwnsMotors())drive_cancel();
+  if(g_debug.drive.active || AppChassis_Active() || AppBluetooth_OwnsMotors() ||
+     AppUsb_OwnsMotors())drive_cancel();
   r=execute(&c);
  }
  if(r!=RESULT_PENDING){ctx->s.executed_seq=b;ctx->s.result=ctx->s.reject_reason=r;}
@@ -669,6 +672,7 @@ void AppMotor_Init(void)
  }
  AppChassis_Init();
  AppBluetooth_Init();
+ AppUsb_Init();
 }
 void AppMotor_Service(void)
 {
@@ -701,6 +705,8 @@ void AppMotor_Service(void)
  drive_service(now);
  AppChassis_Service(now);
  AppBluetooth_Service(now);
+ /* USB 桥放在最后：本拍 IMU/CAN 快照已更新，且它可以用本地电机接口。 */
+ AppUsb_Service(now);
  for(i=0;i<APP_MOTOR_COUNT;i++) {
   ctx=&motors[i];ctx->wall_last=us;ctx->wall_valid=1;ctx->s.motor_heartbeat++;
   if(!g_debug.setup.busy) {

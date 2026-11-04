@@ -27,6 +27,8 @@
 #include "app_main.h"
 /* Declared inside port.c only; the CMSIS-RTOS2 wrapper does not use SysTick. */
 extern void xPortSysTickHandler(void);
+/* USB OTG FS device handle, defined in USB_DEVICE/Target/usbd_conf.c. */
+extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
   /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -220,4 +222,11 @@ void I2C2_ER_IRQHandler(void)
 /* USER CODE BEGIN 1 */
 /* CubeMX RC5 omits this SYS timebase vector. */
 void TIM6_DAC_IRQHandler(void) { HAL_TIM_IRQHandler(&htim6); }
+
+/* USB OTG FS 全局中断：CDC 虚拟串口的枚举与收发都在这里推进。
+ * 只调用 HAL/USBD 库，不调用任何 FreeRTOS API，因此优先级 5 安全。 */
+void OTG_FS_IRQHandler(void)
+{
+  HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS);
+}
   /* USER CODE END 1 */

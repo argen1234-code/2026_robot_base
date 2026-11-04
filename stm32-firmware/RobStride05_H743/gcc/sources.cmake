@@ -29,6 +29,18 @@ set(FIRMWARE_SOURCES
   ${PROJECT_ROOT}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_exti.c
   ${PROJECT_ROOT}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c
   ${PROJECT_ROOT}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c
+  # USB Device (FS) —— 树莓派 ↔ STM32 虚拟串口
+  ${PROJECT_ROOT}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd.c
+  ${PROJECT_ROOT}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd_ex.c
+  ${PROJECT_ROOT}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_ll_usb.c
+  ${PROJECT_ROOT}/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c
+  ${PROJECT_ROOT}/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c
+  ${PROJECT_ROOT}/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c
+  ${PROJECT_ROOT}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c
+  ${PROJECT_ROOT}/USB_DEVICE/App/usb_device.c
+  ${PROJECT_ROOT}/USB_DEVICE/App/usbd_cdc_if.c
+  ${PROJECT_ROOT}/USB_DEVICE/App/usbd_desc.c
+  ${PROJECT_ROOT}/USB_DEVICE/Target/usbd_conf.c
   ${PROJECT_ROOT}/Core/Src/system_stm32h7xx.c
   ${PROJECT_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/portable/Common/mpu_wrappers_v2.c
   ${PROJECT_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/croutine.c
@@ -51,6 +63,7 @@ set(FIRMWARE_SOURCES
   ${PROJECT_ROOT}/App/app_pid.c
   ${PROJECT_ROOT}/App/app_rtos_stats.c
   ${PROJECT_ROOT}/App/app_tasks.c
+  ${PROJECT_ROOT}/App/app_usb.c
   ${PROJECT_ROOT}/BSP/bsp_bluetooth.c
   ${PROJECT_ROOT}/BSP/bsp_can.c
   ${PROJECT_ROOT}/BSP/bsp_i2c.c

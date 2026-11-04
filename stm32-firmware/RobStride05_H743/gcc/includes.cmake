@@ -13,4 +13,8 @@ set(FIRMWARE_INCLUDES
   ${PROJECT_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/include
   ${PROJECT_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1
   ${PROJECT_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM7/r0p1
+  ${PROJECT_ROOT}/USB_DEVICE/App
+  ${PROJECT_ROOT}/USB_DEVICE/Target
+  ${PROJECT_ROOT}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc
+  ${PROJECT_ROOT}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
 )

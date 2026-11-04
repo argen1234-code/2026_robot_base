@@ -29,6 +29,7 @@
 #include "app_main.h"
 #include "app_tasks.h"
 #include "app_debug.h"
+#include "usb_device.h"
   /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -150,6 +151,9 @@ int main(void)
    * 它内部把 boot_stage 置 8。注意此刻调度器还没启动，所以这里不能有任何
    * 会阻塞或依赖 RTOS 的调用。 */
   App_Init(); /* BSP time base, CAN start and optional WS2812; sets stage 8. */
+  /* USB CDC 虚拟串口：树莓派 ↔ STM32。枚举和收发由 OTG_FS 中断驱动，
+     不依赖 RTOS，所以放在 osKernelStart 之前；失败按致命错误停机。 */
+  MX_USB_DEVICE_Init();
   g_debug.system.boot_stage = 9U; /* 9 = 就绪；上位机只接受 9 且 fatal=0 */
   /* 初始化内核对象池 → 创建四个线程 → 启动调度器。
    * 顺序不能换：osKernelInitialize 必须在 osThreadNew 之前，
