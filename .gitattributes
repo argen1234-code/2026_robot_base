@@ -1,0 +1,14 @@
+# 二进制资源，避免 git 做文本 diff / 换行转换
+*.STL binary
+*.stl binary
+*.dae binary
+*.onnx binary
+*.pt binary
+*.so binary
+*.so.* binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.wav binary
+*.mp3 binary

@@ -24,3 +24,41 @@ frames.gv
 frames.pdf
 frames_*.gv
 frames_*.pdf
+
+# ===== monorepo: AI 工作区 / 第三方依赖 =====
+/ai_ws/build/
+/ai_ws/install/
+/ai_ws/log/
+/third_party/orbbec_ws/build/
+/third_party/orbbec_ws/install/
+/third_party/orbbec_ws/log/
+
+# 模型权重体积大，仅本地保存，用 scripts/fetch-models.sh 下载
+**/MODELS/
+
+# 密钥与本地配置（只提交 .env.example）
+.env
+.env.*
+!.env.example
+*.local
+project.private.config.json
+
+# 运行产物
+/ai_ws/src/largemodel/resources_file/tts_output.*
+/ai_ws/src/largemodel/resources_file/XUNFEI_TTS.mp3
+/ai_ws/src/largemodel/resources_file/user_speech.wav
+/ai_ws/src/largemodel/resources_file/captured_frame_*.jpg
+/ai_ws/src/largemodel/resources_file/analyze_video/
+/ai_ws/src/largemodel/resources_file/generated_images/
+
+# 备份 / 编辑器残留
+*.bak
+*.bak[0-9]*
+*.save
+*.swo
+*.swn
+*.swm
+*.log
+
+# 重复的原始导出（mesh 与 src 相同，仅保留原始 URDF）
+/robot_ros2_ws/麦克纳姆轮小车urdf模型文件/
