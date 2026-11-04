@@ -62,3 +62,6 @@ project.private.config.json
 
 # 重复的原始导出（mesh 与 src 相同，仅保留原始 URDF）
 /robot_ros2_ws/麦克纳姆轮小车urdf模型文件/
+
+# YDLidar SDK 源码（第三方，用 scripts/build-nav.sh 自动克隆）
+/third_party/ydlidar_sdk/

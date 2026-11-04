@@ -15,9 +15,29 @@ ls -l /dev/ydlidar /dev/stm32
 > 仓库模板里的 `devpath` 来自原 Jetson，树莓派上必须用
 > `udevadm info -a -n /dev/ttyACM0` 重新取值。
 
+## Jazzy 导航环境（主机）
+
+Debian 12 没有 ROS 2 官方二进制，本机使用 RoboStack conda 环境：
+
+```bash
+scripts/setup-jazzy-env.sh     # 首次创建 ros_jazzy 环境
+scripts/build-nav.sh           # 编译 YDLidar SDK + robot_ros2_ws
+```
+
+进入环境并运行：
+
+```bash
+~/.local/bin/micromamba run -n ros_jazzy bash
+source ~/2026_robot_base/robot_ros2_ws/install/setup.bash
+ros2 launch robot_base_bringup robot_base.launch.py
+```
+
+> 交互 shell 也可以用 `micromamba activate ros_jazzy`。
+> SDK 用系统 CMake 3.25 编译（conda 的 CMake 4.x 与老版 SDK 不兼容）。
+
 ## 启动顺序
 
-1. 主机：`source /opt/ros/jazzy/setup.bash`（Jazzy 环境就绪后）
+1. 主机：进入 `ros_jazzy` 环境
 2. 导航：`ros2 launch robot_base_bringup robot_base.launch.py`
 3. AI 容器：`docker/run-ai.sh`
 4. 容器内：`ros2 launch largemodel largemodel_control.launch.py`

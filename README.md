@@ -34,6 +34,10 @@ scripts/build-ai.sh
 # 4. 冒烟测试 / 运行
 scripts/smoke-test.sh
 docker/run-ai.sh
+
+# 5. 主机 Jazzy 导航环境（RoboStack）与编译
+scripts/setup-jazzy-env.sh      # 首次执行，约 1GB 下载
+scripts/build-nav.sh            # 编译 YDLidar SDK + robot_ros2_ws
 ```
 
 ## 目录约定
