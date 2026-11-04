@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-02",
+  "repository": "https://github.com/MacSwimmm/2026-AIC",
+  "branch": "main",
+  "build": {
+    "compiler": "ARMCC 5.06 update 7 build 960",
+    "errors": 0,
+    "warnings": 0,
+    "log": "RobStride05_H743/Docs/build_output.log"
+  },
+  "integration_idempotent": true,
+  "python_tests_passed": 35,
+  "host_checks_passed": [
+    "production dual motor and paired drive",
+    "OLED",
+    "WS2812"
+  ],
+  "browser_checks": {
+    "passed": true,
+    "groups": 6,
+    "evidence": "上位机/RobStride_Console/review/publication-20261102/checks.json",
+    "physical_motion_tested": false
+  },
+  "exe_embedded_profile_and_web_match_source": true,
+  "flash_and_abi_identical_to_wireless_motion_tested_image": true,
+  "wireless_independent_motor_test": "Docs/无线DAP实测_20261102.md",
+  "artifacts": {
+    "RobStride05_H743/MDK-ARM/Objects/RobStride05_H743.axf": "de02c6efe9933c2b92ff1f534a2f97a99d3b1cfd8e52ad002302396d9cb1939a",
+    "RobStride05_H743/MDK-ARM/Objects/RobStride05_H743.hex": "3328c94ecfc1c948500b1e98c7ebdc40365d2d54dfaae4319bfdbe3db9037630",
+    "上位机/RobStride_Console/firmware_profile.json": "cced8e4e92a0edf88638c9c962775c4561cc50ab0d7265f93675580047421363",
+    "上位机/RobStrideConsole.exe": "7b30ffb5e1e402a1a473fb770d60d8691c1f4f6e855b151c7540699062c00a09"
+  }
+}

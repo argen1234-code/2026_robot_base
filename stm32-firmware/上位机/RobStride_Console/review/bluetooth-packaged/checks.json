@@ -1,0 +1,14 @@
+{
+  "checks": [
+    "COM selection, handshake status, connect never auto-enables",
+    "explicit ARM, full 33 rad/s range, installed wheel mapping",
+    "all eight held directions, repeated renewal, pointer release stops",
+    "WASD diagonal semantics, keyboard release and Space stop",
+    "blur and editing stop movement and leave Bluetooth keyboard mode",
+    "Esc disables, fold cancels keyboard and stops",
+    "desktop and 390px layout, no horizontal overflow"
+  ],
+  "errors": [],
+  "api_calls": 68,
+  "physical_hardware_tested": false
+}

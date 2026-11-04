@@ -1,0 +1,525 @@
+{
+  "connected": false,
+  "snapshot": {
+    "diagnostics_coherent": false,
+    "motor": {
+      "snapshot_seq": 48968,
+      "accepted_seq": 4,
+      "executed_seq": 18,
+      "result": 0,
+      "reject_reason": 0,
+      "state": 0,
+      "mode": 2,
+      "online": 1,
+      "enabled": 0,
+      "enable_requested": 0,
+      "motor_state": 0,
+      "feedback_age_ms": 26,
+      "fault_bits": 0,
+      "fault": 0,
+      "warning": 0,
+      "target_rad_s": 0.0,
+      "applied_rad_s": 0.0,
+      "position_rad": -8.431595802307129,
+      "velocity_rad_s": 0.040435791015625,
+      "torque_nm": -8.392333984375e-05,
+      "temperature_c": 27.0,
+      "current_a": 0.0,
+      "bus_voltage_v": 25.75547218322754,
+      "current_limit_a": 1.0,
+      "speed_limit_rad_s": 6.0,
+      "accel_rad_s2": 5.0,
+      "current_age_ms": 324,
+      "voltage_age_ms": 224,
+      "timeout_readback": 0,
+      "version": 327683,
+      "version_valid": 1,
+      "motor_heartbeat": 244831,
+      "health_fault": 0,
+      "cpu_dcache_enabled": 0,
+      "job_command": 0,
+      "job_step": 0,
+      "published_tick_ms": 489660,
+      "can": {
+        "rx": 99220,
+        "tx_ok": 13685,
+        "tx_fail": 0,
+        "rx_drop": 0,
+        "errors": 0,
+        "bus_off": 0,
+        "recoveries": 0,
+        "last_hal_error": 0,
+        "tec": 0,
+        "rec": 0,
+        "rx_irq": 99220,
+        "rx_other": 0,
+        "last_rx_id": 285245181,
+        "last_rx_dlc": 8,
+        "last_rx_extended": 1,
+        "last_rx_data": [
+          5,
+          112,
+          0,
+          0,
+          2,
+          0,
+          0,
+          0
+        ]
+      },
+      "configured_id": 127,
+      "identity_valid": 1,
+      "identity_id": 127,
+      "identity_uid": [
+        152,
+        126,
+        59,
+        138,
+        0,
+        116,
+        48,
+        18
+      ],
+      "feedback_count": 30463,
+      "parameter_count": 2372,
+      "unmatched_frames": 0,
+      "readback_index": 28682,
+      "readback_expected": 0,
+      "readback_actual": 0,
+      "readback_status": 1,
+      "accel_motor_supported": 0,
+      "accel_parameter": 8222,
+      "timeout_parameter": 8204,
+      "timeout_motor_supported": 0
+    },
+    "coherent": true,
+    "motor2": {
+      "snapshot_seq": 48968,
+      "accepted_seq": 4,
+      "executed_seq": 14,
+      "result": 0,
+      "reject_reason": 0,
+      "state": 0,
+      "mode": 2,
+      "online": 1,
+      "enabled": 0,
+      "enable_requested": 0,
+      "motor_state": 0,
+      "feedback_age_ms": 20,
+      "fault_bits": 0,
+      "fault": 0,
+      "warning": 0,
+      "target_rad_s": 0.0,
+      "applied_rad_s": 0.0,
+      "position_rad": -9.445481300354004,
+      "velocity_rad_s": 0.014495849609375,
+      "torque_nm": -8.392333984375e-05,
+      "temperature_c": 28.0,
+      "current_a": 0.0,
+      "bus_voltage_v": 25.544937133789062,
+      "current_limit_a": 1.0,
+      "speed_limit_rad_s": 6.0,
+      "accel_rad_s2": 5.0,
+      "current_age_ms": 420,
+      "voltage_age_ms": 320,
+      "timeout_readback": 0,
+      "version": 327683,
+      "version_valid": 1,
+      "motor_heartbeat": 244831,
+      "health_fault": 0,
+      "cpu_dcache_enabled": 0,
+      "job_command": 0,
+      "job_step": 0,
+      "published_tick_ms": 489660,
+      "can": {
+        "rx": 99220,
+        "tx_ok": 13686,
+        "tx_fail": 0,
+        "rx_drop": 0,
+        "errors": 0,
+        "bus_off": 0,
+        "recoveries": 0,
+        "last_hal_error": 0,
+        "tec": 0,
+        "rec": 0,
+        "rx_irq": 99220,
+        "rx_other": 0,
+        "last_rx_id": 285245181,
+        "last_rx_dlc": 8,
+        "last_rx_extended": 1,
+        "last_rx_data": [
+          5,
+          112,
+          0,
+          0,
+          2,
+          0,
+          0,
+          0
+        ]
+      },
+      "configured_id": 126,
+      "identity_valid": 1,
+      "identity_id": 126,
+      "identity_uid": [
+        180,
+        108,
+        59,
+        138,
+        0,
+        116,
+        48,
+        19
+      ],
+      "feedback_count": 35667,
+      "parameter_count": 2777,
+      "unmatched_frames": 0,
+      "readback_index": 28682,
+      "readback_expected": 0,
+      "readback_actual": 0,
+      "readback_status": 1,
+      "accel_motor_supported": 0,
+      "accel_parameter": 8222,
+      "timeout_parameter": 8204,
+      "timeout_motor_supported": 0
+    },
+    "coherent2": true,
+    "cmd": {
+      "seq": 18,
+      "command": 4,
+      "confirm_key": 1381183541,
+      "target_rad_s": 0.0,
+      "speed_limit_rad_s": 33.0,
+      "current_limit_a": 2.4000000953674316,
+      "accel_rad_s2": 20.0
+    },
+    "cmd2": {
+      "seq": 14,
+      "command": 3,
+      "confirm_key": 1381183541,
+      "target_rad_s": 2.0,
+      "speed_limit_rad_s": 6.0,
+      "current_limit_a": 1.0,
+      "accel_rad_s2": 5.0
+    },
+    "oled": {
+      "heartbeat": 244840,
+      "ready": 1,
+      "refresh_ok": 2448,
+      "refresh_fail": 0,
+      "consecutive_fail": 0,
+      "recovery_attempts": 0,
+      "recovery_ok": 0,
+      "last_error": 0,
+      "last_success_ms": 489634,
+      "next_retry_ms": 0
+    },
+    "system": {
+      "loop_heartbeat": 244840,
+      "health_heartbeat": 4897,
+      "max_service_us": 78,
+      "last_service_us": 24,
+      "fatal": 0,
+      "boot_stage": 9,
+      "tick_ms": 489678,
+      "vtor": 134217728,
+      "ccr": 262656,
+      "cfsr": 0,
+      "hfsr": 0,
+      "exception": 0
+    },
+    "setup": {
+      "seq": 4,
+      "key": 1381183541,
+      "command": 1,
+      "old_id": 127,
+      "new_id": 126,
+      "isolated_key": 0,
+      "executed_seq": 4,
+      "result": 0,
+      "busy": 0,
+      "dual_ready": 1
+    },
+    "publication_age_ms": 18,
+    "publication_age2_ms": 18
+  },
+  "sample_age_ms": 1243,
+  "pending": null,
+  "pending_motors": [
+    null,
+    null
+  ],
+  "continuous": false,
+  "continuous_motors": [
+    false,
+    false
+  ],
+  "motor_count": 2,
+  "setup_pending": null,
+  "logs": [
+    {
+      "time": "14:48:01",
+      "kind": "就绪",
+      "message": "连接调试器后读取真实 H743 数据；连接不会使能电机"
+    },
+    {
+      "time": "14:48:02",
+      "kind": "连接",
+      "message": "正在核对板上完整 Flash 与 AXF，请稍候"
+    },
+    {
+      "time": "14:48:03",
+      "kind": "已连接",
+      "message": "Flash 一致 · RobStride05_H743 · H743 正在运行；请查看电机在线状态"
+    },
+    {
+      "time": "14:48:03",
+      "kind": "已提交",
+      "message": "电机 1 · 准备 · 序号 2，等待固件确认"
+    },
+    {
+      "time": "14:48:03",
+      "kind": "完成",
+      "message": "电机 1 · 序号 2 · 成功"
+    },
+    {
+      "time": "14:48:03",
+      "kind": "已提交",
+      "message": "电机 2 · 准备 · 序号 2，等待固件确认"
+    },
+    {
+      "time": "14:48:03",
+      "kind": "完成",
+      "message": "电机 2 · 序号 2 · 成功"
+    },
+    {
+      "time": "14:48:03",
+      "kind": "已提交",
+      "message": "电机 1 · 使能 · 序号 4，等待固件确认"
+    },
+    {
+      "time": "14:48:04",
+      "kind": "完成",
+      "message": "电机 1 · 序号 4 · 成功"
+    },
+    {
+      "time": "14:48:04",
+      "kind": "已提交",
+      "message": "电机 2 · 使能 · 序号 4，等待固件确认"
+    },
+    {
+      "time": "14:48:04",
+      "kind": "完成",
+      "message": "电机 2 · 序号 4 · 成功"
+    },
+    {
+      "time": "14:48:05",
+      "kind": "持续运行",
+      "message": "速度 0.500 rad/s 已下发；无需续发，直到停止、失能或故障"
+    },
+    {
+      "time": "14:48:05",
+      "kind": "已提交",
+      "message": "电机 1 · 运行 · 序号 6，等待固件确认"
+    },
+    {
+      "time": "14:48:05",
+      "kind": "完成",
+      "message": "电机 1 · 序号 6 · 成功"
+    },
+    {
+      "time": "14:48:06",
+      "kind": "持续运行",
+      "message": "速度 -0.500 rad/s 已下发；无需续发，直到停止、失能或故障"
+    },
+    {
+      "time": "14:48:06",
+      "kind": "已提交",
+      "message": "电机 1 · 运行 · 序号 8，等待固件确认"
+    },
+    {
+      "time": "14:48:06",
+      "kind": "完成",
+      "message": "电机 1 · 序号 8 · 成功"
+    },
+    {
+      "time": "14:48:08",
+      "kind": "已提交",
+      "message": "电机 1 · 减速停止 · 序号 10，等待固件确认"
+    },
+    {
+      "time": "14:48:08",
+      "kind": "完成",
+      "message": "电机 1 · 序号 10 · 成功"
+    },
+    {
+      "time": "14:48:09",
+      "kind": "持续运行",
+      "message": "速度 0.500 rad/s 已下发；无需续发，直到停止、失能或故障"
+    },
+    {
+      "time": "14:48:09",
+      "kind": "已提交",
+      "message": "电机 2 · 运行 · 序号 6，等待固件确认"
+    },
+    {
+      "time": "14:48:10",
+      "kind": "完成",
+      "message": "电机 2 · 序号 6 · 成功"
+    },
+    {
+      "time": "14:48:11",
+      "kind": "持续运行",
+      "message": "速度 -0.500 rad/s 已下发；无需续发，直到停止、失能或故障"
+    },
+    {
+      "time": "14:48:11",
+      "kind": "已提交",
+      "message": "电机 2 · 运行 · 序号 8，等待固件确认"
+    },
+    {
+      "time": "14:48:11",
+      "kind": "完成",
+      "message": "电机 2 · 序号 8 · 成功"
+    },
+    {
+      "time": "14:48:13",
+      "kind": "持续运行",
+      "message": "速度 2.000 rad/s 已下发；无需续发，直到停止、失能或故障"
+    },
+    {
+      "time": "14:48:13",
+      "kind": "已提交",
+      "message": "电机 1 · 运行 · 序号 12，等待固件确认"
+    },
+    {
+      "time": "14:48:13",
+      "kind": "完成",
+      "message": "电机 1 · 序号 12 · 成功"
+    },
+    {
+      "time": "14:48:13",
+      "kind": "持续运行",
+      "message": "速度 -2.000 rad/s 已下发；无需续发，直到停止、失能或故障"
+    },
+    {
+      "time": "14:48:13",
+      "kind": "已提交",
+      "message": "电机 2 · 运行 · 序号 10，等待固件确认"
+    },
+    {
+      "time": "14:48:13",
+      "kind": "完成",
+      "message": "电机 2 · 序号 10 · 成功"
+    },
+    {
+      "time": "14:48:15",
+      "kind": "持续运行",
+      "message": "速度 5.000 rad/s 已下发；无需续发，直到停止、失能或故障"
+    },
+    {
+      "time": "14:48:15",
+      "kind": "已提交",
+      "message": "电机 1 · 运行 · 序号 14，等待固件确认"
+    },
+    {
+      "time": "14:48:15",
+      "kind": "完成",
+      "message": "电机 1 · 序号 14 · 成功"
+    },
+    {
+      "time": "14:48:15",
+      "kind": "持续运行",
+      "message": "速度 -5.000 rad/s 已下发；无需续发，直到停止、失能或故障"
+    },
+    {
+      "time": "14:48:15",
+      "kind": "已提交",
+      "message": "电机 2 · 运行 · 序号 12，等待固件确认"
+    },
+    {
+      "time": "14:48:15",
+      "kind": "完成",
+      "message": "电机 2 · 序号 12 · 成功"
+    },
+    {
+      "time": "14:48:18",
+      "kind": "持续运行",
+      "message": "速度 -2.000 rad/s 已下发；无需续发，直到停止、失能或故障"
+    },
+    {
+      "time": "14:48:18",
+      "kind": "已提交",
+      "message": "电机 1 · 运行 · 序号 16，等待固件确认"
+    },
+    {
+      "time": "14:48:18",
+      "kind": "完成",
+      "message": "电机 1 · 序号 16 · 成功"
+    },
+    {
+      "time": "14:48:18",
+      "kind": "持续运行",
+      "message": "速度 2.000 rad/s 已下发；无需续发，直到停止、失能或故障"
+    },
+    {
+      "time": "14:48:18",
+      "kind": "已提交",
+      "message": "电机 2 · 运行 · 序号 14，等待固件确认"
+    },
+    {
+      "time": "14:48:18",
+      "kind": "完成",
+      "message": "电机 2 · 序号 14 · 成功"
+    },
+    {
+      "time": "14:48:21",
+      "kind": "已提交",
+      "message": "电机 1 · 减速停止 · 序号 18，等待固件确认"
+    },
+    {
+      "time": "14:48:21",
+      "kind": "完成",
+      "message": "电机 1 · 序号 18 · 成功"
+    },
+    {
+      "time": "14:48:23",
+      "kind": "全部失能",
+      "message": "两台失能请求 4 已提交，请查看两台反馈确认"
+    },
+    {
+      "time": "14:49:39",
+      "kind": "失能请求",
+      "message": "断开前提交序号 6；断开后无法确认机械状态"
+    },
+    {
+      "time": "14:49:39",
+      "kind": "已断开",
+      "message": "SWD 会话已释放"
+    }
+  ],
+  "probes": [
+    {
+      "id": "d9381b44",
+      "name": "Horco Horco CMSIS-DAP"
+    }
+  ],
+  "profile": {
+    "axf_sha256": "3284ee5d2967cf9e4f51754e2b7e909952763584e8435989ab033162b1651353",
+    "address": "0x2000009c",
+    "source": "D:\\竞赛\\2026 AIC\\RobStride05_H743\\MDK-ARM\\Objects\\RobStride05_H743.axf"
+  },
+  "history_count": 4150,
+  "limits": {
+    "target_rad_s": 33.0,
+    "speed_limit_rad_s": 33.0,
+    "current_limit_a": 11.0,
+    "accel_rad_s2": 150.0
+  },
+  "defaults": {
+    "target_rad_s": 0.0,
+    "speed_limit_rad_s": 33.0,
+    "current_limit_a": 2.4,
+    "accel_rad_s2": 20.0
+  }
+}

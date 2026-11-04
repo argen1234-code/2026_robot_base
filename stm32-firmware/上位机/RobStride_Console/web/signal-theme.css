@@ -1,0 +1,55 @@
+/* Adapted from upper-computer-template 71f6c07. Keep fault and stop colors semantic. */
+:root { --signal-ink: #090b0a; }
+.signal-zone { background: #101312; color: var(--text); }
+.signal-zone :is(.session-intro h2, .panel-heading h2, .slide-caption h3, .drawer-heading h2) { color: var(--accent); }
+.signal-zone .session-intro { background: #0a0d0b; border-bottom: 1px solid #263c30; }
+.signal-zone .session-intro h2 { font-weight: 800; letter-spacing: -.04em; }
+.signal-zone .session-intro h2 span { color: #a1b5a8; }
+.signal-zone :is(.module-window, .panel, .metrics article, .connection-strip) { background: #121a16; border-color: #294734; }
+.signal-zone :is(.window-bar, .panel-heading) { background: #0a100d; border-color: #294734; }
+.signal-zone .dual-panel { background: transparent; }
+.signal-zone .dual-panel > .panel-heading, .signal-zone .log-panel > .panel-heading { background: transparent; }
+.signal-zone :is(.monitor-navigation, .status-details, .diagnostic-item, .guide-note, .log-panel) { border-color: #294032; }
+.signal-zone .metrics article { border-top: 2px solid var(--accent); }
+.signal-zone .metrics strong { color: var(--accent); }
+.signal-zone :is(.metrics small, .slide-caption p, .telemetry-intro, .window-meta, .logs, .guide-grid p) { color: #a1b5a8; }
+.signal-zone :is(.number-field, .diagnostic-item, .led-live, .led-playlist li, .guide-note) { background: #17221b; border-color: #365040; }
+.signal-zone .secondary { background: #101a14; border-color: #365040; color: #dbede1; }
+.signal-zone .secondary:hover { border-color: var(--accent); background: #193324; }
+.signal-zone .monitor-tab[aria-selected="true"] { color: var(--accent); box-shadow: 0 2px var(--accent); }
+.signal-zone .monitor-tab:hover { color: var(--accent); }
+.signal-zone .square-arrow { background: #18281e; color: var(--accent); border: 1px solid #365040; }
+.signal-zone .square-arrow.next { background: var(--accent); color: var(--signal-ink); border-color: var(--accent); }
+.signal-zone .square-arrow:disabled { background: #18201b; color: #66776c; opacity: .55; }
+.signal-zone .chart-empty { background: #121a16dd; }
+.settings-drawer.signal-zone { background: #101713; border-color: #365040; }
+.settings-drawer.signal-zone legend { color: var(--accent); }
+.back-top { background: #0a100d; color: var(--accent); border: 1px solid #365040; }
+.desk-footer { margin-top: 0; background: #0a0d0b; border-top: 1px solid #294032; }
+.footer-caption { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 40px 32px; }
+.footer-kicker { font: 11px Consolas, monospace; letter-spacing: .08em; color: #a1b5a8; }
+.footer-caption p { margin: 8px 0 0; font-size: 20px; }
+.footer-top { display: inline-flex; align-items: center; gap: 24px; padding: 12px 0; font-size: 12px; text-decoration: none; }
+.footer-top span { color: var(--accent); font-size: 24px; }
+.footer-top:hover { color: var(--accent); }
+.footer-top:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; }
+.footer-wordmark { position: relative; isolation: isolate; display: grid; place-items: center; width: 100%; aspect-ratio: 3.83228; background: var(--accent); color: #090b0a; overflow: hidden; }
+.footer-wordmark-text { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; font: 900 17vw/.9 Arial, "Microsoft YaHei", sans-serif; letter-spacing: -.06em; }
+.footer-wordmark.is-ready .footer-wordmark-text { opacity: 0; }
+#footerDistortion { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.footer-hover-hint { position: absolute; right: 32px; bottom: 8px; font-size: 10px; letter-spacing: .06em; pointer-events: none; opacity: .65; }
+.footer-wordmark.is-static .footer-hover-hint, .footer-wordmark:not(.is-ready) .footer-hover-hint { display: none; }
+.signal-distorting { opacity: 0 !important; }
+.signal-overlay { position: fixed; pointer-events: none; z-index: 7; }
+.signal-overlay-drawer { z-index: 25; }
+@media (max-width: 760px) {
+  .footer-caption { padding: 28px 20px; gap: 16px; }
+  .footer-kicker { font-size: 8px; letter-spacing: 0; }
+  .footer-caption p { font-size: 16px; }
+  .footer-top { gap: 10px; white-space: nowrap; }
+  .footer-hover-hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-distorting { opacity: 1 !important; }
+  .signal-overlay { display: none; }
+}

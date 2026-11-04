@@ -1,0 +1,65 @@
+{
+  "date": "2026-11-04",
+  "repository": "MacSwimmm/2026-AIC",
+  "branch": "main",
+  "base_commit": "3250cb88fa761a49e2be408fedab6ab06edd5903",
+  "features": [
+    "JDY31 USART1 PA9/PA10 9600 8N1 CRLF commands for phone and desktop",
+    "Desktop Bluetooth SPP COM selection, explicit ARM, direction pad, WASD, serial receipts",
+    "Shared motor preparation and ramps, controller exclusion, 600 ms firmware movement expiry",
+    "Complete module wiring table and phone command reference"
+  ],
+  "firmware_build": {
+    "errors": 0,
+    "warnings": 0,
+    "accepted_matching_artifacts_preserved": true
+  },
+  "python_tests": {
+    "passed": 55,
+    "failed": 0,
+    "rerun_for_publication": true
+  },
+  "c_host_checks_passed": true,
+  "browser_checks": {
+    "bluetooth-source": {
+      "checks": 7,
+      "path": "上位机\\RobStride_Console\\review\\bluetooth-source\\checks.json"
+    },
+    "bluetooth-packaged": {
+      "checks": 7,
+      "path": "上位机\\RobStride_Console\\review\\bluetooth-packaged\\checks.json"
+    },
+    "bluetooth-wasd-regression": {
+      "checks": 6,
+      "path": "上位机\\RobStride_Console\\review\\bluetooth-wasd-regression\\checks.json"
+    },
+    "bluetooth-chassis-regression": {
+      "checks": 6,
+      "path": "上位机\\RobStride_Console\\review\\bluetooth-chassis-regression\\checks.json"
+    },
+    "bluetooth-template-regression": {
+      "checks": 17,
+      "path": "上位机\\RobStride_Console\\review\\bluetooth-template-regression\\ui-regression.json"
+    }
+  },
+  "existing_g_debug_schema_identical": true,
+  "artifacts": {
+    "RobStride05_H743\\MDK-ARM\\Objects\\RobStride05_H743.axf": "0cacf051c83c857b30373523ae236f44318cc86f70fcb5ac9c2387d798f15604",
+    "RobStride05_H743\\MDK-ARM\\Objects\\RobStride05_H743.hex": "013606bce6bedf0534a00454833dbf0a4a84d03246a7d47e6601d00c7a92ea68",
+    "上位机\\RobStrideConsole.exe": "225fccde54488ae8c47b03c38da23fc14810eab5cc15ca4ba1399ba54afb1a47",
+    "上位机\\RobStride_Console\\firmware_profile.json": "5adf8b449cef695459bf33bb6c2154c06d14c4396e9d575e5b7fe277870968f4"
+  },
+  "hardware": {
+    "flashed": false,
+    "probe_accessed": false,
+    "jdy31_connected": false,
+    "phone_spp_tested": false,
+    "pc_spp_tested": false,
+    "physical_motion_tested": false
+  },
+  "docs": [
+    "Docs/BLUETOOTH.md",
+    "Docs/WIRING.md",
+    "Docs/bluetooth_validation.json"
+  ]
+}

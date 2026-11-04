@@ -1,26 +1,44 @@
-# Keil MDK build outputs
+# Python / packaging
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+build/
+dist/
+*.spec
+*.pid
+
+# Local credentials and settings
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.vscode/
+.idea/
+
+# Generated firmware / IDE session state
 *.o
-*.crf
-*.axf
-*.elf
-*.hex
-*.bin
-*.map
-*.htm
-*.dep
-*.lnp
-*.lst
-*.iex
-*.d
-
-# Build output directories
-MDK-ARM/STM32H743/
-MDK-ARM/STM32H743_Build/
-h7_lvgl_rtos_base/gcc/build/
 *.obj
-CMakeCache.txt
-CMakeFiles/
-
-
-# Backup files
-*.Bak
+*.d
+*.crf
+*.dep
+*.lst
+*.map
+*.lnp
+*.uvguix.*
+*.uvoptx.bak
+*.bak
+.mxproject
+RobStride05_H743/MDK-ARM/Objects/*
+!RobStride05_H743/MDK-ARM/Objects/RobStride05_H743.axf
+!RobStride05_H743/MDK-ARM/Objects/RobStride05_H743.hex
+RobStride05_H743/Tools/test_*.exe
+RobStride05_H743/Tools/backup/
+RobStride05_H743/tmp/
+*.log
+!RobStride05_H743/Docs/build_output.log
+!RobStride05_H743/Docs/host_checks.log
+!RobStride05_H743/Docs/clock480_console_build.log
+!RobStride05_H743/Docs/keil_flash_verify.log

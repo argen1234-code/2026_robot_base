@@ -1,0 +1,11 @@
+{
+  "DBGMCU_IDCODE": "0x20036450",
+  "RCC_CR": "0x303c025",
+  "RCC_CFGR": "0x1b",
+  "RCC_D1CFGR": "0x48",
+  "RCC_D2CFGR": "0x440",
+  "RCC_D3CFGR": "0x40",
+  "PWR_D3CR": "0xe000",
+  "FLASH_ACR": "0x31",
+  "SCB_CPACR": "0xf00000"
+}

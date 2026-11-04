@@ -1,0 +1,4 @@
+config load "D:/竞赛/2026 AIC/RobStride05_H743/RobStride05_H743.ioc"
+project path "D:/竞赛/2026 AIC/RobStride05_H743"
+project generate
+exit

@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-03",
+  "control_architecture": "heading PID -> wheel speed targets -> CAN 0x700A -> RS05 internal speed loop (mode 2)",
+  "mcu_wheel_speed_pid_removed": true,
+  "current_mode_command_removed": true,
+  "current_telemetry_source": "RS05 measured Iq 0x701A",
+  "firmware_build": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "python_tests": 41,
+  "host_checks_passed": true,
+  "browser_checks": {
+    "chassis": {
+      "passed": true,
+      "count": 6,
+      "report": "上位机\\RobStride_Console\\review\\speed-mode-chassis\\checks.json"
+    },
+    "wasd": {
+      "passed": true,
+      "count": 6,
+      "report": "上位机\\RobStride_Console\\review\\speed-mode-wasd\\checks.json"
+    },
+    "template": {
+      "passed": true,
+      "count": 17,
+      "report": "上位机\\RobStride_Console\\review\\speed-mode-template\\ui-regression.json"
+    }
+  },
+  "integration_idempotence": true,
+  "package": {
+    "ready": true,
+    "connected": false,
+    "chassis_supported": true,
+    "url": "http://127.0.0.1:29844",
+    "axf_sha256": "959d7efa6c44811a0406804f509635c91064d1687d331298bf0c7930fc7b9a52",
+    "exe_sha256": "d4e79eebfe7788a980826d642922ecf9748808f7be29dd7aafaadcf848a9ab68",
+    "assets": {
+      "/": "13ec729e115eb84aff6ab68f77cddab6c60a7115a3a5b3b4473381f2fe7b2761",
+      "/chassis.js": "684c5b22b2fec8afebf6c8f3b4bc0d753d5f83c4fc4efa289d39d4ad7469219e",
+      "/chassis.css": "0cc4bd70998a77585452559c392a5cb9448a76552020cd281976fae37368fb80",
+      "/drive.js": "fd0a105b8b0f046c74ea7985ef53109cc078d1306d654ef4538e4a6a58299fe6",
+      "/app.js": "21089328a5afc70b64bb1cb59f968b3bb634e79cb613454adb89b974773735f7",
+      "/signal-distortion.js": "8401b610f6c5dfa4ca4a8c5c62527f372ddf051abec11927714384f6f796eea4"
+    }
+  },
+  "firmware_flashed": false,
+  "physical_motion_tested": false,
+  "real_vehicle_pid_tuned": false
+}

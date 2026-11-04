@@ -1,0 +1,130 @@
+profile <- D:\竞赛\2026 AIC\RobStride05_H743\MDK-ARM\Objects\RobStride05_H743.axf
+351 INFO: PyInstaller: 6.18.0, contrib hooks: 2026.0
+351 INFO: Python: 3.13.2
+384 INFO: Platform: Windows-11-10.0.26300-SP0
+384 INFO: Python environment: C:\Users\han_z\AppData\Local\Programs\Python\Python313
+384 INFO: wrote build\RobStrideConsole.spec
+9580 INFO: Module search paths (PYTHONPATH):
+['D:\\竞赛\\2026 AIC\\上位机\\RobStride_Console',
+ 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\python313.zip',
+ 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\DLLs',
+ 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib',
+ 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313',
+ 'C:\\Users\\han_z\\AppData\\Roaming\\Python\\Python313\\site-packages',
+ 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages',
+ 'D:\\竞赛\\2026 AIC\\上位机\\RobStride_Console']
+10618 INFO: Appending 'binaries' from .spec
+10620 INFO: Appending 'datas' from .spec
+10681 INFO: checking Analysis
+10710 INFO: Building because excludes changed
+10710 INFO: Looking for Python shared library...
+10710 INFO: Using Python shared library: C:\Users\han_z\AppData\Local\Programs\Python\Python313\python313.dll
+10710 INFO: Running Analysis Analysis-00.toc
+10710 INFO: Target bytecode optimization level: 0
+10710 INFO: Initializing module dependency graph...
+10716 INFO: Initializing module graph hook caches...
+10758 INFO: Analyzing modules for base_library.zip ...
+13423 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+14555 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+15507 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+16952 INFO: Caching module dependency graph...
+17000 INFO: Analyzing D:\竞赛\2026 AIC\上位机\RobStride_Console\server.py
+17097 INFO: Processing standard module hook 'hook-_ctypes.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+17606 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+17612 INFO: SetuptoolsInfo: initializing cached setuptools info...
+19636 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+19758 INFO: Processing standard module hook 'hook-xml.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+20692 INFO: Processing standard module hook 'hook-platform.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+20717 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+21263 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+22380 INFO: Processing standard module hook 'hook-lark.py' from 'C:\\Users\\han_z\\AppData\\Roaming\\Python\\Python313\\site-packages\\lark\\__pyinstaller'
+23109 INFO: Processing standard module hook 'hook-difflib.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+23461 INFO: Processing standard module hook 'hook-prettytable.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+23570 INFO: Processing standard module hook 'hook-wcwidth.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+23874 INFO: Processing pre-safe-import-module hook 'hook-importlib_metadata.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+23899 INFO: Processing standard module hook 'hook-importlib_metadata.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+23935 INFO: Processing pre-safe-import-module hook 'hook-zipp.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+24029 INFO: Processing standard module hook 'hook-capstone.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+24050 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+24056 INFO: Processing standard module hook 'hook-importlib_resources.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+24801 INFO: Processing standard module hook 'hook-usb.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+24865 WARNING: No backend available
+25021 INFO: Processing standard module hook 'hook-libusb_package.py' from 'C:\\Users\\han_z\\AppData\\Roaming\\Python\\Python313\\site-packages\\libusb_package\\__pyinstaller'
+25119 INFO: Processing standard module hook 'hook-appdirs.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+26002 INFO: Analyzing hidden import 'pyocd.__main__'
+26155 INFO: Analyzing hidden import 'pyocd.debug.elf.symbols'
+26157 INFO: Analyzing hidden import 'pyocd.probe.jlink_probe'
+26355 INFO: Processing standard module hook 'hook-psutil.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+26493 INFO: Analyzing hidden import 'pyocd.probe.picoprobe'
+26509 INFO: Analyzing hidden import 'pyocd.probe.stlink'
+26511 INFO: Analyzing hidden import 'pyocd.probe.stlink.constants'
+26515 INFO: Analyzing hidden import 'pyocd.probe.stlink.detect'
+26517 INFO: Analyzing hidden import 'pyocd.probe.stlink.detect.base'
+26522 INFO: Analyzing hidden import 'pyocd.probe.stlink.detect.darwin'
+26561 INFO: Analyzing hidden import 'pyocd.probe.stlink.detect.factory'
+26585 INFO: Analyzing hidden import 'pyocd.probe.stlink.stlink'
+26612 INFO: Analyzing hidden import 'pyocd.probe.stlink.usb'
+26620 INFO: Analyzing hidden import 'pyocd.probe.stlink_probe'
+26631 INFO: Analyzing hidden import 'pyocd.probe.tcp_client_probe'
+26640 INFO: Analyzing hidden import 'pyocd.rtos.threadx'
+26655 INFO: Analyzing hidden import 'pyocd.tools.gdb_server'
+26666 INFO: Analyzing hidden import 'pyocd.utility.autoflush'
+26668 INFO: Analyzing hidden import 'cmsis_pack_manager.pack_manager'
+26676 INFO: Analyzing hidden import 'libusb_package.__pyinstaller'
+26678 INFO: Analyzing hidden import 'libusb_package.__pyinstaller.hook-libusb_package'
+26892 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+26934 INFO: Processing standard module hook 'hook-win32ctypes.core.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+29054 INFO: Processing standard module hook 'hook-pycparser.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+29217 INFO: Processing standard module hook 'hook-setuptools.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+29235 INFO: Processing pre-safe-import-module hook 'hook-distutils.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+29277 INFO: Processing pre-safe-import-module hook 'hook-jaraco.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+29279 INFO: Setuptools: 'jaraco' appears to be a full setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco'!
+29299 INFO: Processing pre-safe-import-module hook 'hook-more_itertools.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+29300 INFO: Setuptools: 'more_itertools' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.more_itertools'!
+29779 INFO: Processing standard module hook 'hook-setuptools._vendor.jaraco.text.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks'
+29790 INFO: Processing pre-safe-import-module hook 'hook-backports.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+29792 INFO: Setuptools: 'backports' appears to be a full setuptools-vendored copy - creating alias to 'setuptools._vendor.backports'!
+30210 INFO: Processing pre-safe-import-module hook 'hook-tomli.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+30212 INFO: Setuptools: 'tomli' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.tomli'!
+30660 INFO: Processing pre-safe-import-module hook 'hook-wheel.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+30662 INFO: Setuptools: 'wheel' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.wheel'!
+31394 INFO: Processing module hooks (post-graph stage)...
+31395 WARNING: Hidden import "pycparser.lextab" not found!
+31395 WARNING: Hidden import "pycparser.yacctab" not found!
+31402 WARNING: Hidden import "importlib_resources.trees" not found!
+31526 INFO: Performing binary vs. data reclassification (123 entries)
+31616 INFO: Looking for ctypes DLLs
+31717 INFO: Analyzing run-time hooks ...
+31721 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+31724 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+31728 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+31730 INFO: Including run-time hook 'pyi_rth_setuptools.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+31732 INFO: Including run-time hook 'pyi_rth_usb.py' from 'C:\\Users\\han_z\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\rthooks'
+31748 INFO: Creating base_library.zip...
+31765 INFO: Looking for dynamic libraries
+34474 INFO: Extra DLL search directories (AddDllDirectory): []
+34474 INFO: Extra DLL search directories (PATH): []
+35152 INFO: Warnings written to D:\竞赛\2026 AIC\上位机\RobStride_Console\build\singlefile\RobStrideConsole\warn-RobStrideConsole.txt
+35224 INFO: Graph cross-reference written to D:\竞赛\2026 AIC\上位机\RobStride_Console\build\singlefile\RobStrideConsole\xref-RobStrideConsole.html
+35264 INFO: checking PYZ
+35548 INFO: checking PKG
+35558 INFO: Building because toc changed
+35558 INFO: Building PKG (CArchive) RobStrideConsole.pkg
+38752 INFO: Building PKG (CArchive) RobStrideConsole.pkg completed successfully.
+38755 INFO: Bootloader C:\Users\han_z\AppData\Local\Programs\Python\Python313\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\run.exe
+38755 INFO: checking EXE
+38767 INFO: Building because toc changed
+38768 INFO: Building EXE from EXE-00.toc
+38771 INFO: Copying bootloader EXE to D:\竞赛\2026 AIC\上位机\RobStrideConsole.exe
+38826 INFO: Copying icon to EXE
+38863 INFO: Copying 0 resources to EXE
+38863 INFO: Embedding manifest in EXE
+38902 INFO: Appending PKG archive to EXE
+39020 INFO: Fixing EXE headers
+39299 INFO: Building EXE from EXE-00.toc completed successfully.
+39304 INFO: Build complete! The results are available in: D:\竞赛\2026 AIC\上位机
+
+Algorithm       Hash                                                                   Path
+---------       ----                                                                   ----
+SHA256          8F1C5CBD9C88DFB1503F4A521D334A3B4E0D047AD5B8EED14CF35BA8A8CA2702       D:\竞赛\2026 AIC\上位机\RobStri…
+

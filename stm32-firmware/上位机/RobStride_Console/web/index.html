@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>2026 AIC · RobStride 控制台</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/template.css"><link rel="stylesheet" href="/signal-theme.css"><link rel="stylesheet" href="/chassis.css"><link rel="stylesheet" href="/bluetooth.css"></head>
+<body>
+<a class="skip-link" href="#console">跳到控制台</a>
+<div class="announcement" id="announcement"><span class="announcement-pixels" aria-hidden="true"></span><span>2026 AIC <span class="announcement-divider">/</span> 双电机 · 一个工作空间</span><button id="dismiss-announcement" aria-label="关闭横幅">×</button></div>
+<header class="site-header">
+ <a class="site-brand" href="#overview" aria-label="RobStride 首页">RobStride<span></span></a>
+ <nav class="primary-nav" aria-label="主导航">
+  <button class="nav-item active" data-view="control">电机控制</button><button class="nav-item" data-view="telemetry">数据观测</button><button class="nav-item" data-view="diagnostics">通信诊断</button><button class="nav-item" data-view="led">灯带控制</button><button class="nav-item" data-view="guide">使用指南</button>
+ </nav>
+ <div class="header-actions"><button id="open-settings" class="text-button" aria-haspopup="dialog" aria-controls="settings-drawer">控制台设置 <span>↗</span></button><button id="exit" class="header-exit" title="退出上位机并释放调试器">退出 ⏻</button></div>
+</header>
+<div class="scroll-progress" aria-hidden="true"></div>
+<div class="app-shell" id="app-content">
+ <section class="hero" id="overview" aria-labelledby="page-title">
+  <canvas id="pixelField" aria-hidden="true"></canvas><div class="hero-coordinate" aria-hidden="true">RS05 / 127 + 126<br>PRECISION IN MOTION</div>
+  <div class="hero-inner"><div class="hero-copy"><div class="eyebrow">2026 AIC / MOTION WORKSPACE</div><h1 id="page-title">让每一次转动，<em>尽在掌握。</em></h1><p id="page-description">从连接到控制，实时了解你的每一个关节。</p></div><div class="hero-aside"><button class="hero-action" id="enter-console">进入控制台 <span>↗</span></button><div class="hero-state"><div class="badge" id="connection-badge"><span class="dot"></span>设备未连接</div><small>H743 · DUAL MOTOR</small></div></div></div>
+  <a class="scroll-cue" href="#console"><span>向下探索工作空间</span> ↓</a>
+ </section>
+ <main id="console" class="signal-zone" tabindex="-1">
+  <section class="session-intro"><div class="eyebrow">ONE WORKSPACE. EVERY DETAIL.</div><h2>控制、观测、创造。<br><span>让想法开始转动。</span></h2><p>两台关节的运动与反馈，一条灯带的色彩与节奏。<br>从这里，连接你的下一次探索。</p></section>
+  <div class="workspace-heading"><div><span class="section-index">01 / WORKSPACE</span><b id="crumb">电机控制</b></div><div class="device-status"><span class="dot" id="sidebar-dot"></span><span id="sidebar-state">未连接设备</span><span class="workspace-clock" id="clock">--:--:--</span></div></div>
+    <section class="connection-strip" aria-label="设备连接"><span class="connection-label"><span class="small-icon">⇄</span> 设备连接</span><div class="select-wrap"><label class="sr-only" for="probe">SWD 调试器</label><select id="probe"><option value="">选择 SWD 调试器</option></select></div><button id="refresh" class="icon-button" title="刷新调试器" aria-label="刷新调试器">↻</button><div class="transport"><span class="dot green"></span>SWD <span>/</span> CMSIS-DAP · ST-Link</div><button id="connect" class="button primary">连接设备 <span>↗</span></button></section>
+    <div class="notice" id="notice" role="status"><span>ⓘ</span><span id="notice-text">先在 Keil 中运行固件并退出 Debug，再连接调试器。连接后自动配置并零速使能两台电机。</span></div>
+
+    <section class="dual-panel panel" aria-label="双电机选择和状态">
+      <div class="panel-heading"><h2>双电机独立控制</h2><button id="stop-all" class="button danger">■ 两台全部失能 <kbd>Esc</kbd></button></div>
+      <div class="motor-cards"><button id="select-motor-0" class="motor-card selected" data-motor="0"><strong>电机 1 · ID 127 / 0x7F</strong><span id="summary-0">等待连接</span></button><button id="select-motor-1" class="motor-card" data-motor="1"><strong>电机 2 · ID 126 / 0x7E</strong><span id="summary-1">等待连接</span></button></div>
+      <p id="selected-label" class="green-text">当前控制：电机 1。下方参数、命令和曲线均对应选中电机。</p>
+    </section>
+
+    <div id="view-control" class="view">
+      <details id="bluetooth-panel" class="panel drive-panel">
+        <summary>JDY31 · 蓝牙遥控</summary>
+        <p>先在 Windows 蓝牙设置中配对 JDY31，选择它的出站 COM 口连接。此入口通过蓝牙直接控制 H7；连接不使能，点击下方“使能蓝牙遥控”后再操作。</p>
+        <div class="bt-connect-row"><label>蓝牙串口<select id="bt-port"><option value="">请选择 COM 口</option></select></label><button id="bt-refresh" class="button secondary">刷新串口</button><button id="bt-connect" class="button primary">连接蓝牙</button><button id="bt-disconnect" class="button secondary" disabled>断开蓝牙</button></div>
+        <div class="drive-settings">
+          <label>行驶 / 转向轮速 (rad/s)<input id="bt-speed" type="number" min="0" max="33" step="any" value="1"></label>
+          <label>准备速度上限 (rad/s)<input id="bt-cap" type="number" min="0.001" max="33" step="any" value="33"></label>
+          <label>相电流上限 (A)<input id="bt-current" type="number" min="0.001" max="11" step="any" value="2.4"></label>
+          <label>加速度 (rad/s²)<input id="bt-accel" type="number" min="0.001" max="150" step="any" value="20"></label>
+          <label>左轮电机<select id="bt-left"><option value="1" selected>电机 2 · ID 126</option><option value="0">电机 1 · ID 127</option></select></label>
+          <label>左轮前进方向<select id="bt-left-sign"><option value="-1" selected>反转 −</option><option value="1">正转 +</option></select></label>
+          <label>右轮前进方向<select id="bt-right-sign"><option value="1" selected>正转 +</option><option value="-1">反转 −</option></select></label>
+        </div>
+        <div class="bt-connect-row"><button id="bt-arm" class="button primary" disabled>使能蓝牙遥控</button><button id="bt-apply-speed" class="button secondary" disabled>停止并应用轮速</button><button id="bt-keyboard" class="button secondary" aria-pressed="false" disabled>开启蓝牙 WASD</button><button id="bt-disable" class="button danger" disabled>两轮失能 · Esc</button></div>
+        <div class="bt-remote"><div class="bt-pad" aria-label="按住蓝牙方向键行驶">
+          <button data-bt-motion="FL" class="button secondary" disabled>↖ 前进左弯</button><button data-bt-motion="F" class="button secondary" disabled>↑ 前进 W</button><button data-bt-motion="FR" class="button secondary" disabled>↗ 前进右弯</button>
+          <button data-bt-motion="L" class="button secondary" disabled>↶ 原地左转 A</button><button id="bt-stop" class="button primary" disabled>■ 停止 Space</button><button data-bt-motion="R" class="button secondary" disabled>↷ 原地右转 D</button>
+          <button data-bt-motion="BL" class="button secondary" disabled>↙ 倒车左弯</button><button data-bt-motion="B" class="button secondary" disabled>↓ 后退 S</button><button data-bt-motion="BR" class="button secondary" disabled>↘ 倒车右弯</button>
+        </div><div class="bt-readout"><p id="bt-status" role="status">蓝牙未连接</p><p id="bt-live">等待固件回执</p><p class="control-note">按住行驶，松开减速到零。窗口失焦、切换模块或折叠面板会停车并关闭蓝牙 WASD。手机发送相同方向帧时每 200 ms 内续发；H7 超过 600 ms 未续发会归零并要求重新使能。</p></div></div>
+        <details class="bt-instructions"><summary>手机发送指令对照表</summary><p>使用文本发送，每条以 @ 开头、以真实 CRLF（回车+换行）结尾。例如 <code>@F\r\n</code> 中的 \r\n 表示结束符；串口参数 9600 / 8N1。</p><table><thead><tr><th>内容（省略 CRLF）</th><th>效果</th></tr></thead><tbody><tr><td>@PING / @STATUS</td><td>检查固件 / 读取状态</td></tr><tr><td>@ARM</td><td>确认双电机身份、准备并零速使能，等待 OK ARM</td></tr><tr><td>@SPEED=1</td><td>停车时设置行驶/转向轮速为 1 rad/s，允许 0–33</td></tr><tr><td>@F / @B</td><td>前进 / 后退，重复发送续控</td></tr><tr><td>@L 或 @Q / @R 或 @E</td><td>原地左转 / 原地右转</td></tr><tr><td>@FL / @FR / @BL / @BR</td><td>前进左弯 / 前进右弯 / 倒车左弯 / 倒车右弯</td></tr><tr><td>@S / @STOP</td><td>两轮目标归零，按原加速度减速</td></tr><tr><td>@!</td><td>两轮失能，之后需重新 @ARM</td></tr></tbody></table></details>
+        <pre id="bt-log" class="bt-log" aria-label="蓝牙收发回执">尚无蓝牙数据</pre>
+      </details>
+      <details id="drive-panel" class="panel drive-panel">
+        <summary>小车 WASD · 两轮差速模式</summary>
+        <p>连接就绪后即可进入键盘控制。进入时接管两轮目标并归零，随后按 WASD 行驶。速度上限、电流和加速度沿用现有设置。</p>
+        <div class="drive-settings">
+          <label>行驶 / 转向轮速 (rad/s)<input id="drive-speed" type="number" min="0" max="33" step="any" value="1"></label>
+          <label>左轮电机<select id="drive-left"><option value="0">电机 1 · ID 127</option><option value="1" selected>电机 2 · ID 126</option></select></label>
+          <label>左轮前进方向<select id="drive-left-sign"><option value="1">正转 +</option><option value="-1" selected>反转 −</option></select></label>
+          <label>右轮前进方向<select id="drive-right-sign"><option value="-1">反转 −</option><option value="1" selected>正转 +</option></select></label>
+        </div>
+        <p>另一台电机自动作为右轮；按实际安装方向选择正反转。W 前进、S 后退、A 左转、D 右转；组合键转弯时内轮归零，外轮按所填轮速运行。</p>
+        <div class="drive-actions"><button id="drive-enter" class="button primary">进入键盘控制</button><button id="drive-exit" class="button secondary" disabled>退出并减速停止</button><button id="drive-zero" class="button secondary" disabled>两轮归零 <kbd>Space</kbd></button></div>
+        <div class="drive-keys" aria-label="键盘状态"><kbd data-drive-key="KeyW">W ↑</kbd><div><kbd data-drive-key="KeyA">A ↶</kbd><kbd data-drive-key="KeyS">S ↓</kbd><kbd data-drive-key="KeyD">D ↷</kbd></div></div>
+        <p id="drive-status" role="status">未进入小车模式</p>
+        <p class="control-note">按住行驶，松键减速到零。点击输入框会归零；切换模块、窗口失焦或关闭页面会退出并归零。Esc 仍为两台全部失能。</p>
+      </details>
+      <details id="chassis-panel" class="panel drive-panel">
+        <summary>JY901S · 绝对角度 / 双轮速度控制</summary>
+        <p>上电收到首个有效航向后为 0°。从车顶看，正角度向左转，负角度向右转；90° 是左转到上电方向的 90°，0° 回到上电方向，360° 是完整一圈。左右轮及前进方向沿用上方 WASD 设置。</p>
+        <div class="chassis-actions">
+          <button id="chassis-stop" class="button secondary">停止底盘控制</button><button id="chassis-zero" class="button secondary">当前位置设为 0°</button>
+        </div>
+        <p class="control-note">连接时自动应用两台电机的速度上限、电流和加速度，并零速使能。随后可直接指定双轮速度、运行航向 PID，或进入上方 WASD。左右轮速度由电机内部闭环控制。</p>
+        <div class="chassis-targets">
+          <label>绝对目标角度 (°)<input id="chassis-target_deg" type="number" step="any" value="0"></label>
+          <button id="chassis-angle" class="button primary">转到目标角度并保持</button>
+          <label>左轮目标 (rad/s)<input id="chassis-left_rad_s" type="number" step="any" value="1"></label>
+          <label>右轮目标 (rad/s)<input id="chassis-right_rad_s" type="number" step="any" value="1"></label>
+          <button id="chassis-speed" class="button primary">运行双轮速度</button>
+        </div>
+        <div class="drive-settings chassis-configuration">
+          <label>角度环最大差速轮速 (rad/s)<input id="chassis-turn_limit_rad_s" type="number" step="any" value="2"></label>
+          <label>JY901S 航向方向<select id="chassis-yaw_sign"><option value="1">原始航向增大 = 向左转（Z 轴朝上）</option><option value="-1">原始航向增大 = 向右转（反向安装）</option></select></label>
+        </div>
+        <div class="chassis-gains" id="chassis-gains"></div>
+        <div class="chassis-actions"><button id="chassis-apply" class="button primary">实时应用航向 PID 参数</button><button id="chassis-read" class="button secondary">读取固件当前参数</button><a href="/api/chassis-export" class="button secondary" download="chassis.csv">导出底盘 CSV</a></div>
+        <p id="chassis-status" role="status">等待连接新版固件</p>
+        <div class="chassis-observations"><div><span>JY901S 航向 / 目标</span><strong id="chassis-yaw">—</strong><small id="chassis-imu">USART6 · PG9 RX / PG14 TX · 9600 8N1</small></div><div><span>角度误差 / 差速输出</span><strong id="chassis-angle-output">—</strong><small>正输出 = 左轮后退、右轮前进</small></div><div><span>左轮：目标 / 实际 / Iq</span><strong id="chassis-left-live">—</strong><small id="chassis-left-mount">前进为正；左轮 ID 126 默认反转</small></div><div><span>右轮：目标 / 实际 / Iq</span><strong id="chassis-right-live">—</strong><small id="chassis-right-mount">前进为正；右轮 ID 127 默认正转</small></div></div>
+        <div class="chassis-chart-toolbar"><label>观测曲线<select id="chassis-metric"><option value="angle">角度 · °</option><option value="left">左轮速度 · rad/s</option><option value="right">右轮速度 · rad/s</option><option value="current">左右轮实测电流 · A</option></select></label><span><i class="chassis-target-line"></i>目标 / 左轮　<i class="chassis-actual-line"></i>实际 / 右轮</span></div>
+        <div class="chassis-chart-wrap"><canvas id="chassis-chart" aria-label="底盘 PID 实时曲线"></canvas><span id="chassis-empty">等待真实底盘数据</span></div>
+      </details>
+      <div class="main-grid">
+        <section class="panel control-panel"><div class="panel-heading"><div><span class="section-index">01 /</span><h2>运动控制</h2></div><span class="chip">速度模式</span></div>
+          <div class="run-mode-row"><span>运行方式</span><b>持续运行 · 直到停止</b><span id="run-status">等待开始</span></div>
+          <div class="target-head"><label for="target">目标速度</label><div class="segmented" aria-label="速度单位"><button class="selected" data-unit="rad">rad/s</button><button data-unit="rpm">rpm</button></div></div>
+          <div class="target-input"><button class="stepper" id="minus" aria-label="减小目标速度">−</button><div><input id="target" type="number" min="-33" max="33" step="any" value="1" aria-label="目标速度"><span id="target-unit">rad/s</span></div><button class="stepper" id="plus" aria-label="增大目标速度">+</button></div>
+          <label for="speed-slider" class="sr-only">速度滑块</label><input id="speed-slider" class="speed-slider" type="range" min="-33" max="33" step="0.01" value="1"><div class="range-labels"><span id="min-speed">−33.00</span><span>0</span><span id="max-speed">+33.00</span></div><div class="control-note" id="speed-range-note">速度模式范围：±33 rad/s / ±315.13 rpm；加速度决定提速时间。</div>
+          <div class="presets"><span>快速设置</span><button data-speed="-1">反转 −1</button><button data-speed="0">零速</button><button data-speed="1">正转 +1</button></div>
+          <div class="divider"></div><div class="limits-title"><h3>运行限制</h3><span>下次连接时生效</span></div>
+          <div class="limit-grid"><label>速度上限<div class="number-field"><input id="speed-limit" type="number" min="0.01" max="33" step="0.1" value="33"><span>rad/s</span></div></label><label>相电流限制<div class="number-field"><input id="current-limit" type="number" min="0.01" max="11" step="0.1" value="2.4"><span>A</span></div></label><label>加速度<div class="number-field"><input id="accel-limit" type="number" min="0.01" max="150" step="1" value="20"><span>rad/s²</span></div></label></div>
+          <div class="command-row auto-ready-command"><button class="button primary" id="run">运行 <span>▶</span></button></div>
+          <div class="stop-row"><button class="button secondary" id="stop">Ⅱ &nbsp; 减速停止</button><button class="button danger" id="disable">■ &nbsp; 选中电机失能</button></div>
+          <div class="control-note" id="run-note">一次下发，持续保持速度；修改后点击应用。关闭页面不会停止，结束请点击减速停止或立即失能。</div>
+        </section>
+        <section class="panel joint-panel"><div class="panel-heading"><div><span class="section-index">02 /</span><h2>关节状态</h2></div><span id="motor-badge" class="badge small"><span class="dot"></span>等待反馈</span></div>
+          <div class="joint-visual"><div class="visual-grid"></div><span class="axis-label top">Y +</span><span class="axis-label right">X +</span><svg class="joint-svg" viewBox="0 0 360 300" aria-label="关节位置示意图"><defs><radialGradient id="bodyGrad"><stop offset="0" stop-color="#282e2d"/><stop offset=".72" stop-color="#151a18"/><stop offset="1" stop-color="#303734"/></radialGradient><linearGradient id="armGrad"><stop stop-color="#58675e"/><stop offset=".5" stop-color="#b1bdb5"/><stop offset="1" stop-color="#434e47"/></linearGradient></defs><g transform="translate(180 150)"><circle class="orbit" r="119"/><circle class="orbit ticks" r="110"/><path d="M-90 -90 H-110 V-70 M90 -90 H110 V-70 M-90 90 H-110 V70 M90 90 H110 V70" class="brackets"/><ellipse cy="22" rx="79" ry="76" fill="#080b09"/><circle r="77" fill="url(#bodyGrad)" stroke="#68776e" stroke-width="1"/><circle r="65" fill="none" stroke="#343e37" stroke-width="9"/><circle r="57" fill="#111713" stroke="#7b9182"/><g class="bolts" fill="#181f1b" stroke="#9faea4"><circle cx="0" cy="-68" r="3"/><circle cx="59" cy="-34" r="3"/><circle cx="59" cy="34" r="3"/><circle cx="0" cy="68" r="3"/><circle cx="-59" cy="34" r="3"/><circle cx="-59" cy="-34" r="3"/></g><g id="joint-arm"><rect x="-17" y="-105" width="34" height="112" rx="10" fill="url(#armGrad)" stroke="#7c8f80"/><rect x="-8" y="-96" width="16" height="59" rx="6" fill="#111914" stroke="#3f4e44"/><circle cy="-84" r="3" fill="#2bef91"/><circle r="34" fill="#151e18" stroke="#91a499"/><circle r="24" fill="#202c23" stroke="#465a4b"/><circle r="11" fill="#0c120e" stroke="#50e68b"/><path d="M-4 -6 H4 V6 H-4 Z" fill="#405747"/></g><circle cy="-119" r="3" fill="#36ed91"/></g></svg><div class="visual-caption"><span class="green-text">◎</span> RS05<span>位置示意 · 非三维实测</span></div></div>
+          <div class="joint-position"><span>关节位置</span><strong id="position">—<small>rad</small></strong><span id="position-deg">等待有效反馈</span></div>
+          <div class="status-details"><div><span>应用状态</span><b id="app-state">—</b></div><div><span>反馈年龄</span><b id="feedback-age">— ms</b></div><div><span>电机 ID</span><b id="motor-id">0x7F</b></div><div><span>快照一致性</span><b id="coherent">—</b></div></div>
+        </section>
+      </div>
+      <section class="metrics" aria-label="实时测量"><article><div><span class="metric-icon">∿</span>实际速度<span>rad/s</span></div><strong id="velocity">—</strong><small>目标 <b id="applied">—</b> rad/s（斜坡后）</small><svg viewBox="0 0 110 28" class="spark" id="spark-speed"></svg></article><article><div><span class="metric-icon">↻</span>输出力矩<span>N·m</span></div><strong id="torque">—</strong><small>电机反馈 · 非相电流</small></article><article><div><span class="metric-icon">ϟ</span>相电流 Iq<span>A</span></div><strong id="current">—</strong><small id="current-age">等待参数读回</small></article><article><div><span class="metric-icon">⊥</span>电机温度<span>°C</span></div><strong id="temperature">—</strong><small>母线电压 <b id="voltage">—</b> V</small></article></section>
+    </div>
+
+    <section class="panel chart-panel" id="chart-section"><div class="panel-heading"><div><span class="section-index">03 /</span><h2>实时曲线</h2><span class="subtle">最近 30 秒</span></div><div class="chart-actions"><label><input type="checkbox" id="show-target" checked><span class="legend-line"></span>目标</label><label><input type="checkbox" id="show-actual" checked><span class="legend-line actual"></span>实际</label><label class="sr-only" for="chart-metric">曲线指标</label><select id="chart-metric"><option value="velocity_rad_s">速度 · rad/s</option><option value="position_rad">位置 · rad</option><option value="torque_nm">力矩 · N·m</option><option value="current_a">相电流 · A</option><option value="temperature_c">温度 · °C</option><option value="bus_voltage_v">母线电压 · V</option></select><button id="pause-chart" class="icon-button" title="暂停曲线" aria-label="暂停曲线">Ⅱ</button><button id="export" class="text-button">↓ 导出 CSV</button></div></div><div class="chart-wrap"><canvas id="chart" aria-label="实时反馈曲线"></canvas><div class="chart-empty" id="chart-empty"><span>∿</span><b>等待真实数据</b><small>连接设备后，曲线将在这里实时呈现</small></div></div><div class="chart-footer"><span><span class="dot green"></span> 真实反馈采集 <b id="sample-rate">0</b> 点</span><span id="chart-status">尚未连接 · 不生成模拟数据</span></div></section>
+
+    <section id="view-diagnostics" class="panel diagnostics-panel view hidden"><div class="panel-heading"><div><span class="section-index">04 /</span><h2>通信与固件诊断</h2></div><span class="chip">SWD / CAN</span></div><div class="diagnostic-grid" id="diagnostic-grid"></div><div class="identity-block"><h3>固件身份</h3><p id="firmware-path">读取中</p><code id="firmware-hash">—</code><p>连接会逐段比较 Flash 与 AXF。SWD 不暂停、不复位 CPU；控制写入对应电机命令区；连接时自动核对双电机身份并配置零速使能。</p></div><button id="clear-fault" class="button secondary">请求清错 / 停止</button><span class="subtle clear-hint">先排除故障原因，再请求清错；不会自动恢复运动。</span></section>
+
+    <section id="view-guide" class="panel guide-panel view hidden"><div class="panel-heading"><div><span class="section-index">04 /</span><h2>从连接到第一次转动</h2></div><span class="chip">QUICK START</span></div><div class="guide-grid"><article><b>01</b><h3>连接现有硬件</h3><p>使用当前接好的 CMSIS-DAP / ST-Link。PC → SWD → H743 → CAN → RS05。无需额外串口，也不使用 COM5。</p></article><article><b>02</b><h3>运行并释放调试器</h3><p>在 Keil 中运行匹配固件，退出 Debug。不要同时让 Keil 与上位机占用探针。选择设备并点击连接。</p></article><article><b>03</b><h3>连接即就绪</h3><p>连接时自动识别两台电机、配置速度模式并零速使能。默认速度上限 33 rad/s、相电流 2.4 A、加速度 20 rad/s²；修改限制后重新连接生效。</p></article><article><b>04</b><h3>低速验证反馈</h3><p>设置目标速度（正数正转、负数反转），点击运行。滑块只编辑目标，不立即发出运动命令。一次运行指令持续有效；修改速度后需再次点击应用，无需定时续发。</p></article></div><div class="guide-note"><b>停止方式</b><p>减速停止：按加速度降到零，保持使能。选中电机失能；Esc 两台全部失能：向固件请求失能，需新反馈确认；不能替代断电或机械急停。关闭页面不会停止运动。主动断开连接或退出上位机会请求失能；服务被强制终止或探针突然断开时，H743 中的速度仍可能持续有效，需重新连接后停止或直接断电。本电机拒绝 CAN 超时参数，未验证电机侧断线自停。</p></div><div class="guide-note"><b>当前工程能力</b><p>速度控制与位置、力矩、温度、电流、电压观测。位置和力矩仅反馈，不提供对应控制模式。电机掉线、过期或快照不一致时显示无效；CAN ACK 不代表电机已在线或已转动。</p></div></section>
+
+    <section class="panel log-panel" id="log-section"><div class="panel-heading"><div><span class="section-index">⌁ /</span><h2>事件日志</h2><span class="subtle" id="log-count">0 条事件</span></div><button class="text-button" id="copy-log">复制日志 ↗</button></div><div class="logs" id="logs" aria-live="polite"></div></section>
+    <footer><span>ROBSTRIDE CONSOLE <span class="footer-slash">/</span> 让运动清晰可见</span><span><span class="dot" id="footer-dot"></span><span id="footer-status">等待设备连接</span><span class="footer-slash">/</span> H743 RTOS · 双电机 CAN</span></footer>
+    <section class="desk-footer" aria-label="RobStride 页底字标">
+      <div class="footer-caption"><div><span class="footer-kicker">2026 AIC / PRECISION IN MOTION</span><p>让每一次转动，清晰可见。</p></div><a class="footer-top" href="#overview">回到顶部 <span aria-hidden="true">↗</span></a></div>
+      <div class="footer-wordmark" id="footerWordmark"><span class="footer-wordmark-text" id="footerWordmarkText">RobStride</span><canvas id="footerDistortion" aria-hidden="true"></canvas><span class="footer-hover-hint" aria-hidden="true">移动鼠标，感受信号脉动 ↔</span></div>
+    </section>
+ </main>
+</div>
+<div class="drawer-scrim" id="settings-scrim" hidden></div>
+<aside id="settings-drawer" class="settings-drawer signal-zone" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+ <div class="drawer-heading"><div><span class="eyebrow">MAKE IT YOURS</span><h2 id="settings-title">控制台设置</h2></div><button id="close-settings" class="icon-button" aria-label="关闭设置">×</button></div>
+ <p class="drawer-description">调整工作空间的视觉偏好，设置仅保存在此浏览器。</p>
+ <fieldset><legend>视觉外观</legend><label class="settings-row">强调色<input type="color" id="accent-color" value="#26ed89"></label><label class="settings-check"><input type="checkbox" id="compact-layout"> 紧凑布局</label><label class="settings-check"><input type="checkbox" id="show-logs" checked> 显示事件日志</label></fieldset>
+ <fieldset><legend>动态点阵</legend><label class="settings-check"><input type="checkbox" id="motion-enabled" checked> 开启动效</label><label>流动速度 <output id="motion-speed-value">1.0×</output><input type="range" id="motion-speed" min="0.2" max="2" step="0.1" value="1"></label><label>点阵间距 <output id="pixel-density-value">8 px</output><input type="range" id="pixel-density" min="5" max="14" step="1" value="8"></label><p class="settings-note">跟随系统的减少动态效果偏好。离开首页后自动暂停点阵。</p></fieldset>
+ <fieldset><legend>悬浮交互</legend><label class="settings-check"><input type="checkbox" id="signalMotionEnabled" checked> 功能区悬浮震颤</label><label class="settings-check"><input type="checkbox" id="footerMotionEnabled" checked> 页底悬浮震颤</label><p class="settings-note">鼠标扫过标题、读数、曲线与日志时产生局部网格位移。输入、点击、触摸和系统减少动态效果模式下保持原生界面。</p></fieldset>
+ <button id="reset-settings" class="button secondary">恢复默认外观 ↺</button><p class="settings-note">运动参数和灯效方案在各自模块内编辑。</p>
+</aside>
+<button class="back-top" id="back-to-top" aria-label="回到顶部" hidden>↑</button>
+<div class="toast hidden" id="toast" role="alert"></div>
+<script src="/app.js"></script><script src="/led.js"></script><script src="/drive.js"></script><script src="/chassis.js"></script><script src="/bluetooth.js"></script><script src="/pixel-field.js"></script><script src="/template-ui.js"></script><script src="/distortion-grid.js"></script><script src="/footer-distortion.js"></script><script src="/signal-distortion.js"></script>
+</body></html>

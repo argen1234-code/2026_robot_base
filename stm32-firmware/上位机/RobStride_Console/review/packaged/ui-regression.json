@@ -1,0 +1,139 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "javascript_errors": [],
+  "checks": [
+    "independent motor drafts and offline movement gates",
+    "all modules, inactive controls inert, bounded arrows and keyboard navigation",
+    "LED RGB, ordered playlist, local save/load, offline apply gate",
+    "settings modal focus trap, Escape, persistence and reset",
+    "1920 / 1280 / 768 / 390 layouts without horizontal overflow",
+    "touch swipe on card caption",
+    "normal animation mode, live pixel animation and carousel positioning",
+    "HTTP fixtures: prepare / enable / run / stop / disable / clear, motor routing, Escape in drawer, CSV and LED",
+    "no real hardware connection or command submitted"
+  ],
+  "fixture_requests": [
+    [
+      "probes",
+      {}
+    ],
+    [
+      "command",
+      {
+        "motor": 0,
+        "command": 1,
+        "confirmed": true,
+        "target_rad_s": 0,
+        "speed_limit_rad_s": 33,
+        "current_limit_a": 2.4,
+        "accel_rad_s2": 20,
+        "compatibility_confirmed": false
+      }
+    ],
+    [
+      "command",
+      {
+        "motor": 0,
+        "command": 2,
+        "confirmed": true,
+        "target_rad_s": 0,
+        "speed_limit_rad_s": 33,
+        "current_limit_a": 2.4,
+        "accel_rad_s2": 20,
+        "compatibility_confirmed": false
+      }
+    ],
+    [
+      "command",
+      {
+        "motor": 0,
+        "command": 3,
+        "confirmed": true,
+        "target_rad_s": 1,
+        "speed_limit_rad_s": 33,
+        "current_limit_a": 2.4,
+        "accel_rad_s2": 20,
+        "compatibility_confirmed": false
+      }
+    ],
+    [
+      "command",
+      {
+        "motor": 0,
+        "command": 4,
+        "confirmed": true,
+        "target_rad_s": 0,
+        "speed_limit_rad_s": 33,
+        "current_limit_a": 2.4,
+        "accel_rad_s2": 20,
+        "compatibility_confirmed": false
+      }
+    ],
+    [
+      "command",
+      {
+        "motor": 0,
+        "command": 5,
+        "confirmed": true,
+        "target_rad_s": 0,
+        "speed_limit_rad_s": 33,
+        "current_limit_a": 2.4,
+        "accel_rad_s2": 20,
+        "compatibility_confirmed": false
+      }
+    ],
+    [
+      "command",
+      {
+        "motor": 1,
+        "command": 1,
+        "confirmed": true,
+        "target_rad_s": 0,
+        "speed_limit_rad_s": 33,
+        "current_limit_a": 2.4,
+        "accel_rad_s2": 20,
+        "compatibility_confirmed": false
+      }
+    ],
+    [
+      "stop_all",
+      {}
+    ],
+    [
+      "command",
+      {
+        "motor": 1,
+        "command": 6,
+        "confirmed": true,
+        "target_rad_s": 0,
+        "speed_limit_rad_s": 33,
+        "current_limit_a": 2.4,
+        "accel_rad_s2": 20,
+        "compatibility_confirmed": false
+      }
+    ],
+    [
+      "led",
+      {
+        "enabled": 1,
+        "mode": 7,
+        "brightness": 64,
+        "speed_percent": 100,
+        "color_order": 0,
+        "red": 17,
+        "green": 34,
+        "blue": 51,
+        "cycle_interval_ms": 8000,
+        "cycle_modes": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      }
+    ]
+  ]
+}

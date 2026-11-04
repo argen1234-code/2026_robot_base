@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "checks": [
+    "entry accepts enabled/running/stopping and nonzero feedback without repeating confirmation checkboxes",
+    "vehicle default: W/S unchanged; A/D and all four diagonal turns corrected at full 33 rad/s; opposing keys cancel and keyup zeros both",
+    "Space clears held vector",
+    "editing/settings ignore movement keys; window blur releases the session",
+    "module switch releases; original Esc all-disable stays available",
+    "left/right motor assignment and mounting polarity are configurable"
+  ],
+  "errors": [],
+  "physical_motion_tested": false
+}

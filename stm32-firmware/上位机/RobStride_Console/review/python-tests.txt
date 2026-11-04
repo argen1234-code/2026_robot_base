@@ -1,0 +1,33 @@
+test_bounds_nan_bool_huge_and_safe_disable (test_control.ControlTests.test_bounds_nan_bool_huge_and_safe_disable) ... ok
+test_commit_odd_payload_flush_even_last_and_never_zero (test_control.ControlTests.test_commit_odd_payload_flush_even_last_and_never_zero) ... ok
+test_disable_priority_cancels_queued_movement (test_control.ControlTests.test_disable_priority_cancels_queued_movement) ... ok
+test_float32_limits_match_prepared_and_exactly_one_submit (test_control.ControlTests.test_float32_limits_match_prepared_and_exactly_one_submit) ... ok
+test_legacy_timeout_requires_explicit_compatibility_acknowledgement (test_control.ControlTests.test_legacy_timeout_requires_explicit_compatibility_acknowledgement) ... ok
+test_model_speed_current_and_acceleration_ranges (test_control.ControlTests.test_model_speed_current_and_acceleration_ranges) ... ok
+test_motion_snapshot_checks_its_sequence_independent_of_diagnostics (test_control.ControlTests.test_motion_snapshot_checks_its_sequence_independent_of_diagnostics) ... ok
+test_native_usb_error_still_releases_owned_probe_handle (test_control.ControlTests.test_native_usb_error_still_releases_owned_probe_handle) ... ok
+test_no_command_without_confirmation_online_state_or_consistency (test_control.ControlTests.test_no_command_without_confirmation_online_state_or_consistency) ... ok
+test_run_display_follows_firmware_and_never_restores_faults (test_control.ControlTests.test_run_display_follows_firmware_and_never_restores_faults) ... ok
+test_run_is_submitted_once_without_client_heartbeat_or_refresh (test_control.ControlTests.test_run_is_submitted_once_without_client_heartbeat_or_refresh) ... ok
+test_stop_disable_disconnect_invalidate_queued_runs (test_control.ControlTests.test_stop_disable_disconnect_invalidate_queued_runs) ... ok
+test_torn_payload_is_never_committed (test_control.ControlTests.test_torn_payload_is_never_committed) ... ok
+test_urgent_disable_overrides_pending_and_invalid_fields (test_control.ControlTests.test_urgent_disable_overrides_pending_and_invalid_fields) ... ok
+test_all_stop_preempts_both_queued_movement_channels (test_dual.DualTests.test_all_stop_preempts_both_queued_movement_channels) ... ok
+test_bad_slot_never_writes (test_dual.DualTests.test_bad_slot_never_writes) ... ok
+test_disconnect_stops_both (test_dual.DualTests.test_disconnect_stops_both) ... ok
+test_id_change_requires_isolation_and_both_disabled (test_dual.DualTests.test_id_change_requires_isolation_and_both_disabled) ... ok
+test_inconsistent_motor2_does_not_block_motor1 (test_dual.DualTests.test_inconsistent_motor2_does_not_block_motor1) ... ok
+test_second_command_writes_only_secondary_mailbox (test_dual.DualTests.test_second_command_writes_only_secondary_mailbox) ... ok
+test_setup_commits_only_host_fields_and_stop_all_only_one_word (test_dual.DualTests.test_setup_commits_only_host_fields_and_stop_all_only_one_word) ... ok
+test_simultaneous_receipts_with_identical_seq_are_independent (test_dual.DualTests.test_simultaneous_receipts_with_identical_seq_are_independent) ... ok
+test_unverified_pair_blocks_motion_but_all_stop_is_available (test_dual.DualTests.test_unverified_pair_blocks_motion_but_all_stop_is_available) ... ok
+test_real_transaction_engine_rejections_aliases_mismatch_and_timeout (test_firmware.FirmwareReadbackTests.test_real_transaction_engine_rejections_aliases_mismatch_and_timeout) ... ok
+test_bounds_and_repeated_playlist (test_led.LedTests.test_bounds_and_repeated_playlist) ... ok
+test_commit_does_not_touch_motor_memory_and_waits_for_receipt (test_led.LedTests.test_commit_does_not_touch_motor_memory_and_waits_for_receipt) ... ok
+test_failed_readback_never_commits_even_sequence (test_led.LedTests.test_failed_readback_never_commits_even_sequence) ... ok
+test_old_firmware_led_control_explicitly_unavailable (test_led.LedTests.test_old_firmware_led_control_explicitly_unavailable) ... ok
+
+----------------------------------------------------------------------
+Ran 28 tests in 1.841s
+
+OK

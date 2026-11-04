@@ -1,0 +1,87 @@
+{
+  "client_date": "2026-11-04",
+  "recorded_utc": "2026-11-04T04:57:47.884957+00:00",
+  "project": "D:\\竞赛\\2026 AIC\\2026-AIC",
+  "reference": "D:\\竞赛\\2026嵌赛\\multi-function_car\\h7_lvgl_rtos_base",
+  "uart": {
+    "instance": "USART1",
+    "tx": "PA9",
+    "rx": "PA10",
+    "baud": 9600,
+    "format": "8N1",
+    "framing": "@payload CRLF"
+  },
+  "build": {
+    "errors": 0,
+    "warnings": 0,
+    "log": "RobStride05_H743/Docs/build_output.log"
+  },
+  "artifacts": {
+    "RobStride05_H743\\MDK-ARM\\Objects\\RobStride05_H743.axf": "0cacf051c83c857b30373523ae236f44318cc86f70fcb5ac9c2387d798f15604",
+    "RobStride05_H743\\MDK-ARM\\Objects\\RobStride05_H743.hex": "013606bce6bedf0534a00454833dbf0a4a84d03246a7d47e6601d00c7a92ea68",
+    "上位机\\RobStrideConsole.exe": "225fccde54488ae8c47b03c38da23fc14810eab5cc15ca4ba1399ba54afb1a47",
+    "上位机\\RobStride_Console\\firmware_profile.json": "5adf8b449cef695459bf33bb6c2154c06d14c4396e9d575e5b7fe277870968f4"
+  },
+  "existing_g_debug_schema_identical": true,
+  "integration_idempotent": true,
+  "caches": "both OFF, configuration unchanged",
+  "c_host_checks": {
+    "passed": true,
+    "command": "pwsh -File RobStride05_H743/Tools/test_host.ps1",
+    "groups": [
+      "dual motor and CAN arbitration",
+      "WASD ownership and expiry",
+      "JY901S and heading PID",
+      "JDY31 parser and full motor service",
+      "OLED",
+      "16-pixel WS2812"
+    ]
+  },
+  "python_tests": {
+    "passed": true,
+    "count": 55,
+    "log": "上位机/RobStride_Console/review/bluetooth-packaged/unit-final.log"
+  },
+  "browser": {
+    "bluetooth-source": {
+      "checks": 7,
+      "path": "上位机\\RobStride_Console\\review\\bluetooth-source\\checks.json"
+    },
+    "bluetooth-packaged": {
+      "checks": 7,
+      "path": "上位机\\RobStride_Console\\review\\bluetooth-packaged\\checks.json"
+    },
+    "bluetooth-wasd-regression": {
+      "checks": 6,
+      "path": "上位机\\RobStride_Console\\review\\bluetooth-wasd-regression\\checks.json"
+    },
+    "bluetooth-chassis-regression": {
+      "checks": 6,
+      "path": "上位机\\RobStride_Console\\review\\bluetooth-chassis-regression\\checks.json"
+    },
+    "bluetooth-template-regression": {
+      "checks": 17,
+      "path": "上位机\\RobStride_Console\\review\\bluetooth-template-regression\\ui-regression.json"
+    }
+  },
+  "packaged_smoke": {
+    "url": "http://127.0.0.1:29845",
+    "firmware_sha256": "0cacf051c83c857b30373523ae236f44318cc86f70fcb5ac9c2387d798f15604",
+    "connected": false,
+    "bluetooth_connected": false,
+    "serial_enumeration_ok": true,
+    "csrf_rejection_ok": true,
+    "assets_ok": true,
+    "physical_hardware_tested": false
+  },
+  "packaged_assets_match_source": true,
+  "packaged_windows_serial_modules_present": true,
+  "hardware": {
+    "flashed": false,
+    "probe_accessed": false,
+    "jdy31_connected": false,
+    "phone_spp_tested": false,
+    "pc_spp_tested": false,
+    "physical_motion_tested": false
+  }
+}

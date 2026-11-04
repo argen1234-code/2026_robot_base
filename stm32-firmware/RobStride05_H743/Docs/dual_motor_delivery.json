@@ -1,0 +1,19 @@
+{
+  "as_of": "2026-10-26T14:53:51.874345+08:00",
+  "firmware_sha256": "3284ee5d2967cf9e4f51754e2b7e909952763584e8435989ab033162b1651353",
+  "exe_sha256": "abc86f94f75128067fc61d29b055f818061dcd9205953b4e61e1a64aeeab5b65",
+  "motor_ids": [
+    127,
+    126
+  ],
+  "compiled_errors": 0,
+  "compiled_warnings": 0,
+  "python_tests": 24,
+  "flash_verified": true,
+  "physical_both_online": true,
+  "physical_motion_verified": true,
+  "max_tested_command_rad_s": 5,
+  "both_disabled_at_end": true,
+  "uid_distinct": true,
+  "legacy_motor_can_timeout_verified": false
+}

@@ -1,0 +1,49 @@
+PASS dual: isolation, ID verification, two concurrent prepare/enable/run, independent disable, all-stop, bus-off; collisions=0 cancels=0
+--- running, motor online ---
+|UP 00:12:34 SW 02412 | 20
+|HEAP 18.1K MIN 17.1K | 20
+|M1 7F RUN V +0.05    | 17
+|SET  +0.00 RAD/S     | 16
+|M2 7E RUN V -0.05    | 17
+|SET  +0.00 RAD/S     | 16
+|MOTOR  BLK 0.8 S1.4K | 20
+|OLED   RUN 1.2 S2.6K | 20
+--- negative extremes ---
+|UP 99:59:59 SW 99999 | 20
+|HEAP 24.0K MIN 23.9K | 20
+|M1 7F STP V-33.00    | 17
+|SET -33.00 RAD/S     | 16
+|M2 7E STP V+33.00    | 17
+|SET -33.00 RAD/S     | 16
+|HEALTH BLK 0.1 S0.7K | 20
+|LED    RDY 0.6 S1.2K | 20
+--- offline, fault, positive target ---
+|UP 01:02:05 SW 00000 | 20
+|HEAP 1.0K MIN 0.0K   | 18
+|M1 7F OFFLINE FLT    | 17
+|SET +33.00 RAD/S     | 16
+|M2 7E OFFLINE FLT    | 17
+|SET +33.00 RAD/S     | 16
+|HEALTH BLK 0.1 S0.7K | 20
+|LED    RDY 0.6 S1.2K | 20
+--- disabled, empty heap ---
+|UP 00:00:00 SW 00001 | 20
+|HEAP 0.0K MIN 0.0K   | 18
+|M1 7F OFFLINE DIS    | 17
+|SET  +0.00 RAD/S     | 16
+|M2 7E OFFLINE DIS    | 17
+|SET  +0.00 RAD/S     | 16
+|MOTOR  BLK 0.8 S1.4K | 20
+|OLED   RUN 1.2 S2.6K | 20
+--- rotating task rows ---
+|UP 00:00:01 SW 00001 | 20
+|HEAP 0.0K MIN 0.0K   | 18
+|M1 7F OFFLINE DIS    | 17
+|SET  +0.00 RAD/S     | 16
+|M2 7E OFFLINE DIS    | 17
+|SET  +0.00 RAD/S     | 16
+|HEALTH BLK 0.1 S0.7K | 20
+|LED    RDY 0.6 S1.2K | 20
+PASS: 8 rows, 21 columns, all glyphs present
+PASS LED: atomic mailbox, all 16 pixels, playlist order/duplicates/wrap, real-time interval, off/resume, DMA busy/error isolation
+ALL HOST CHECKS PASSED

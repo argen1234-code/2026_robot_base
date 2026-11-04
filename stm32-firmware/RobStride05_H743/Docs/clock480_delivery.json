@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "flash_segments_identical_after_comment_cleanup": true,
+  "flash_segment_bytes": 59256,
+  "maximum_clocks_hz": {
+    "cpu": 480000000,
+    "hclk": 240000000,
+    "pclk": 120000000
+  },
+  "final_packaged_ui_check": true,
+  "final_console_disconnected": true,
+  "integration_idempotent": true,
+  "source_config_count": 191,
+  "artifacts": {
+    "RobStride05_H743/MDK-ARM/Objects/RobStride05_H743.axf": {
+      "bytes": 1963124,
+      "sha256": "3784c5ad801a4ea34524c3d587fd35d5355e44a25882671827daf652ed0e7736"
+    },
+    "RobStride05_H743/MDK-ARM/Objects/RobStride05_H743.hex": {
+      "bytes": 166715,
+      "sha256": "da2056cfbf156e05ff1de01e99e7331d96a60b5b66d4bae35720f1911e069fbf"
+    },
+    "上位机/RobStrideConsole.exe": {
+      "bytes": 32669750,
+      "sha256": "8f1c5cbd9c88dfb1503f4a521d334a3b4e0d047ad5b8eed14cf35ba8a8ca2702"
+    }
+  }
+}

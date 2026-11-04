@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>2026 AIC · WASD 界面预览</title><style>
+:root{color-scheme:dark;--bg:#0b0d0e;--panel:#111415;--panel2:#15191a;--line:#262b2d;--text:#ebefed;--muted:#7e8986;--green:#29ee91;--green-dim:#17392b;--red:#ff727c;--amber:#e1b96e;font-family:Inter,"Segoe UI","Microsoft YaHei UI",sans-serif;font-size:13px}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text)}button,input,select{font:inherit}button,a,input,select{outline-offset:4px}button{cursor:pointer;transition:background .15s,color .15s,border-color .15s}button:disabled{opacity:.35;cursor:not-allowed}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--green)}button:not(:disabled):hover{filter:brightness(1.13)}a{color:inherit;text-decoration:none}.sidebar{position:fixed;inset:0 auto 0 0;width:218px;background:#101213;border-right:1px solid var(--line);padding:32px 17px 0;display:flex;flex-direction:column;z-index:3}.brand{display:flex;gap:11px;align-items:center;padding:0 9px;font-size:17px;font-weight:750;letter-spacing:.8px}.brand small{font-size:8px;font-weight:500;letter-spacing:2.3px;color:var(--muted);display:block;margin-top:5px}.brand-mark{position:relative;width:28px;height:32px;display:block;transform:skewY(-16deg)}.brand-mark i{position:absolute;height:7px;width:27px;background:var(--green);left:0;top:2px}.brand-mark i:nth-child(2){top:13px;width:19px}.brand-mark i:nth-child(3){top:24px;width:11px}.workspace-label{margin:44px 13px 16px;font-size:10px;letter-spacing:1px;color:#626e69;display:flex;justify-content:space-between}.workspace-label span{font:10px Consolas,monospace}nav{display:grid;gap:7px}.nav-item{border:1px solid transparent;display:flex;align-items:center;gap:12px;background:transparent;color:#8d9793;padding:13px 14px;text-align:left;border-radius:5px}.nav-item.active{background:#192920;border-color:#254532;color:var(--green)}.nav-icon{font-size:19px;line-height:18px;width:19px}.nav-key{margin-left:auto;font:10px Consolas,monospace;opacity:.5}.sidebar-device{margin:38px 1px 0;background:#141819;border:1px solid var(--line);padding:17px 13px;border-radius:6px}.tiny-label{font-size:9px;color:#75817b;letter-spacing:1px}.device-name{display:flex;align-items:center;gap:9px;margin:21px 0;font-size:13px;font-weight:600}.device-symbol{font-size:28px;color:#9ba99f}.device-name small{display:block;color:#78857d;font:10px Consolas,monospace;margin-top:7px}.device-meta{display:flex;justify-content:space-between;font:10px Consolas,monospace;color:#6e7a72}.device-meta b{font-weight:400;color:#adb6b0}.device-status{border-top:1px solid var(--line);padding-top:14px;margin-top:17px;display:flex;gap:7px;font-size:11px;color:#909b95}.dot{display:inline-block;flex-shrink:0;width:6px;height:6px;border-radius:50%;background:#6e7773;vertical-align:middle}.dot.green{background:var(--green);box-shadow:0 0 8px #29ee9130}.dot.amber{background:var(--amber)}.dot.red{background:var(--red)}.sidebar-bottom{margin-top:auto;font-size:10px;color:#6b7770;border-top:1px solid var(--line);padding:21px 5px;display:flex;gap:8px;align-items:center}.sidebar-bottom>span:last-child{margin-left:auto;font:10px Consolas,monospace}.square-dot{width:6px;height:6px;background:#42d884}.app-shell{margin-left:218px}.topbar{height:61px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 34px;font-size:11px;color:#79847f}.breadcrumb{display:flex;gap:15px}.breadcrumb span{color:#49534d}.breadcrumb b{color:#c7d0ca;font-weight:500}.top-actions{display:flex;gap:20px;align-items:center;font:11px Consolas,monospace}.local-tag{font-size:9px;letter-spacing:1px;color:#8d9b92;border:1px solid #303934;border-radius:3px;padding:5px 7px}main{max-width:1580px;margin:auto;padding:33px 34px 0}.page-intro{display:flex;justify-content:space-between;align-items:center;margin-bottom:27px}.eyebrow{display:flex;align-items:center;gap:7px;font:9px Consolas,monospace;letter-spacing:2px;color:#829087}.eyebrow>span{width:5px;height:5px;background:var(--green)}h1{font-size:29px;font-weight:500;letter-spacing:-.8px;margin:13px 0 10px}h1 em{font-style:normal;color:var(--green)}.page-intro p{font-size:12px;color:var(--muted);margin:0}.intro-right{display:flex;flex-direction:column;align-items:flex-end;gap:13px}.badge{display:inline-flex;gap:7px;align-items:center;padding:7px 10px;border-radius:4px;background:#191e1c;border:1px solid #303832;color:#a6b0a9;font-size:11px}.badge.online{background:#10291e;color:var(--green);border-color:#244a34}.badge.error{color:var(--red);background:#271a1c;border-color:#533036}.badge.small{font-size:10px;padding:5px 8px}.intro-model{font:9px Consolas,monospace;letter-spacing:1px;color:#59685f}.connection-strip{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:6px;padding:13px 15px;background:#131718}.connection-label{font-size:12px;white-space:nowrap;margin-right:6px}.small-icon{font-size:18px;color:var(--green);vertical-align:middle;margin-right:5px}.select-wrap{min-width:210px;max-width:340px;flex:1}select{border:1px solid #343d37;color:#c1cdc5;background:#191e1c;border-radius:4px;padding:8px 10px;font-size:11px;max-width:100%}.select-wrap select{width:100%}.icon-button{background:transparent;border:1px solid var(--line);color:#a5b2a9;border-radius:4px;min-width:31px;height:31px;font-size:17px}.transport{display:flex;gap:7px;align-items:center;color:#78887d;font:10px Consolas,monospace}.transport>span:not(.dot){color:#3c4a40}.button{border:1px solid transparent;border-radius:4px;padding:10px 16px;font-size:12px;font-weight:550;white-space:nowrap}.primary{background:var(--green);border-color:var(--green);color:#06301b}.primary>span{margin-left:14px}.secondary{background:#1a211e;border-color:#344038;color:#c7d3ca}.danger{background:#2b191c;border-color:#6a343b;color:#ff8590}.connection-strip>.button{margin-left:auto;min-width:113px}.notice{display:flex;gap:9px;font-size:11px;line-height:1.6;color:#8c9d91;margin:12px 0 20px;padding:0 3px}.notice>span:first-child{color:#657e6d}.notice.error{color:#f3a3aa}.main-grid{display:grid;grid-template-columns:minmax(440px,1.32fr) minmax(290px,1fr);gap:18px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:7px;overflow:hidden}.panel-heading{display:flex;justify-content:space-between;align-items:center;padding:19px 21px;border-bottom:1px solid var(--line);gap:12px}.panel-heading>div:first-child{display:flex;align-items:center;gap:9px}.section-index{font:10px Consolas,monospace;color:#5d7666}h2{font-size:13px;font-weight:550;margin:0;white-space:nowrap}.chip{font-size:9px;color:#92a198;border:1px solid #344138;padding:4px 7px;border-radius:3px;letter-spacing:.5px}.workflow{display:flex;align-items:center;margin:22px 23px 23px;color:#7a8980;font-size:11px;gap:12px}.workflow span{display:flex;align-items:center;gap:7px}.workflow b{width:19px;height:19px;border:1px solid #3a483e;border-radius:50%;display:grid;place-items:center;font:10px Consolas,monospace}.workflow i{height:1px;background:#303b34;flex:1}.workflow .done{color:var(--green)}.workflow .done b{border-color:#2ae78e;background:#183326}.target-head{display:flex;justify-content:space-between;align-items:center;margin:0 23px;color:#b9c7bd;font-size:12px}.segmented{display:flex;background:#0c100e;border:1px solid #27362c;border-radius:4px;padding:2px}.segmented button{border:0;color:#718378;background:transparent;border-radius:2px;font:10px Consolas,monospace;padding:4px 8px}.segmented .selected{background:#25392b;color:#b6f7cd}.target-input{display:flex;justify-content:space-between;align-items:center;margin:14px 23px 14px}.stepper{width:33px;height:33px;border:1px solid #3a473d;background:#1a221d;border-radius:4px;color:#c4d4c9;font-size:19px}.target-input>div{display:flex;align-items:baseline;justify-content:center;gap:7px;min-width:0}.target-input input{width:150px;text-align:center;font:46px Consolas,monospace;background:transparent;border:0;color:var(--green);font-weight:400;letter-spacing:-2px;padding:0;appearance:textfield}.target-input input::-webkit-inner-spin-button{-webkit-appearance:none}.target-input>div>span{font:11px Consolas,monospace;color:#7f9386}.speed-slider{display:block;width:calc(100% - 46px);margin:0 23px;accent-color:var(--green);height:16px;cursor:pointer}.range-labels{display:flex;justify-content:space-between;margin:5px 23px 0;font:10px Consolas,monospace;color:#627c6c}.presets{display:flex;align-items:center;gap:7px;margin:19px 23px 20px;font-size:10px}.presets>span{color:#708176;margin-right:auto}.presets button{font-size:10px;color:#a3b5a8;border:1px solid #314137;background:#17211b;padding:6px 9px;border-radius:3px}.divider{height:1px;background:var(--line);margin:0 23px}.limits-title{display:flex;justify-content:space-between;margin:17px 23px 12px;align-items:center}h3{font-size:11px;font-weight:500;margin:0}.limits-title>span{font-size:9px;color:#677f6e}.limit-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 23px}.limit-grid>label{font-size:10px;color:#8da393}.number-field{border:1px solid #35463b;border-radius:4px;margin-top:8px;display:flex;align-items:center;padding:9px 8px;background:#141d17;gap:2px}.number-field input{border:0;background:transparent;min-width:0;width:100%;color:#d0dfd4;font:13px Consolas,monospace;appearance:textfield}.number-field input::-webkit-inner-spin-button{-webkit-appearance:none}.number-field span{font:9px Consolas,monospace;color:#768f7e;white-space:nowrap}.confirm-row{display:flex;gap:7px;align-items:center;margin:19px 23px 16px;color:#9bae9f;font-size:10px;cursor:pointer}.confirm-row input{accent-color:var(--green);margin:0;width:12px;height:12px}.command-row{display:grid;grid-template-columns:1fr 1fr 1.13fr;gap:9px;margin:0 23px 10px}.stop-row{display:grid;grid-template-columns:1fr 1.45fr;gap:9px;margin:0 23px}.stop-row .button{font-size:11px;padding:9px 8px}kbd{font:9px Consolas,monospace;border:1px solid #5d3339;border-radius:2px;padding:2px 4px;margin-left:10px;opacity:.8}.control-note{display:flex;align-items:center;gap:7px;margin:16px 23px 18px;font-size:9px;color:#998e6f}.joint-panel{display:flex;flex-direction:column}.joint-visual{position:relative;flex:1;min-height:270px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(ellipse at 50% 55%,#17271d66,transparent 70%)}.visual-grid{position:absolute;inset:15px;background-image:linear-gradient(#33533e18 1px,transparent 1px),linear-gradient(90deg,#33533e18 1px,transparent 1px);background-size:24px 24px;mask-image:radial-gradient(ellipse,black 30%,transparent 72%)}.joint-svg{width:100%;max-width:380px;height:290px;position:relative;filter:drop-shadow(0 9px 15px #0008)}.orbit{fill:none;stroke:#375c43;stroke-width:1}.ticks{stroke-dasharray:1 10;stroke:#5b7b65;stroke-width:3}.brackets{stroke:#4e7659;stroke-width:1;fill:none}#joint-arm{transition:transform .1s linear}.axis-label{position:absolute;font:8px Consolas,monospace;color:#577060}.axis-label.top{top:20px;left:51%}.axis-label.right{right:23px;top:50%}.visual-caption{position:absolute;bottom:10px;left:20px;right:20px;display:flex;gap:7px;align-items:center;font:9px Consolas,monospace;letter-spacing:1px;color:#9eafa3}.visual-caption>span:last-child{font:9px "Segoe UI",sans-serif;margin-left:auto;color:#5e7967;letter-spacing:0}.green-text{color:var(--green)}.joint-position{padding:18px 21px 20px;display:flex;flex-direction:column;align-items:center;gap:7px;border-bottom:1px solid var(--line)}.joint-position>span:first-child{font-size:10px;color:#8da592}.joint-position strong{font:29px Consolas,monospace;color:#e3f1e7}.joint-position strong small{font-size:11px;color:#74947d;margin-left:9px}.joint-position>span:last-child{font:10px Consolas,monospace;color:#647d6c}.status-details{display:grid;grid-template-columns:1fr 1fr;padding:20px 21px;gap:15px 23px}.status-details>div{display:flex;justify-content:space-between;gap:6px;font-size:10px}.status-details span{color:#798e80}.status-details b{color:#b9cec0;font-weight:400;font-family:Consolas,"Microsoft YaHei UI",monospace}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:18px 0}.metrics article{padding:17px 18px 16px;border:1px solid var(--line);border-radius:6px;background:var(--panel);position:relative;overflow:hidden}.metrics article>div{display:flex;gap:6px;align-items:center;color:#93a59a;font-size:10px}.metric-icon{color:#6a9278;font-size:16px;line-height:13px}.metrics article>div>span:last-child{margin-left:auto;font:9px Consolas,monospace;color:#536e5b}.metrics strong{display:block;font:29px Consolas,monospace;margin:13px 0 10px;color:#dfeee4}.metrics article:first-child strong{color:var(--green)}.metrics small{font-size:9px;color:#697f71}.metrics small b{font-weight:400;color:#96b09f;font-family:Consolas,monospace}.spark{position:absolute;right:11px;bottom:28px;width:70px;height:28px;opacity:.65;pointer-events:none}.chart-panel{margin-bottom:18px}.subtle{font-size:10px;color:#6e8375;white-space:nowrap}.chart-actions{display:flex;gap:13px;align-items:center;font-size:10px;color:#8da795}.chart-actions label{display:flex;gap:5px;align-items:center}.chart-actions input{width:10px;height:10px;accent-color:var(--green);margin:0}.legend-line{display:inline-block;width:11px;height:0;border-top:1px dashed #a2afa5}.legend-line.actual{border-top:2px solid var(--green)}.chart-actions select{font-size:10px;padding:5px 6px}.chart-actions .icon-button{min-width:25px;height:26px;font-size:12px}.text-button{border:0;background:transparent;color:#90aa99;font-size:10px;padding:5px 0}.chart-wrap{height:210px;position:relative;margin:12px 14px 0}.chart-wrap canvas{width:100%;height:100%;display:block}.chart-empty{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;pointer-events:none;background:#11141588}.chart-empty>span{font-size:31px;color:#53725d}.chart-empty b{font-size:12px;font-weight:400;color:#91aa99}.chart-empty small{font-size:10px;color:#526b59}.chart-footer{display:flex;justify-content:space-between;padding:9px 21px 15px;font:9px Consolas,monospace;color:#5f7b69}.chart-footer>span:first-child{display:flex;gap:6px;align-items:center}.chart-footer b{font-weight:400;color:#92ab9b}.log-panel{margin-bottom:20px}.logs{height:130px;overflow:auto;padding:10px 21px;font-size:10px}.log-row{display:flex;align-items:baseline;gap:12px;line-height:2.1}.log-time{font:10px Consolas,monospace;color:#506a59;flex-shrink:0}.log-kind{min-width:48px;color:#8ab79a}.log-message{color:#8da095;overflow-wrap:anywhere}.log-row.error .log-kind{color:var(--red)}.diagnostics-panel,.guide-panel{margin:0 0 18px}.diagnostic-grid{display:grid;grid-template-columns:repeat(4,1fr);padding:23px;gap:12px}.diagnostic-item{background:#151d18;border:1px solid #293e2f;border-radius:4px;padding:15px}.diagnostic-item span{display:block;font-size:10px;color:#73937f;margin-bottom:10px}.diagnostic-item b{font:18px Consolas,monospace;color:#c4decf}.identity-block{padding:0 23px 20px;color:#7c9987;font-size:11px}.identity-block h3{color:#b6cfbf}.identity-block p{line-height:1.8;overflow-wrap:anywhere}.identity-block code{font:10px Consolas,monospace;overflow-wrap:anywhere;color:#89b79a}.diagnostics-panel>.button{margin:0 0 23px 23px}.clear-hint{margin-left:15px;white-space:normal}.guide-grid{display:grid;grid-template-columns:1fr 1fr;padding:25px;gap:26px}.guide-grid article{padding:5px 15px 15px;border-bottom:1px solid var(--line)}.guide-grid b{font:23px Consolas,monospace;color:var(--green)}.guide-grid h3{font-size:14px;color:#c0d8c8;margin-top:15px}.guide-grid p,.guide-note p{font-size:12px;line-height:1.9;color:#819d8b;margin-bottom:0}.guide-note{margin:0 25px 25px;padding:16px 20px;background:#17231b;border:1px solid #2e4435;border-radius:4px}.guide-note b{font-size:12px;color:#b8d2c1}footer{display:flex;justify-content:space-between;font-size:9px;color:#51675a;align-items:center;padding:0 0 21px}footer>span:last-child{display:flex;align-items:center;gap:7px}.footer-slash{margin:0 11px;color:#344a3c}.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-35%);padding:14px 22px;max-width:80vw;border:1px solid #39734c;background:#1c3324;color:#c4f4d6;border-radius:5px;box-shadow:0 8px 30px #0008;font-size:12px;z-index:10}.toast.error{border-color:#79343d;color:#ffb1b9;background:#351d22}.hidden{display:none!important}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-thumb{background:#34473a;border-radius:4px}input:disabled{opacity:.5}button:disabled:hover{filter:none}
+@media(min-width:1500px){main{padding:40px 44px 0}.main-grid{grid-template-columns:1.2fr 1fr}.control-panel .workflow{margin-top:27px;margin-bottom:26px}.target-input{margin-top:22px;margin-bottom:22px}.joint-visual{min-height:300px}.joint-svg{height:320px;max-width:420px}.chart-wrap{height:240px}}
+@media(max-width:1180px){.sidebar{width:183px;padding-left:12px;padding-right:12px}.brand{font-size:14px;padding:0 5px;gap:8px}.brand small{font-size:7px;letter-spacing:1.5px}.app-shell{margin-left:183px}main{padding:27px 22px 0}.topbar{padding:0 22px}.main-grid{grid-template-columns:minmax(400px,1.2fr) minmax(260px,1fr);gap:13px}.transport{display:none}.panel-heading{padding:17px}.chart-actions{gap:9px}.chart-actions .text-button{font-size:9px}h1{font-size:25px}.metrics{gap:10px}.metrics article{padding:15px 12px}.status-details{padding:18px 15px;gap:14px}.status-details>div{font-size:9px}.joint-svg{height:275px}.diagnostic-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:940px){.sidebar{width:68px;padding:25px 9px}.brand{padding:0;justify-content:center}.brand>span:last-child,.workspace-label,.sidebar-device,.sidebar-bottom,.nav-key{display:none}nav{margin-top:40px}.nav-item{font-size:0;padding:14px 12px;justify-content:center;gap:0}.nav-icon{font-size:22px}.app-shell{margin-left:68px}.main-grid{grid-template-columns:minmax(380px,1.2fr) minmax(250px,1fr)}.chart-actions{gap:7px}.chart-panel .subtle{display:none}.chart-actions .legend-line{display:none}.presets{gap:5px}.presets button{padding:6px 7px}.intro-model{display:none}.metrics strong{font-size:25px}.clear-hint{display:block;margin:0 23px 23px}.top-actions .local-tag{display:none}}
+@media(max-width:760px){main{padding:22px 15px 0}.topbar{padding:0 15px;height:52px}.breadcrumb{gap:9px;font-size:10px}.top-actions{font-size:10px}.page-intro{align-items:flex-start;gap:10px}h1{font-size:23px;line-height:1.5;max-width:300px}.eyebrow{font-size:8px;letter-spacing:1px}.page-intro p{font-size:10px}.intro-right .badge{font-size:9px;padding:5px}.main-grid{grid-template-columns:1fr}.joint-visual{min-height:230px}.joint-svg{height:250px}.joint-position{padding:12px}.status-details{padding:17px;grid-template-columns:1fr 1fr}.metrics{grid-template-columns:1fr 1fr}.connection-strip{gap:8px;padding:11px}.connection-label{display:none}.select-wrap{min-width:0}.connection-strip .button{padding:9px 11px;min-width:auto}.connection-strip .primary>span{margin-left:5px}.chart-panel .panel-heading{flex-wrap:wrap;gap:12px}.chart-actions{width:100%;justify-content:space-between}.chart-actions select{max-width:130px}.chart-actions .text-button{font-size:10px}.chart-wrap{height:190px;margin:5px 5px 0}.chart-footer{font-size:8px;padding:10px 13px;gap:8px}.diagnostic-grid{grid-template-columns:1fr 1fr;padding:16px}.guide-grid{grid-template-columns:1fr;padding:19px;gap:15px}.guide-note{margin:0 19px 19px}footer{font-size:8px;gap:10px}footer>span:first-child{max-width:120px;line-height:1.6}footer .footer-slash{margin:0 3px}footer>span:last-child{gap:4px;flex-wrap:wrap;justify-content:flex-end}.toast{left:50%;transform:translateX(-50%)}.notice{font-size:10px}.target-input input{font-size:43px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.run-mode-row{display:flex;align-items:center;gap:12px;margin:0 23px 20px;font-size:11px;color:#99ada0;flex-wrap:wrap}.run-mode-row select{flex:1;min-width:160px;padding:9px;background:#111b15;border:1px solid #31463a;border-radius:7px;color:#d8e8dc}.run-mode-row>span{font-size:10px}
+
+.dual-panel{padding:22px;margin:20px 0}.motor-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px}.motor-card{display:flex;flex-direction:column;gap:12px;text-align:left;padding:18px;background:#111713;border:1px solid #354039;color:#e8f0ea;border-radius:8px;cursor:pointer}.motor-card.selected{border-color:#36ed91;background:#14271b}.motor-card span{font-size:13px;color:#adbdb2}.dual-panel details{border-top:1px solid #354039;margin-top:18px;padding-top:14px}.dual-panel summary{cursor:pointer;color:#c4d6ca}.dual-panel p{font-size:13px;line-height:1.8;margin:14px 0}.dual-panel .button{margin:6px 12px 6px 0}.dual-panel button:disabled{opacity:.45;cursor:default}@media(max-width:760px){.motor-cards{grid-template-columns:1fr}.dual-panel .panel-heading{flex-wrap:wrap;gap:10px}}
+
+.led-panel{margin-bottom:20px}.led-live{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:24px;border-bottom:1px solid var(--line);background:#14251b}.led-live span{display:block;font-size:11px;color:var(--muted)}.led-live strong{display:block;font-size:21px;font-weight:500;color:var(--green);margin-top:12px}.led-live p,.led-hint{font-size:12px;line-height:1.85;color:#8ea897}.led-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;padding:26px}.led-grid h3{font-size:15px;color:#d6e6dc}.led-grid label{display:flex;flex-direction:column;gap:9px;font-size:12px;color:#aabfb1;margin:18px 0}.led-grid input:not([type=checkbox]),.led-grid select{border:1px solid #344b3c;border-radius:4px;background:#101b14;color:#d9ebdf;padding:10px;width:100%;font:13px Consolas,'Microsoft YaHei UI',monospace}.led-grid input[type=color]{height:45px;padding:4px;cursor:pointer}.led-pair,.led-rgb{display:grid;grid-template-columns:1fr 1fr;gap:16px}.led-rgb{grid-template-columns:repeat(3,1fr)}.led-grid .led-check{flex-direction:row;align-items:center}.led-check input{accent-color:var(--green)}.led-grid details{font-size:12px;color:#8ea897}.led-grid summary{cursor:pointer}.led-playlist{padding:0;list-style:none;display:grid;gap:8px;margin:18px 0}.led-playlist li{display:flex;gap:6px;padding:9px 12px;align-items:center;border:1px solid #2e4135;border-radius:4px;background:#111b15;color:#bdd4c5;font-size:12px}.led-playlist li span{flex:1}.led-playlist button{background:#213126;border:1px solid #3c5143;border-radius:3px;color:#bdd4c5;padding:4px 10px}.led-playlist button:disabled{opacity:.3}.led-add,.led-presets,.led-actions{display:flex;gap:10px;flex-wrap:wrap}.led-add select{flex:1;min-width:100px}.led-presets{margin-top:14px}.led-actions{padding:22px 26px;border-top:1px solid var(--line)}.led-actions button:disabled{opacity:.4}.led-cycle .led-hint{margin-bottom:20px}@media(max-width:900px){.led-grid,.led-live{grid-template-columns:1fr}.led-grid{gap:26px}.led-live{gap:18px}.led-actions .button{flex:1}}
+.drive-panel { margin-bottom: 24px; padding: 24px; }
+.drive-panel summary { cursor: pointer; font-size: 20px; font-weight: 650; }
+.drive-panel p { line-height: 1.7; margin: 16px 0; }
+.drive-settings { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.drive-settings label { display: grid; gap: 8px; min-width: 0; }
+.drive-settings input,.drive-settings select { width: 100%; min-width: 0; padding: 12px; color: inherit; background: var(--bg, #131714); border: 1px solid #526156; border-radius: 4px; }
+.drive-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.drive-keys { text-align: center; margin-top: 20px; }
+.drive-keys kbd { display: inline-block; padding: 14px 18px; margin: 4px; border: 1px solid #526156; border-radius: 4px; }
+.drive-keys kbd.pressed { color: #101810; background: #8bff8b; }
+@media(max-width:600px) { .drive-settings { grid-template-columns: 1fr; } .drive-panel { padding: 16px; } }
+
+</style><style>
+/* ControlDesk visual language adapted from MacSwimmm/upper-computer-template.
+   Motor controls keep their original elements, IDs and command handlers. */
+:root{--accent:#26ed89;--green:var(--accent);--bg:#121314;--panel:#191b1d;--panel2:#202224;--line:#343638;--text:#f5f9fe;--muted:#a6aab5;--stage-width:min(1120px,78vw);font-family:Arial,"Microsoft YaHei",sans-serif;font-size:14px}
+html{scroll-behavior:smooth;scroll-padding-top:90px}body{background:var(--bg);line-height:1.6}button,input,select,.panel,.button,.badge,.motor-card,.diagnostic-item,.guide-note,.number-field,.icon-button,.led-playlist li,.led-playlist button{border-radius:0}button,input,select{font:inherit}a{color:inherit}.hidden,[hidden]{display:none!important}.skip-link{position:fixed;left:20px;top:-60px;z-index:40;padding:10px 20px;background:var(--accent);color:#061b11}.skip-link:focus{top:10px}
+.announcement{height:36px;display:flex;align-items:center;justify-content:center;position:relative;background:linear-gradient(100deg,#aed9cf,#88dab7);color:#081c17;font-size:12px;letter-spacing:.3px}.announcement-divider{margin:0 16px;opacity:.4}.announcement button{position:absolute;right:28px;top:0;height:36px;border:0;background:none;font-size:22px;color:inherit}.announcement-pixels{position:absolute;left:12%;width:78px;height:36px;background:radial-gradient(#e2fff1 2px,transparent 2px) 0 0/12px 12px;opacity:.6;pointer-events:none}
+.site-header{height:70px;display:flex;align-items:center;gap:44px;padding:0 32px;background:#090a0b;position:sticky;top:0;z-index:12;border-bottom:1px solid #202324}.site-brand{display:flex;gap:6px;align-items:center;font-size:24px;font-weight:700;letter-spacing:-.8px;flex:none}.site-brand span{width:6px;height:6px;background:var(--accent);margin-top:12px}.primary-nav{display:flex;align-items:center;gap:26px;margin:0;flex:1}.primary-nav .nav-item{font-size:12px;padding:8px 0;background:none!important;border:0!important;color:#a6aab5;white-space:nowrap;gap:0}.primary-nav .nav-item.active{color:#fff}.primary-nav .nav-item.active::after{content:"";height:4px;width:4px;background:var(--accent);margin-left:6px}.header-actions{display:flex;gap:20px;align-items:center}.header-actions .text-button{font-size:12px;color:#c2c7ce;white-space:nowrap}.header-actions .text-button span{margin-left:8px;color:var(--accent)}.header-exit{border:1px solid #343638;background:none;color:#a6aab5;font-size:11px;padding:7px 12px;white-space:nowrap}.scroll-progress{height:2px;position:fixed;top:0;left:0;z-index:30;background:var(--accent);width:0;pointer-events:none}
+.app-shell{margin:0}.hero{min-height:min(760px,calc(100svh - 106px));position:relative;isolation:isolate;overflow:hidden;background:#0c0c0c;padding:0 48px 78px;display:flex;align-items:flex-end}.hero::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,#0c0c0cdd,transparent 55%,#0c0c0c22);pointer-events:none}#pixelField{position:absolute;inset:0;z-index:-2;pointer-events:none}.hero-coordinate{position:absolute;right:48px;top:40px;font:10px/1.9 Consolas,monospace;letter-spacing:1.5px;color:#89918a}.hero-inner{display:flex;align-items:flex-end;justify-content:space-between;gap:44px;width:100%}.hero-copy{max-width:calc(100% - 340px)}.eyebrow{font:10px/1.6 Consolas,monospace;letter-spacing:1.6px;color:#b0b5bc}.hero h1{font-size:clamp(42px,4.6vw,74px);line-height:1.16;letter-spacing:-2px;font-weight:500;margin:22px 0}.hero h1 em{display:block;color:#a6aab5;font-style:normal;margin-top:5px}.hero-copy>p{font-size:14px;color:#969ca5;margin:0}.hero-aside{width:300px;flex:none;padding-bottom:4px}.hero-action{display:flex;align-items:center;justify-content:space-between;background:var(--accent);border:0;color:#072016;width:100%;height:60px;padding:0 24px;font-size:16px}.hero-action span{font-size:24px}.hero-state{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:10px}.hero-state .badge{border:0;background:none;padding:0;font-size:11px;color:#a6aab5}.hero-state small{font:9px Consolas,monospace;color:#8b958f}.scroll-cue{position:absolute;bottom:22px;left:48px;right:48px;display:flex;justify-content:space-between;font-size:10px;color:#767f79}.scroll-cue span{letter-spacing:1px}
+main{max-width:none;padding:0!important;margin:0;overflow:clip}.session-intro{padding:100px 24px 76px;text-align:center}.session-intro .eyebrow{color:#87938c}.session-intro h2{font-size:clamp(32px,3.7vw,56px);font-weight:500;line-height:1.28;letter-spacing:-1px;margin:20px 0}.session-intro h2 span{color:#a6aab5}.session-intro p{font-size:15px;color:#939ba4;margin:22px 0 0;line-height:1.9}.workspace-heading{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;gap:16px;border-top:1px solid var(--line);padding:22px 0}.workspace-heading>div:first-child{display:flex;align-items:center;gap:28px}.workspace-heading b{font-size:13px;font-weight:400}.section-index{color:#8c959e;font:10px Consolas,monospace;letter-spacing:.5px}.device-status{border:0;margin:0;padding:0;display:flex;gap:8px;align-items:center;font-size:11px;color:#a6aab5}.workspace-clock{margin-left:22px;font:11px Consolas,monospace;color:#737e87}.connection-strip{max-width:1200px;margin:auto;background:#191b1d;border:1px solid var(--line);padding:15px 20px;gap:12px}.connection-label{font-size:12px;color:#d0d5da}.select-wrap{max-width:440px}.connection-strip select,select{background:#202224;color:#ced4db;border-color:#3d4144}.transport{color:#919ba6}.notice{max-width:1200px;margin:12px auto 30px;font-size:11px;color:#919d95;line-height:1.8;padding:0 2px}.notice.error{color:#f3a3aa}.button{padding:11px 18px;font-size:12px;min-height:39px}.primary{color:#072016}.secondary{background:#242729;border-color:#41474a;color:#d1d8df}.danger{background:#301c20;border-color:#734048;color:#ff9aa4}.text-button{color:#a6aab5;font-size:11px}.badge{background:#24282a;border-color:#3e4547;color:#a6b0b9}.badge.online{color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,#191b1d);border-color:color-mix(in srgb,var(--accent) 30%,#343638)}
+.dual-panel{max-width:1200px;margin:0 auto 40px;padding:0;border:0;background:transparent}.dual-panel>.panel-heading{padding:0 0 18px;border:0}.dual-panel h2{font-size:17px;font-weight:400}.dual-panel>.panel-heading .button{margin:0}.motor-cards{gap:16px}.motor-card{background:#191b1d;border:1px solid #3c4143;padding:22px;gap:10px}.motor-card strong{font-weight:400;font-size:14px}.motor-card span{color:#929ea6;font-size:12px}.motor-card.selected{background:color-mix(in srgb,var(--accent) 5%,#191b1d);border-color:var(--accent);box-shadow:inset 3px 0 var(--accent)}.dual-panel>#selected-label{font-size:11px;margin:14px 0;color:#a0b5a8}.dual-panel details{border-color:var(--line);font-size:12px;padding:15px 0 0}.dual-panel summary{color:#929da6;list-style-position:inside}.dual-panel details p{font-size:12px;max-width:950px;color:#a6aab5}.dual-panel details .confirm-row{margin-left:0}.dual-panel details .button{margin-left:0}
+.monitor-navigation{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:22px 32px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.monitor-tabs{display:flex;align-items:center;gap:28px}.monitor-tab{border:0;background:none;color:#7f8993;padding:7px 0;font-size:12px;white-space:nowrap}.monitor-tab span{font:10px Consolas,monospace;margin-right:8px}.monitor-tab[aria-selected=true]{color:#f5f9fe}.monitor-tab[aria-selected=true] span{color:var(--accent)}.monitor-arrows{display:flex;gap:10px}.square-arrow{width:40px;height:40px;display:grid;place-items:center;font-size:24px;border:0;background:#edf0f5;color:#111}.square-arrow.next{background:var(--accent)}.square-arrow:disabled{background:#34383b;color:#80868e;opacity:1}.monitor-viewport{position:relative;overflow:hidden;padding-top:28px;touch-action:pan-y;min-height:500px;outline:none}.monitor-track{display:flex;gap:5vw;align-items:flex-start;transition:transform .6s cubic-bezier(.22,.68,0,1);will-change:transform}.monitor-slide{width:var(--stage-width);flex:0 0 var(--stage-width);min-width:0;position:relative;opacity:.28;transform:scale(.86);transform-origin:center top;transition:opacity .45s,transform .6s cubic-bezier(.22,.68,0,1)}.monitor-slide.is-active{opacity:1;transform:none}.module-window{border:1px solid #343a3d;background:#191b1d;overflow:hidden}.window-bar{height:44px;display:flex;align-items:center;padding:0 22px;gap:10px;background:#17191b;border-bottom:1px solid #303638;color:#a6aab5;font-size:10px}.window-mark{color:var(--accent);font-size:16px}.window-meta{margin-left:auto;color:#78848f;font:9px Consolas,monospace}.module-content{min-width:0}.module-content>.panel{border:0;border-radius:0;margin:0}.preview-cover{position:absolute;inset:0;width:100%;height:100%;border:0;background:none;color:transparent;z-index:3;cursor:pointer}.preview-cover:focus-visible{outline-offset:-4px}.slide-caption{display:grid;grid-template-columns:1fr 1.6fr;gap:24px;padding:28px 0 18px}.slide-caption h3{margin:0;font-size:23px;font-weight:400}.slide-caption p{margin:0;font-size:13px;line-height:1.9;color:#959faa}.module-step{font:10px Consolas,monospace;color:#7c8994;margin-top:12px}.module-nav-hint{font-size:10px;color:#697782;text-align:center;margin:12px 20px 36px}
+.main-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:0}.main-grid>.panel{border:0;border-bottom:1px solid var(--line)}.main-grid>.panel+.panel{border-left:1px solid var(--line)}.panel-heading{padding:22px;min-height:65px}.panel-heading h2{font-weight:400;font-size:16px}.chip{border-radius:0;background:#232729;color:#9aa9a1;border-color:#3b4540;font-size:10px}.panel-heading .section-index{color:#7e8a94}.control-panel{background:#1a1c1e}.joint-panel{background:#191e1c}.workflow{margin:24px 23px}.target-input input{color:#eff5f0}.number-field{background:#171b19;border-color:#3c4840}.number-field input{color:#d6e1d9}.control-note{color:#8b9c91;line-height:1.8;font-size:10px}.run-mode-row{color:#97aaa0}.limits-title h3{font-weight:400}.metrics{gap:0;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}.metrics article{border:0;background:#171a1b;border-radius:0;padding:23px 22px}.metrics article+article{border-left:1px solid var(--line)}.metrics strong{font-size:34px;font-weight:400}.metrics article>div{font-size:11px}.metrics small{font-size:9px}.spark{display:none}.joint-visual{min-height:290px}.joint-svg{height:310px;max-width:100%}.status-details{gap:16px}.chart-panel .chart-wrap{height:390px;margin:12px 16px}.chart-panel>.panel-heading{flex-wrap:wrap}.chart-actions{gap:14px}.chart-actions select{min-width:135px}.chart-footer{padding:14px 22px;font-size:10px}.chart-empty{background:#191b1dbb}.chart-empty small{color:#818e98}.telemetry-intro{padding:28px 24px 0;color:#909ea8;font-size:12px}.diagnostic-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.diagnostic-item{background:#1e2522;border-color:#34423a}.diagnostic-item b{font-size:19px}.identity-block{color:#91a89b}.guide-grid{gap:28px;padding:30px}.guide-note{background:#1c2620;border-color:#35463b}.led-live{background:#1a2520;padding:24px}.led-grid{gap:30px;padding:24px}.led-grid label{font-size:12px}.led-grid input:not([type=checkbox]),.led-grid select{border-radius:0;background:#171e1a;border-color:#3b4c41}.led-playlist li{background:#19221c;border-color:#35473b}.led-playlist button{border-radius:0}.led-actions{padding:22px 24px}
+.log-panel{max-width:1200px;margin:30px auto 50px;background:transparent;border:0;border-top:1px solid var(--line)}.log-panel .panel-heading{padding:20px 0;border:0}.logs{height:160px;padding:8px 0;font-size:11px}.log-row{line-height:2.3}.log-message{color:#9aa9a0}.log-time{color:#6c8174}.log-kind{color:#90b29c}footer{max-width:1200px;margin:0 auto;padding:22px 0 30px;border-top:1px solid var(--line);font-size:9px;color:#79887f}.toast{z-index:35;transform:translateX(-50%);border-radius:0;max-width:min(600px,90vw)}
+.drawer-scrim{position:fixed;inset:0;z-index:23;background:#0009;backdrop-filter:blur(4px)}.settings-drawer{position:fixed;right:0;top:0;bottom:0;z-index:24;width:min(420px,100vw);background:#191b1d;border-left:1px solid #3a4143;box-shadow:-20px 0 70px #0005;padding:32px;overflow:auto}.drawer-heading{display:flex;align-items:center;justify-content:space-between;gap:15px}.drawer-heading h2{font-size:24px;font-weight:400;margin:8px 0 0}.drawer-heading .icon-button{border:0;font-size:28px;color:#a6aab5}.drawer-description{color:#909aa4;font-size:12px;margin:26px 0;line-height:1.9}.settings-drawer fieldset{margin:0 0 26px;padding:20px 0 0;border:0;border-top:1px solid var(--line)}.settings-drawer legend{padding-right:20px;color:#d1d8df;font-size:13px}.settings-drawer label{display:block;font-size:12px;color:#a6aab5;margin:18px 0}.settings-drawer .settings-row,.settings-drawer .settings-check{display:flex;align-items:center;gap:12px}.settings-row input{margin-left:auto;width:42px;height:32px;padding:2px;background:#24282a;border:1px solid #444b4d}.settings-drawer input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px}.settings-drawer input[type=range]{display:block;width:100%;accent-color:var(--accent);margin-top:18px}.settings-drawer output{float:right;color:#d4e1d9;font:11px Consolas,monospace}.settings-note{font-size:11px;line-height:1.9;color:#79858f}.back-top{position:fixed;bottom:24px;right:24px;width:40px;height:40px;background:#edf0f5;color:#111;border:0;z-index:10}.is-compact .session-intro{padding:48px 24px 38px}.is-compact .hero{min-height:420px}.is-compact .dual-panel{margin-bottom:24px}.is-compact .panel-heading{padding:15px 20px;min-height:52px}
+@media(min-width:1700px){:root{--stage-width:min(1200px,72vw)}.hero{padding-left:64px;padding-right:64px}.hero h1{font-size:80px}}
+@media(max-width:1280px){.workspace-heading,.connection-strip,.notice,.dual-panel,.log-panel,footer{max-width:calc(100% - 64px)}.site-header{gap:28px}.primary-nav{gap:20px}.header-actions{gap:16px}.monitor-tabs{gap:22px}.hero{padding-left:32px;padding-right:32px}.hero-copy{max-width:calc(100% - 310px)}.hero-aside{width:270px}.main-grid{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}.transport{display:none}.joint-svg{height:285px}.target-input input{font-size:44px}}
+@media(max-width:1000px){:root{--stage-width:88vw}.site-header{gap:20px;padding:0 24px;flex-wrap:wrap;height:auto;min-height:66px}.site-brand{font-size:22px}.primary-nav{order:3;flex-basis:100%;justify-content:space-between;gap:18px;padding:0 0 10px}.header-actions{margin-left:auto;padding:14px 0}.hero{min-height:580px}.hero-coordinate{right:32px}.hero h1{font-size:46px}.hero-copy{max-width:calc(100% - 270px)}.hero-aside{width:240px}.monitor-navigation{padding:18px 24px}.monitor-tabs{gap:18px}.monitor-tab{font-size:11px}.monitor-tab span{margin-right:5px}.main-grid{grid-template-columns:1fr 1fr}.metrics strong{font-size:28px}.metrics article{padding:20px 15px}.status-details{grid-template-columns:1fr}.joint-svg{height:300px}.joint-position{flex-wrap:wrap;gap:8px}.joint-position strong{font-size:29px}.limit-grid{gap:8px}.number-field{padding:7px}.number-field input{width:100%}.guide-grid{gap:20px}}
+@media(max-width:760px){:root{--stage-width:calc(100vw - 32px)}.announcement{font-size:10px;height:32px}.announcement button{right:12px;height:32px}.announcement-pixels{display:none}.site-header{padding:0 16px;gap:10px}.site-brand{font-size:21px}.header-actions{gap:12px}.header-actions .text-button{font-size:11px}.header-exit{padding:5px 9px}.primary-nav{gap:10px;padding-bottom:9px}.primary-nav .nav-item{font-size:11px}.hero{min-height:620px;padding:0 24px 80px}.hero-coordinate{top:24px;right:24px;font-size:8px}.hero-inner{display:block}.hero-copy{max-width:100%}.hero h1{font-size:43px;letter-spacing:-1.2px;max-width:none;margin:18px 0}.hero-copy>p{font-size:12px}.hero-aside{width:100%;margin-top:36px;max-width:400px}.hero-action{height:54px;font-size:14px}.hero-state{margin-top:14px}.scroll-cue{left:24px;right:24px;bottom:20px}.session-intro{padding:66px 20px 48px}.session-intro h2{font-size:34px}.session-intro p{font-size:12px}.workspace-heading,.connection-strip,.notice,.dual-panel,.log-panel,footer{max-width:calc(100% - 32px)}.workspace-heading{flex-wrap:wrap;padding:18px 0;gap:12px}.workspace-heading>div:first-child{gap:18px}.workspace-clock{margin-left:14px}.connection-strip{padding:12px;gap:8px}.select-wrap{min-width:0}.connection-strip .button{padding:9px 12px}.motor-cards{gap:10px;grid-template-columns:1fr 1fr}.motor-card{padding:16px 12px;gap:9px}.motor-card strong{font-size:11px}.motor-card span{font-size:10px}.dual-panel{margin-bottom:24px}.dual-panel h2{font-size:14px}.dual-panel .panel-heading{flex-wrap:nowrap;gap:8px}.dual-panel .panel-heading .button{font-size:10px;padding:8px 10px;min-height:34px}.dual-panel kbd{display:none}.monitor-navigation{display:block;padding:16px}.monitor-tabs{gap:0;justify-content:space-between}.monitor-tab{font-size:11px}.monitor-tab span{display:block;margin:0 0 3px}.monitor-arrows{justify-content:flex-end;margin-top:16px}.square-arrow{width:34px;height:34px;font-size:22px}.monitor-viewport{padding-top:20px}.window-bar{padding:0 16px;font-size:10px;height:40px}.window-meta{font-size:8px}.main-grid{grid-template-columns:1fr}.main-grid>.panel+.panel{border-left:0}.panel-heading{padding:18px 16px;min-height:60px}.control-panel .panel-heading .chip{font-size:9px}.control-panel .workflow{margin:23px}.target-input input{font-size:46px}.joint-visual{min-height:240px}.joint-svg{height:260px}.status-details{grid-template-columns:1fr 1fr;padding:18px 16px}.metrics{grid-template-columns:1fr 1fr}.metrics article{padding:18px 16px}.metrics article:nth-child(3){border-left:0;border-top:1px solid var(--line)}.metrics article:nth-child(4){border-top:1px solid var(--line)}.metrics strong{font-size:30px}.slide-caption{grid-template-columns:1fr;gap:10px;padding:22px 4px 14px}.slide-caption h3{font-size:21px}.slide-caption p{font-size:12px}.module-step{margin-top:8px}.chart-panel .chart-wrap{height:300px;margin:10px 6px}.chart-panel .panel-heading{gap:14px}.chart-actions{gap:7px;flex-wrap:wrap}.chart-actions select{max-width:135px;min-width:100px}.chart-footer{flex-wrap:wrap;gap:8px;font-size:9px}.telemetry-intro{padding:18px 16px 0;font-size:11px}.diagnostic-grid{grid-template-columns:1fr 1fr;padding:16px}.diagnostic-item{padding:12px;min-width:0}.diagnostic-item b{font-size:16px;overflow-wrap:anywhere}.guide-grid{grid-template-columns:1fr;padding:20px}.guide-note{margin:0 20px 20px}.guide-grid p,.guide-note p{font-size:12px}.led-grid,.led-live{grid-template-columns:1fr}.led-grid{padding:20px;gap:24px}.led-actions{padding:18px;gap:8px}.led-actions .button{font-size:11px;padding:10px 12px}.led-playlist li{padding:9px 10px;font-size:11px}.led-playlist button{padding:4px 8px}.log-panel{margin-top:20px;margin-bottom:28px}.logs{height:160px}.log-row{gap:8px;font-size:10px}.log-kind{min-width:40px}.log-time{font-size:9px}.module-nav-hint{font-size:9px;margin-bottom:24px}footer{gap:20px;align-items:flex-start;font-size:8px;padding:20px 0}footer>span:first-child{max-width:140px}.settings-drawer{padding:24px}.is-compact .hero{min-height:540px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}}
+
+</style><style>
+/* Adapted from upper-computer-template 71f6c07. Keep fault and stop colors semantic. */
+:root { --signal-ink: #090b0a; }
+.signal-zone { background: #101312; color: var(--text); }
+.signal-zone :is(.session-intro h2, .panel-heading h2, .slide-caption h3, .drawer-heading h2) { color: var(--accent); }
+.signal-zone .session-intro { background: #0a0d0b; border-bottom: 1px solid #263c30; }
+.signal-zone .session-intro h2 { font-weight: 800; letter-spacing: -.04em; }
+.signal-zone .session-intro h2 span { color: #a1b5a8; }
+.signal-zone :is(.module-window, .panel, .metrics article, .connection-strip) { background: #121a16; border-color: #294734; }
+.signal-zone :is(.window-bar, .panel-heading) { background: #0a100d; border-color: #294734; }
+.signal-zone .dual-panel { background: transparent; }
+.signal-zone .dual-panel > .panel-heading, .signal-zone .log-panel > .panel-heading { background: transparent; }
+.signal-zone :is(.monitor-navigation, .status-details, .diagnostic-item, .guide-note, .log-panel) { border-color: #294032; }
+.signal-zone .metrics article { border-top: 2px solid var(--accent); }
+.signal-zone .metrics strong { color: var(--accent); }
+.signal-zone :is(.metrics small, .slide-caption p, .telemetry-intro, .window-meta, .logs, .guide-grid p) { color: #a1b5a8; }
+.signal-zone :is(.number-field, .diagnostic-item, .led-live, .led-playlist li, .guide-note) { background: #17221b; border-color: #365040; }
+.signal-zone .secondary { background: #101a14; border-color: #365040; color: #dbede1; }
+.signal-zone .secondary:hover { border-color: var(--accent); background: #193324; }
+.signal-zone .monitor-tab[aria-selected="true"] { color: var(--accent); box-shadow: 0 2px var(--accent); }
+.signal-zone .monitor-tab:hover { color: var(--accent); }
+.signal-zone .square-arrow { background: #18281e; color: var(--accent); border: 1px solid #365040; }
+.signal-zone .square-arrow.next { background: var(--accent); color: var(--signal-ink); border-color: var(--accent); }
+.signal-zone .square-arrow:disabled { background: #18201b; color: #66776c; opacity: .55; }
+.signal-zone .chart-empty { background: #121a16dd; }
+.settings-drawer.signal-zone { background: #101713; border-color: #365040; }
+.settings-drawer.signal-zone legend { color: var(--accent); }
+.back-top { background: #0a100d; color: var(--accent); border: 1px solid #365040; }
+.desk-footer { margin-top: 0; background: #0a0d0b; border-top: 1px solid #294032; }
+.footer-caption { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 40px 32px; }
+.footer-kicker { font: 11px Consolas, monospace; letter-spacing: .08em; color: #a1b5a8; }
+.footer-caption p { margin: 8px 0 0; font-size: 20px; }
+.footer-top { display: inline-flex; align-items: center; gap: 24px; padding: 12px 0; font-size: 12px; text-decoration: none; }
+.footer-top span { color: var(--accent); font-size: 24px; }
+.footer-top:hover { color: var(--accent); }
+.footer-top:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; }
+.footer-wordmark { position: relative; isolation: isolate; display: grid; place-items: center; width: 100%; aspect-ratio: 3.83228; background: var(--accent); color: #090b0a; overflow: hidden; }
+.footer-wordmark-text { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; font: 900 17vw/.9 Arial, "Microsoft YaHei", sans-serif; letter-spacing: -.06em; }
+.footer-wordmark.is-ready .footer-wordmark-text { opacity: 0; }
+#footerDistortion { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.footer-hover-hint { position: absolute; right: 32px; bottom: 8px; font-size: 10px; letter-spacing: .06em; pointer-events: none; opacity: .65; }
+.footer-wordmark.is-static .footer-hover-hint, .footer-wordmark:not(.is-ready) .footer-hover-hint { display: none; }
+.signal-distorting { opacity: 0 !important; }
+.signal-overlay { position: fixed; pointer-events: none; z-index: 7; }
+.signal-overlay-drawer { z-index: 25; }
+@media (max-width: 760px) {
+  .footer-caption { padding: 28px 20px; gap: 16px; }
+  .footer-kicker { font-size: 8px; letter-spacing: 0; }
+  .footer-caption p { font-size: 16px; }
+  .footer-top { gap: 10px; white-space: nowrap; }
+  .footer-hover-hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-distorting { opacity: 1 !important; }
+  .signal-overlay { display: none; }
+}
+
+</style></head>
+<body>
+<a class="skip-link" href="#console">跳到控制台</a>
+<div class="announcement" id="announcement"><span class="announcement-pixels" aria-hidden="true"></span><span>2026 AIC <span class="announcement-divider">/</span> 双电机 · 一个工作空间</span><button id="dismiss-announcement" aria-label="关闭横幅">×</button></div>
+<header class="site-header">
+ <a class="site-brand" href="#overview" aria-label="RobStride 首页">RobStride<span></span></a>
+ <nav class="primary-nav" aria-label="主导航">
+  <button class="nav-item active" data-view="control">电机控制</button><button class="nav-item" data-view="telemetry">数据观测</button><button class="nav-item" data-view="diagnostics">通信诊断</button><button class="nav-item" data-view="led">灯带控制</button><button class="nav-item" data-view="guide">使用指南</button>
+ </nav>
+ <div class="header-actions"><button id="open-settings" class="text-button" aria-haspopup="dialog" aria-controls="settings-drawer">控制台设置 <span>↗</span></button><button id="exit" class="header-exit" title="退出上位机并释放调试器">退出 ⏻</button></div>
+</header>
+<div class="scroll-progress" aria-hidden="true"></div>
+<div class="app-shell" id="app-content">
+ <section class="hero" id="overview" aria-labelledby="page-title">
+  <canvas id="pixelField" aria-hidden="true"></canvas><div class="hero-coordinate" aria-hidden="true">RS05 / 127 + 126<br>PRECISION IN MOTION</div>
+  <div class="hero-inner"><div class="hero-copy"><div class="eyebrow">2026 AIC / MOTION WORKSPACE</div><h1 id="page-title">让每一次转动，<em>尽在掌握。</em></h1><p id="page-description">从连接到控制，实时了解你的每一个关节。</p></div><div class="hero-aside"><button class="hero-action" id="enter-console">进入控制台 <span>↗</span></button><div class="hero-state"><div class="badge" id="connection-badge"><span class="dot"></span>设备未连接</div><small>H743 · DUAL MOTOR</small></div></div></div>
+  <a class="scroll-cue" href="#console"><span>向下探索工作空间</span> ↓</a>
+ </section>
+ <main id="console" class="signal-zone" tabindex="-1">
+  <section class="session-intro"><div class="eyebrow">ONE WORKSPACE. EVERY DETAIL.</div><h2>控制、观测、创造。<br><span>让想法开始转动。</span></h2><p>两台关节的运动与反馈，一条灯带的色彩与节奏。<br>从这里，连接你的下一次探索。</p></section>
+  <div class="workspace-heading"><div><span class="section-index">01 / WORKSPACE</span><b id="crumb">电机控制</b></div><div class="device-status"><span class="dot" id="sidebar-dot"></span><span id="sidebar-state">未连接设备</span><span class="workspace-clock" id="clock">--:--:--</span></div></div>
+    <section class="connection-strip" aria-label="设备连接"><span class="connection-label"><span class="small-icon">⇄</span> 设备连接</span><div class="select-wrap"><label class="sr-only" for="probe">SWD 调试器</label><select id="probe"><option value="">选择 SWD 调试器</option></select></div><button id="refresh" class="icon-button" title="刷新调试器" aria-label="刷新调试器">↻</button><div class="transport"><span class="dot green"></span>SWD <span>/</span> CMSIS-DAP · ST-Link</div><button id="connect" class="button primary">连接设备 <span>↗</span></button></section>
+    <div class="notice" id="notice" role="status"><span>ⓘ</span><span id="notice-text">先在 Keil 中运行固件并退出 Debug，再连接调试器。连接不会自动使能电机。</span></div>
+
+    <section class="dual-panel panel" aria-label="双电机选择和状态">
+      <div class="panel-heading"><h2>双电机独立控制</h2><button id="stop-all" class="button danger">■ 两台全部失能 <kbd>Esc</kbd></button></div>
+      <div class="motor-cards"><button id="select-motor-0" class="motor-card selected" data-motor="0"><strong>电机 1 · ID 127 / 0x7F</strong><span id="summary-0">等待连接</span></button><button id="select-motor-1" class="motor-card" data-motor="1"><strong>电机 2 · ID 126 / 0x7E</strong><span id="summary-1">等待连接</span></button></div>
+      <p id="selected-label" class="green-text">当前控制：电机 1。下方参数、命令和曲线均对应选中电机。</p>
+      <details id="setup-details"><summary>首次接入：两个默认 ID 电机的配置流程</summary>
+        <p>两台同 ID 时无法独立控制。先点击“两台全部失能”，断电后从总线断开电机 1，仅接入待设为电机 2 的那一台，再给它供电。</p>
+        <label class="confirm-row"><input type="checkbox" id="isolated-confirmed"><span>当前 CAN 总线上只接通待修改的这一台，原 ID 为 127。允许将其 ID 改为 126。</span></label>
+        <button id="change-id" class="button secondary">单电机改 ID：127 → 126</button>
+        <p>等待日志“配置完成”后，断电并接回两台，再重新上电。确认以下两张卡分别在线，完成身份核对后才能准备和使能。</p>
+        <label class="confirm-row"><input type="checkbox" id="pair-confirmed"><span>两台已分别设置为 127、126，均已接回总线，且已经固定。</span></label>
+        <button id="verify-pair" class="button secondary">核对两台身份并开放独立控制</button><span id="pair-state" class="subtle">尚未核对</span>
+        <p>每次 MCU 重启都需重新核对。改 ID 需要真实隔离另一台；软件无法证明同 ID 电机的数量。已设置不同 ID 时直接核对，无需再次改 ID。</p>
+      </details>
+    </section>
+
+    <div id="view-control" class="view">
+      <details id="drive-panel" class="panel drive-panel" open>
+        <summary>小车 WASD · 两轮差速模式</summary>
+        <p>两台电机分别准备、使能后即可进入，无需等待实测零速。进入时接管两轮目标并归零，随后按 WASD 行驶。速度上限、电流和加速度沿用现有设置。</p>
+        <div class="drive-settings">
+          <label>行驶 / 转向轮速 (rad/s)<input id="drive-speed" type="number" min="0" max="33" step="any" value="1"></label>
+          <label>左轮电机<select id="drive-left"><option value="0">电机 1 · ID 127</option><option value="1" selected>电机 2 · ID 126</option></select></label>
+          <label>左轮前进方向<select id="drive-left-sign"><option value="1">正转 +</option><option value="-1" selected>反转 −</option></select></label>
+          <label>右轮前进方向<select id="drive-right-sign"><option value="-1">反转 −</option><option value="1" selected>正转 +</option></select></label>
+        </div>
+        <p>另一台电机自动作为右轮；按实际安装方向选择正反转。W 前进、S 后退、A 左转、D 右转；组合键转弯时内轮归零，外轮按所填轮速运行。</p>
+        <div class="drive-actions"><button id="drive-enter" class="button primary">进入键盘控制</button><button id="drive-exit" class="button secondary" disabled>退出并减速停止</button><button id="drive-zero" class="button secondary" disabled>两轮归零 <kbd>Space</kbd></button></div>
+        <div class="drive-keys" aria-label="键盘状态"><kbd data-drive-key="KeyW">W ↑</kbd><div><kbd data-drive-key="KeyA">A ↶</kbd><kbd data-drive-key="KeyS">S ↓</kbd><kbd data-drive-key="KeyD">D ↷</kbd></div></div>
+        <p id="drive-status" role="status">未进入小车模式</p>
+        <p class="control-note">按住行驶，松键减速到零。点击输入框会归零；切换模块、窗口失焦或关闭页面会退出并归零。Esc 仍为两台全部失能。</p>
+      </details>
+      <div class="main-grid">
+        <section class="panel control-panel"><div class="panel-heading"><div><span class="section-index">01 /</span><h2>运动控制</h2></div><span class="chip">速度模式</span></div>
+          <div class="workflow"><span id="step1"><b>1</b>准备</span><i></i><span id="step2"><b>2</b>使能</span><i></i><span id="step3"><b>3</b>运行</span></div>
+          <div class="run-mode-row"><span>运行方式</span><b>持续运行 · 直到停止</b><span id="run-status">等待开始</span></div>
+          <div class="target-head"><label for="target">目标速度</label><div class="segmented" aria-label="速度单位"><button class="selected" data-unit="rad">rad/s</button><button data-unit="rpm">rpm</button></div></div>
+          <div class="target-input"><button class="stepper" id="minus" aria-label="减小目标速度">−</button><div><input id="target" type="number" min="-33" max="33" step="any" value="1" aria-label="目标速度"><span id="target-unit">rad/s</span></div><button class="stepper" id="plus" aria-label="增大目标速度">+</button></div>
+          <label for="speed-slider" class="sr-only">速度滑块</label><input id="speed-slider" class="speed-slider" type="range" min="-33" max="33" step="0.01" value="1"><div class="range-labels"><span id="min-speed">−33.00</span><span>0</span><span id="max-speed">+33.00</span></div><div class="control-note" id="speed-range-note">速度模式范围：±33 rad/s / ±315.13 rpm；加速度决定提速时间。</div>
+          <div class="presets"><span>快速设置</span><button data-speed="-1">反转 −1</button><button data-speed="0">零速</button><button data-speed="1">正转 +1</button></div>
+          <div class="divider"></div><div class="limits-title"><h3>运行限制</h3><span>失能后准备时生效</span></div>
+          <div class="limit-grid"><label>速度上限<div class="number-field"><input id="speed-limit" type="number" min="0.01" max="33" step="0.1" value="33"><span>rad/s</span></div></label><label>相电流限制<div class="number-field"><input id="current-limit" type="number" min="0.01" max="11" step="0.1" value="2.4"><span>A</span></div></label><label>加速度<div class="number-field"><input id="accel-limit" type="number" min="0.01" max="150" step="1" value="20"><span>rad/s²</span></div></label></div>
+          <label class="confirm-row"><input id="confirmed" type="checkbox"><span>已确认电机固定、空载，接线与供电正常</span></label>
+          <label class="confirm-row compatibility-note hidden" id="compatibility-note"><input id="compatibility-confirmed" type="checkbox"><span>旧固件兼容：电机拒绝 CAN 超时参数，未验证 CAN 断线自停。已确保可立即断电；接受此限制后使能。</span></label>
+          <div class="command-row"><button class="button secondary" id="prepare">1. 准备</button><button class="button secondary" id="enable">2. 使能</button><button class="button primary" id="run">运行 <span>▶</span></button></div>
+          <div class="stop-row"><button class="button secondary" id="stop">Ⅱ &nbsp; 减速停止</button><button class="button danger" id="disable">■ &nbsp; 选中电机失能</button></div>
+          <div class="control-note" id="run-note">一次下发，持续保持速度；修改后点击应用。关闭页面不会停止，结束请点击减速停止或立即失能。</div>
+        </section>
+        <section class="panel joint-panel"><div class="panel-heading"><div><span class="section-index">02 /</span><h2>关节状态</h2></div><span id="motor-badge" class="badge small"><span class="dot"></span>等待反馈</span></div>
+          <div class="joint-visual"><div class="visual-grid"></div><span class="axis-label top">Y +</span><span class="axis-label right">X +</span><svg class="joint-svg" viewBox="0 0 360 300" aria-label="关节位置示意图"><defs><radialGradient id="bodyGrad"><stop offset="0" stop-color="#282e2d"/><stop offset=".72" stop-color="#151a18"/><stop offset="1" stop-color="#303734"/></radialGradient><linearGradient id="armGrad"><stop stop-color="#58675e"/><stop offset=".5" stop-color="#b1bdb5"/><stop offset="1" stop-color="#434e47"/></linearGradient></defs><g transform="translate(180 150)"><circle class="orbit" r="119"/><circle class="orbit ticks" r="110"/><path d="M-90 -90 H-110 V-70 M90 -90 H110 V-70 M-90 90 H-110 V70 M90 90 H110 V70" class="brackets"/><ellipse cy="22" rx="79" ry="76" fill="#080b09"/><circle r="77" fill="url(#bodyGrad)" stroke="#68776e" stroke-width="1"/><circle r="65" fill="none" stroke="#343e37" stroke-width="9"/><circle r="57" fill="#111713" stroke="#7b9182"/><g class="bolts" fill="#181f1b" stroke="#9faea4"><circle cx="0" cy="-68" r="3"/><circle cx="59" cy="-34" r="3"/><circle cx="59" cy="34" r="3"/><circle cx="0" cy="68" r="3"/><circle cx="-59" cy="34" r="3"/><circle cx="-59" cy="-34" r="3"/></g><g id="joint-arm"><rect x="-17" y="-105" width="34" height="112" rx="10" fill="url(#armGrad)" stroke="#7c8f80"/><rect x="-8" y="-96" width="16" height="59" rx="6" fill="#111914" stroke="#3f4e44"/><circle cy="-84" r="3" fill="#2bef91"/><circle r="34" fill="#151e18" stroke="#91a499"/><circle r="24" fill="#202c23" stroke="#465a4b"/><circle r="11" fill="#0c120e" stroke="#50e68b"/><path d="M-4 -6 H4 V6 H-4 Z" fill="#405747"/></g><circle cy="-119" r="3" fill="#36ed91"/></g></svg><div class="visual-caption"><span class="green-text">◎</span> RS05<span>位置示意 · 非三维实测</span></div></div>
+          <div class="joint-position"><span>关节位置</span><strong id="position">—<small>rad</small></strong><span id="position-deg">等待有效反馈</span></div>
+          <div class="status-details"><div><span>应用状态</span><b id="app-state">—</b></div><div><span>反馈年龄</span><b id="feedback-age">— ms</b></div><div><span>电机 ID</span><b id="motor-id">0x7F</b></div><div><span>快照一致性</span><b id="coherent">—</b></div></div>
+        </section>
+      </div>
+      <section class="metrics" aria-label="实时测量"><article><div><span class="metric-icon">∿</span>实际速度<span>rad/s</span></div><strong id="velocity">—</strong><small>目标 <b id="applied">—</b> rad/s（斜坡后）</small><svg viewBox="0 0 110 28" class="spark" id="spark-speed"></svg></article><article><div><span class="metric-icon">↻</span>输出力矩<span>N·m</span></div><strong id="torque">—</strong><small>电机反馈 · 非相电流</small></article><article><div><span class="metric-icon">ϟ</span>相电流 Iq<span>A</span></div><strong id="current">—</strong><small id="current-age">等待参数读回</small></article><article><div><span class="metric-icon">⊥</span>电机温度<span>°C</span></div><strong id="temperature">—</strong><small>母线电压 <b id="voltage">—</b> V</small></article></section>
+    </div>
+
+    <section class="panel chart-panel" id="chart-section"><div class="panel-heading"><div><span class="section-index">03 /</span><h2>实时曲线</h2><span class="subtle">最近 30 秒</span></div><div class="chart-actions"><label><input type="checkbox" id="show-target" checked><span class="legend-line"></span>目标</label><label><input type="checkbox" id="show-actual" checked><span class="legend-line actual"></span>实际</label><label class="sr-only" for="chart-metric">曲线指标</label><select id="chart-metric"><option value="velocity_rad_s">速度 · rad/s</option><option value="position_rad">位置 · rad</option><option value="torque_nm">力矩 · N·m</option><option value="current_a">相电流 · A</option><option value="temperature_c">温度 · °C</option><option value="bus_voltage_v">母线电压 · V</option></select><button id="pause-chart" class="icon-button" title="暂停曲线" aria-label="暂停曲线">Ⅱ</button><button id="export" class="text-button">↓ 导出 CSV</button></div></div><div class="chart-wrap"><canvas id="chart" aria-label="实时反馈曲线"></canvas><div class="chart-empty" id="chart-empty"><span>∿</span><b>等待真实数据</b><small>连接设备后，曲线将在这里实时呈现</small></div></div><div class="chart-footer"><span><span class="dot green"></span> 真实反馈采集 <b id="sample-rate">0</b> 点</span><span id="chart-status">尚未连接 · 不生成模拟数据</span></div></section>
+
+    <section id="view-diagnostics" class="panel diagnostics-panel view hidden"><div class="panel-heading"><div><span class="section-index">04 /</span><h2>通信与固件诊断</h2></div><span class="chip">SWD / CAN</span></div><div class="diagnostic-grid" id="diagnostic-grid"></div><div class="identity-block"><h3>固件身份</h3><p id="firmware-path">读取中</p><code id="firmware-hash">—</code><p>连接会逐段比较 Flash 与 AXF。SWD 不暂停、不复位 CPU；控制写入对应电机命令区；仅在首次配置入口显式请求修改 CAN ID，不修改零点或协议。</p></div><button id="clear-fault" class="button secondary">请求清错 / 停止</button><span class="subtle clear-hint">先排除故障原因，再请求清错；不会自动恢复运动。</span></section>
+
+    <section id="view-guide" class="panel guide-panel view hidden"><div class="panel-heading"><div><span class="section-index">04 /</span><h2>从连接到第一次转动</h2></div><span class="chip">QUICK START</span></div><div class="guide-grid"><article><b>01</b><h3>连接现有硬件</h3><p>使用当前接好的 CMSIS-DAP / ST-Link。PC → SWD → H743 → CAN → RS05。无需额外串口，也不使用 COM5。</p></article><article><b>02</b><h3>运行并释放调试器</h3><p>在 Keil 中运行匹配固件，退出 Debug。不要同时让 Keil 与上位机占用探针。选择设备并点击连接。</p></article><article><b>03</b><h3>准备，再使能</h3><p>确认电机固定、空载和电源正常。速度可调至 ±33 rad/s（约 ±315 rpm），默认相电流 2.4 A、加速度 20 rad/s²，逐步点击准备、使能。</p></article><article><b>04</b><h3>低速验证反馈</h3><p>设置目标速度（正数正转、负数反转），点击运行。滑块只编辑目标，不立即发出运动命令。一次运行指令持续有效；修改速度后需再次点击应用，无需定时续发。</p></article></div><div class="guide-note"><b>停止方式</b><p>减速停止：按加速度降到零，保持使能。选中电机失能；Esc 两台全部失能：向固件请求失能，需新反馈确认；不能替代断电或机械急停。关闭页面不会停止运动。主动断开连接或退出上位机会请求失能；服务被强制终止或探针突然断开时，H743 中的速度仍可能持续有效，需重新连接后停止或直接断电。本电机拒绝 CAN 超时参数，未验证电机侧断线自停。</p></div><div class="guide-note"><b>当前工程能力</b><p>速度控制与位置、力矩、温度、电流、电压观测。位置和力矩仅反馈，不提供对应控制模式。电机掉线、过期或快照不一致时显示无效；CAN ACK 不代表电机已在线或已转动。</p></div></section>
+
+    <section class="panel log-panel" id="log-section"><div class="panel-heading"><div><span class="section-index">⌁ /</span><h2>事件日志</h2><span class="subtle" id="log-count">0 条事件</span></div><button class="text-button" id="copy-log">复制日志 ↗</button></div><div class="logs" id="logs" aria-live="polite"></div></section>
+    <footer><span>ROBSTRIDE CONSOLE <span class="footer-slash">/</span> 让运动清晰可见</span><span><span class="dot" id="footer-dot"></span><span id="footer-status">等待设备连接</span><span class="footer-slash">/</span> H743 RTOS · 双电机 CAN</span></footer>
+    <section class="desk-footer" aria-label="RobStride 页底字标">
+      <div class="footer-caption"><div><span class="footer-kicker">2026 AIC / PRECISION IN MOTION</span><p>让每一次转动，清晰可见。</p></div><a class="footer-top" href="#overview">回到顶部 <span aria-hidden="true">↗</span></a></div>
+      <div class="footer-wordmark" id="footerWordmark"><span class="footer-wordmark-text" id="footerWordmarkText">RobStride</span><canvas id="footerDistortion" aria-hidden="true"></canvas><span class="footer-hover-hint" aria-hidden="true">移动鼠标，感受信号脉动 ↔</span></div>
+    </section>
+ </main>
+</div>
+<div class="drawer-scrim" id="settings-scrim" hidden></div>
+<aside id="settings-drawer" class="settings-drawer signal-zone" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+ <div class="drawer-heading"><div><span class="eyebrow">MAKE IT YOURS</span><h2 id="settings-title">控制台设置</h2></div><button id="close-settings" class="icon-button" aria-label="关闭设置">×</button></div>
+ <p class="drawer-description">调整工作空间的视觉偏好，设置仅保存在此浏览器。</p>
+ <fieldset><legend>视觉外观</legend><label class="settings-row">强调色<input type="color" id="accent-color" value="#26ed89"></label><label class="settings-check"><input type="checkbox" id="compact-layout"> 紧凑布局</label><label class="settings-check"><input type="checkbox" id="show-logs" checked> 显示事件日志</label></fieldset>
+ <fieldset><legend>动态点阵</legend><label class="settings-check"><input type="checkbox" id="motion-enabled" checked> 开启动效</label><label>流动速度 <output id="motion-speed-value">1.0×</output><input type="range" id="motion-speed" min="0.2" max="2" step="0.1" value="1"></label><label>点阵间距 <output id="pixel-density-value">8 px</output><input type="range" id="pixel-density" min="5" max="14" step="1" value="8"></label><p class="settings-note">跟随系统的减少动态效果偏好。离开首页后自动暂停点阵。</p></fieldset>
+ <fieldset><legend>悬浮交互</legend><label class="settings-check"><input type="checkbox" id="signalMotionEnabled" checked> 功能区悬浮震颤</label><label class="settings-check"><input type="checkbox" id="footerMotionEnabled" checked> 页底悬浮震颤</label><p class="settings-note">鼠标扫过标题、读数、曲线与日志时产生局部网格位移。输入、点击、触摸和系统减少动态效果模式下保持原生界面。</p></fieldset>
+ <button id="reset-settings" class="button secondary">恢复默认外观 ↺</button><p class="settings-note">运动参数和灯效方案在各自模块内编辑。</p>
+</aside>
+<button class="back-top" id="back-to-top" aria-label="回到顶部" hidden>↑</button>
+<div class="toast hidden" id="toast" role="alert"></div>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const states = ['已失能', '准备就绪', '已使能', '运行中', '减速中', '故障', '准备中', '使能中'];
+const resultNames = ['成功','未知命令','参数越界','状态不允许','确认键错误','电机离线','CAN 发送失败','参数读回不符 / 超时','电机故障','状态确认超时','CAN Bus-off','保护触发','保留结果 12','健康检查失败','超速','服务间断','正在执行','固件忙'];
+let sessionToken = '', data = null, unit = 'rad', activeView = 'control', busy = false;
+let samples = [], paused = false, lastTick = null, toastTimer, lastLogKey = '', bridgeAvailable = false;
+let lastStatusAt = 0, chartNeedsDraw = true;
+let exited = false, selectedMotor = 0;
+const edits = [{target:1,cap:33,current:2.4,accel:20,confirmed:false,compat:false},{target:1,cap:33,current:2.4,accel:20,confirmed:false,compat:false}];
+const selectedPending=()=>data?.pending_motors?.[selectedMotor] ?? (selectedMotor===0?data?.pending:null);
+const continuous=()=>data?.continuous_motors?.[selectedMotor] ?? (selectedMotor===0?data?.continuous:false);
+const selectedCoherence=()=>selectedMotor===0?data?.snapshot?.coherent:data?.snapshot?.coherent2;
+const MAX_SPEED_RAD_S = 33;
+const format = (n, places=3) => Number.isFinite(n) ? n.toFixed(places) : '—';
+const hex = n => '0x' + (n >>> 0).toString(16).toUpperCase();
+const text = (id, value) => { $(id).textContent = value; };
+const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(message, error=false) {
+  clearTimeout(toastTimer);
+  text('toast', message);
+  $('toast').className = 'toast' + (error ? ' error' : '');
+  toastTimer = setTimeout(() => $('toast').classList.add('hidden'), 5500);
+}
+
+async function request(action, payload={}) {
+  if(location.protocol==='file:') { if(action==='probes')return []; throw new Error('此 HTML 为界面预览；连接设备请启动 RobStrideConsole.exe'); }
+  const response = await fetch('/api/' + action, {method:'POST', headers:{'Content-Type':'application/json', 'X-Console-Token':sessionToken}, body:JSON.stringify(payload)});
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || '请求失败');
+  return body.data;
+}
+
+async function action(work) {
+  if (busy) return;
+  busy = true; renderControls();
+  try { await work(); }
+  catch (error) { toast(error.message, true); }
+  finally { busy = false; await poll(); renderControls(); }
+}
+
+function connected() { return !!(bridgeAvailable && data?.connected && performance.now() - lastStatusAt < 800); }
+function motor() { return (selectedMotor===0?data?.snapshot?.motor:data?.snapshot?.motor2) || {}; }
+function coherent() { return connected() && data.sample_age_ms < 600 && !!selectedCoherence(); }
+function validFeedback() { return coherent() && !!motor().online && motor().feedback_age_ms + (data?.sample_age_ms || 0) < 150; }
+function badge(id, message, mode='') {
+  const el = $(id);
+  el.className = 'badge' + (id === 'motor-badge' ? ' small' : '') + (mode ? ' ' + mode : '');
+  el.innerHTML = `<span class="dot ${mode === 'online' ? 'green' : mode === 'error' ? 'red' : ''}"></span>${esc(message)}`;
+}
+
+function renderControls() {
+  if (window.renderLed) renderLed();
+  const live = connected(), m = motor(), state = m.state;
+  const idle = !busy && !selectedPending() && !m.job_command;
+  const confirmed = $('confirmed').checked && (!data?.snapshot?.setup || !!data.snapshot.setup.dual_ready) && !data?.setup_pending;
+  const needsCompatibility = live && [1,2,3,4,7].includes(state) && !m.timeout_motor_supported;
+  $('compatibility-note').classList.toggle('hidden',!needsCompatibility);
+  const compatible = !needsCompatibility || $('compatibility-confirmed').checked;
+  text('run-status', continuous() ? '● 持续旋转中' : '等待开始');
+  $('run-status').className = continuous() ? 'green-text' : '';
+  $('run').innerHTML = continuous() ? '应用新速度 ↗' : '开始运行 ▶';
+  $('connect').disabled = busy || (!live && !$('probe').value);
+  $('refresh').disabled = busy || live;
+  $('probe').disabled = busy || live;
+  $('connect').innerHTML = busy ? '处理中…' : live ? '断开连接 <span>↗</span>' : '连接设备 <span>↗</span>';
+  $('prepare').disabled = !(live && coherent() && idle && confirmed && [0,1,5].includes(state));
+  $('enable').disabled = !(validFeedback() && idle && confirmed && compatible && state === 1);
+  $('run').disabled = !(validFeedback() && idle && confirmed && compatible && [2,3,4].includes(state));
+  $('stop').disabled = !(live && !busy && !m.job_command && (!selectedPending() || selectedPending().command===3) && [2,3,4].includes(state));
+  // Urgent disable remains available while a normal request is in flight.
+  $('disable').disabled = !live;
+  $('clear-fault').disabled = !live || busy;
+  for (const id of ['speed-limit','current-limit','accel-limit']) $(id).disabled = busy || live && ![0,1,5].includes(state);
+  $('export').disabled = !(data?.history_count > 0);
+  window.renderDrive?.();
+}
+
+function render() {
+  renderDual();
+  const m = motor(), live = connected(), fresh = validFeedback();
+  badge('connection-badge', live ? 'H743 已连接' : '设备未连接', live ? 'online' : '');
+  badge('motor-badge', !live ? '等待反馈' : !selectedCoherence() ? '快照不一致' : fresh ? '电机在线' : '电机离线', fresh ? 'online' : live ? 'error' : '');
+  $('sidebar-dot').className = 'dot' + (fresh ? ' green' : '');
+  text('sidebar-state', fresh ? states[m.state] || '未知状态' : live ? selectedCoherence() ? '已连接 · 反馈过期' : '已连接 · 快照无效' : '未连接设备');
+  text('footer-status', live ? fresh ? '反馈正常' : '等待有效反馈' : '等待设备连接');
+  $('footer-dot').className = 'dot' + (fresh ? ' green' : '');
+  text('app-state', live ? states[m.state] || '未知' : '—');
+  text('feedback-age', live && m.feedback_age_ms < 0xFFFFFFFF ? m.feedback_age_ms + data.sample_age_ms + ' ms' : '— ms');
+  text('motor-id', live ? hex(m.configured_id) : '0x7F');
+  text('coherent', live ? selectedCoherence() ? '一致' : '不一致' : '—');
+  text('velocity', fresh ? format(m.velocity_rad_s) : '—');
+  text('applied', coherent() ? format(m.applied_rad_s) : '—');
+  text('torque', fresh ? format(m.torque_nm) : '—');
+  text('temperature', fresh ? format(m.temperature_c,1) : '—');
+  const iqFresh = coherent() && m.current_age_ms + data.sample_age_ms < 500, vFresh = coherent() && m.voltage_age_ms + data.sample_age_ms < 500;
+  text('current', iqFresh ? format(m.current_a) : '—');
+  text('voltage', vFresh ? format(m.bus_voltage_v,1) : '—');
+  text('current-age', iqFresh ? `读回年龄 ${m.current_age_ms + data.sample_age_ms} ms` : '参数反馈无效 / 过期');
+  $('position').innerHTML = `${fresh ? format(m.position_rad) : '—'}<small>rad</small>`;
+  text('position-deg', fresh ? format(m.position_rad * 180 / Math.PI,1) + '° / 输出轴角度' : '等待有效反馈');
+  if (fresh) $('joint-arm').setAttribute('transform', `rotate(${m.position_rad * 180 / Math.PI})`);
+  for (let i=1;i<=3;i++) $('step'+i).classList.toggle('done', live && (i===1 ? [1,2,3,4,7].includes(m.state) : i===2 ? [2,3,4].includes(m.state) : m.state===3));
+  let notice = '先在 Keil 中运行固件并退出 Debug，再连接调试器。连接不会自动使能电机。', error = false;
+  if (live) {
+    notice = continuous() ? '持续运行中：速度指令保持有效。修改速度后点击「应用新速度」；点击减速停止或立即失能结束。' : 'H743 连接正常。按「准备 → 使能 → 运行」操作；一次下发速度后持续运行，直到停止或失能。';
+    if (!selectedCoherence()) {notice='正在获取一致快照，本次测量无效；运动操作暂不可用。';error=true;}
+    else if (m.fault || m.fault_bits || m.health_fault || m.state===5) {notice=`固件状态：${resultNames[m.reject_reason] || '故障'}；故障摘要 ${hex(m.fault_bits)}，详细故障 ${hex(m.fault)}。请到通信诊断查看。`;error=true;}
+    else if (!fresh) {notice='H743 已连接，但尚无有效电机反馈。请检查电机供电、CAN 接线、ID 与终端电阻。';error=true;}
+    if (m.reject_reason===7 && m.readback_index) notice+=` 参数 ${hex(m.readback_index)}：${['未记录','匹配','电机拒绝读取','数值不符','等待回复超时'][m.readback_status]||'未知'}，期望 ${hex(m.readback_expected)}，实际 ${hex(m.readback_actual)}。`;
+    if (selectedPending() && !continuous()) notice=`序号 ${selectedPending().seq} 已提交，等待固件执行确认…`;
+    else if ([1,2,3,4].includes(m.state) && !m.timeout_motor_supported) notice+=' 旧固件兼容：电机侧 CAN 断线自停未验证，详见控制区提示。';
+  }
+  if (!bridgeAvailable) {notice=exited?'上位机已退出，调试器已释放。下次使用请双击启动程序。':'本地服务连接中断。当前数据无效，请检查上位机进程。';error=!exited;}
+  if(live && activeView==='led') {
+    notice=data?.led_supported?'灯带控制无需使能电机。编辑后点击应用；循环在开发板上运行，断开连接后仍继续播放。':'当前固件仅支持灯带状态读取，请下载新版 RTOS 固件以开放灯效控制。';
+    error=false;
+  }
+  text('notice-text',notice);$('notice').className='notice'+(error?' error':'');
+  text('firmware-path',data?.profile?.source || '—');
+  text('firmware-hash','SHA256  '+(data?.profile?.axf_sha256 || '—'));
+  renderDiagnostics(); renderLogs(); renderControls();
+  const tick = data?.snapshot?.system?.tick_ms;
+  if (live && tick !== lastTick) {
+    lastTick = tick;
+    const row = {time:Date.now(), valid:fresh, ...m};
+    row.currentValid = iqFresh;row.voltageValid = vFresh;
+    samples.push(row);
+    samples = samples.filter(p=>p.time>Date.now()-31000);
+    chartNeedsDraw = true;
+  }
+  text('sample-rate',data?.history_count || 0);
+  text('chart-status',live ? `${selectedCoherence() ? '一致快照' : '快照无效'} · 采样 ${data.sample_age_ms} ms 前${paused?' · 显示已暂停':''}` : '尚未连接 · 不生成模拟数据');
+  if (!paused && chartNeedsDraw) {drawChart();chartNeedsDraw=false;}
+}
+
+function renderLogs() {
+  const rows = data?.logs || [], key = JSON.stringify(rows);
+  if (key === lastLogKey) return;
+  lastLogKey = key;
+  text('log-count', rows.length + ' 条事件');
+  $('logs').innerHTML = rows.map(r=>`<div class="log-row ${['拒绝','超时','连接中断'].includes(r.kind)?'error':''}"><span class="log-time">${esc(r.time)}</span><span class="log-kind">${esc(r.kind)}</span><span class="log-message">${esc(r.message)}</span></div>`).join('');
+  $('logs').scrollTop = $('logs').scrollHeight;
+}
+
+function renderDiagnostics() {
+  const m=motor(), c=m.can||{}, s=data?.snapshot?.system||{}, live=connected();
+  const items = [['CAN RX',c.rx],['CAN TX 成功',c.tx_ok],['CAN TX 失败',c.tx_fail],['RX 溢出',c.rx_drop],
+    ['CAN 错误',c.errors],['Bus-off 计数',c.bus_off],['TEC / REC',`${c.tec??'—'} / ${c.rec??'—'}`],['恢复次数',c.recoveries],
+    ['有效电机反馈',m.feedback_count],['参数读回次数',m.parameter_count],['未匹配帧',m.unmatched_frames],['最近 CAN ID',hex(c.last_rx_id||0)],
+    ['故障摘要',hex(m.fault_bits||0)],['详细故障',hex(m.fault||0)],['预警',hex(m.warning||0)],['最近执行结果',resultNames[m.result]||m.result],
+    ['接受 / 执行序号',`${m.accepted_seq??'—'} / ${m.executed_seq??'—'}`],['电机侧超时',m.timeout_readback===5000?'250 ms（读回）':m.timeout_readback],
+    ['H743 主循环',s.loop_heartbeat],['最大服务耗时',s.max_service_us===undefined?'—':s.max_service_us+' µs'],
+    ['系统启动 / Fatal',`${s.boot_stage??'—'} / ${s.fatal??'—'}`],['健康故障',hex(m.health_fault||0)],
+    ['电机身份 ID',m.identity_valid?hex(m.identity_id):'未收到'],['OLED 完成帧',data?.snapshot?.oled?.refresh_ok],
+    ['最近核对参数',hex(m.readback_index||0)],['参数核对结果',['未核对','匹配','电机拒绝','数值不符','超时'][m.readback_status||0]],
+    ['期望 / 实际原始值',`${hex(m.readback_expected||0)} / ${hex(m.readback_actual||0)}`],
+    ['加速度执行',m.accel_motor_supported?'H743 斜坡 + 电机参数':'H743 速度斜坡（兼容）'],['持续旋转',continuous()?'运行中':'未运行']];
+  items.push(['电机超时参数',m.timeout_motor_supported?`${hex(m.timeout_parameter)} · 已读回`:'电机拒绝 · 未验证断线自停']);
+  $('diagnostic-grid').innerHTML=items.map(([label,value])=>`<div class="diagnostic-item"><span>${esc(label)}</span><b>${esc(live ? value??'—' : '—')}</b></div>`).join('');
+}
+
+function targetRad() {
+  const n=Number($('target').value), cap=Number($('speed-limit').value);
+  const rad=unit==='rpm'?n*Math.PI/30:n;
+  // Exact range endpoints must survive a rad/s -> rpm -> rad/s roundtrip.
+  return Math.abs(Math.abs(rad)-cap)<1e-12 ? Math.sign(rad)*cap : rad;
+}
+function setTarget(rad) {
+  const cap=Number($('speed-limit').value)||MAX_SPEED_RAD_S;
+  rad=Math.max(-cap,Math.min(cap,rad));
+  $('target').value=String(unit==='rpm'?rad*30/Math.PI:rad);
+  $('speed-slider').value=rad;
+}
+function updateRange() {
+  const cap=Number($('speed-limit').value);
+  if (!(cap>0&&cap<=MAX_SPEED_RAD_S)) return;
+  $('speed-slider').min=-cap;$('speed-slider').max=cap;
+  const scale=unit==='rpm'?30/Math.PI:1;
+  $('target').min=-cap*scale;$('target').max=cap*scale;$('target').step='any';
+  text('min-speed','−'+format(cap*scale,2));text('max-speed','+'+format(cap*scale,2));
+  setTarget(targetRad());
+  text('speed-range-note',`速度模式范围：±${format(cap,2)} rad/s / ±${format(cap*30/Math.PI,2)} rpm；加速度决定提速时间。`);
+}
+
+async function command(number) {
+  const payload = {motor:selectedMotor, command:number, confirmed:$('confirmed').checked, target_rad_s:number===3?targetRad():0,
+    speed_limit_rad_s:Number($('speed-limit').value), current_limit_a:Number($('current-limit').value), accel_rad_s2:Number($('accel-limit').value)};
+  if (number<=3) {
+    if (!$('target').value || !['speed-limit','current-limit','accel-limit'].every(id=>$(id).value!=='')) throw new Error('请填写完整数值');
+    if (!Object.entries(payload).filter(([k])=>k!=='confirmed').every(([,v])=>Number.isFinite(v))) throw new Error('请输入有效数值');
+  }
+  if(number===1) $('compatibility-confirmed').checked=false;
+  payload.compatibility_confirmed=$('compatibility-confirmed').checked;
+  const result=await request('command',payload);
+  toast(`序号 ${result.seq} 已提交，等待固件确认`);
+}
+
+function switchView(name) {
+  if(name!=='control')window.leaveDrive?.();
+  activeView=name;
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.view===name));
+  window.consoleUi?.show(name);
+  const info=name==='led'?['灯带控制','让每一束光，','随你而动。','选择灯效、调整外观，编排属于你的循环播放列表。']:{control:['电机控制','让每一次转动，','尽在掌握。','从连接到控制，实时了解你的每一个关节。'],telemetry:['数据观测','每一组数据，','清晰可见。','同步观测关节运动与电气状态，导出真实采集记录。'],diagnostics:['通信诊断','让连接状态，','有据可查。','从固件心跳到 CAN 收发，保留每一条诊断证据。'],guide:['使用指南','从第一次连接，','开始掌控。','沿用当前工程的控制流程，完成一次低速联调。']}[name];
+  text('crumb',info[0]);$('page-title').innerHTML=esc(info[1])+'<em>'+esc(info[2])+'</em>';text('page-description',info[3]);
+  chartNeedsDraw=true;if(!paused)drawChart();
+}
+
+function drawChart() {
+  if (activeView !== 'telemetry') return;
+  const canvas=$('chart'),r=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
+  if(!r.width)return;
+  canvas.width=r.width*dpr;canvas.height=r.height*dpr;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  const w=r.width,h=r.height,pad={left:49,right:16,top:14,bottom:28},pw=w-pad.left-pad.right,ph=h-pad.top-pad.bottom;
+  const key=$('chart-metric').value,now=Date.now();
+  const pts=samples.filter(p=>p.time>=now-30000);
+  const valid=p=>key==='current_a'?p.currentValid:key==='bus_voltage_v'?p.voltageValid:p.valid;
+  const values=pts.filter(valid).map(p=>p[key]).filter(Number.isFinite);
+  if(key==='velocity_rad_s'&&$('show-target').checked)values.push(...pts.filter(p=>p.valid).map(p=>p.target_rad_s));
+  let low=Math.min(0,...values),high=Math.max(key==='velocity_rad_s'?.1:.01,...values),range=high-low;
+  low-=range*.15;high+=range*.15;range=high-low;
+  const y=v=>pad.top+(high-v)/range*ph,x=t=>pad.left+(t-(now-30000))/30000*pw;
+  ctx.strokeStyle='#223029';ctx.lineWidth=1;ctx.font='9px Consolas, monospace';ctx.fillStyle='#536d5d';
+  for(let i=0;i<=4;i++){const yy=pad.top+ph*i/4;ctx.beginPath();ctx.moveTo(pad.left,yy);ctx.lineTo(w-pad.right,yy);ctx.stroke();ctx.textAlign='right';ctx.fillText((high-range*i/4).toFixed(key==='temperature_c'||key==='bus_voltage_v'?1:3),pad.left-9,yy+3);}
+  for(let i=0;i<=6;i++){const xx=pad.left+pw*i/6;ctx.beginPath();ctx.moveTo(xx,pad.top);ctx.lineTo(xx,h-pad.bottom);ctx.stroke();ctx.textAlign='center';ctx.fillText(i===6?'现在':`−${30-i*5}s`,xx,h-9);}
+  const line=(field,color,dashed)=>{ctx.beginPath();let drawing=false;for(let i=0;i<pts.length;i++){const p=pts[i];if(!valid(p)||!Number.isFinite(p[field])){drawing=false;continue;}if(i&&p.time-pts[i-1].time>450)drawing=false;const xx=x(p.time),yy=y(p[field]);if(!drawing)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);drawing=true;}ctx.strokeStyle=color;ctx.lineWidth=dashed?1:1.7;ctx.setLineDash(dashed?[5,5]:[]);ctx.stroke();ctx.setLineDash([]);};
+  if($('show-target').checked&&key==='velocity_rad_s')line('target_rad_s','#9caaa1',true);
+  if($('show-actual').checked)line(key,'#29ee91',false);
+  $('chart-empty').classList.toggle('hidden',values.length>0);
+  const spark=samples.filter(p=>p.valid).slice(-35);
+  if(spark.length>1){const lo=Math.min(...spark.map(p=>p.velocity_rad_s)),hi=Math.max(lo+.001,...spark.map(p=>p.velocity_rad_s));$('spark-speed').innerHTML=`<polyline fill="none" stroke="#29ee91" stroke-width="1.5" points="${spark.map((p,i)=>`${i/(spark.length-1)*110},${26-(p.velocity_rad_s-lo)/(hi-lo)*23}`).join(' ')}"/>`;}
+}
+
+async function refreshProbes() {
+  const probes=await request('probes');
+  const previous=$('probe').value;
+  $('probe').innerHTML='<option value="">'+(probes.length?'选择 SWD 调试器':'未检测到调试器')+'</option>'+probes.map(p=>`<option value="${esc(p.id)}">${esc(p.name)} · ${esc(p.id)}</option>`).join('');
+  $('probe').value=probes.some(p=>p.id===previous)?previous:probes.length===1?probes[0].id:'';
+  renderControls();
+}
+
+let polling=false;
+async function poll() {
+  if(location.protocol==='file:'){bridgeAvailable=false;render();return;}
+  if(polling||exited)return;
+  polling=true;
+  try {
+    const response=await fetch('/api/status',{cache:'no-store'});
+    if(!response.ok)throw new Error('服务不可用');
+    data=await response.json();bridgeAvailable=true;lastStatusAt=performance.now();render();
+  } catch(error) {bridgeAvailable=false;render();}
+  finally {polling=false;}
+}
+
+document.querySelectorAll('.nav-item').forEach(el=>el.addEventListener('click',()=>switchView(el.dataset.view)));
+document.querySelectorAll('[data-unit]').forEach(el=>el.addEventListener('click',()=>{const rad=targetRad();unit=el.dataset.unit;document.querySelectorAll('[data-unit]').forEach(b=>b.classList.toggle('selected',b===el));text('target-unit',unit==='rad'?'rad/s':'rpm');setTarget(rad);updateRange();}));
+document.querySelectorAll('[data-speed]').forEach(el=>el.addEventListener('click',()=>setTarget(Number(el.dataset.speed))));
+$('plus').onclick=()=>setTarget(targetRad()+(unit==='rpm'?Math.PI/30:.1));$('minus').onclick=()=>setTarget(targetRad()-(unit==='rpm'?Math.PI/30:.1));
+$('speed-slider').oninput=()=>setTarget(Number($('speed-slider').value));
+$('target').oninput=()=>{const v=targetRad();if(Number.isFinite(v))$('speed-slider').value=v;};
+$('speed-limit').onchange=updateRange;$('confirmed').onchange=renderControls;$('probe').onchange=renderControls;
+$('compatibility-confirmed').onchange=renderControls;
+$('refresh').onclick=()=>action(refreshProbes);
+$('exit').onclick=()=>action(async()=>{await request('shutdown');exited=true;bridgeAvailable=false;render();toast('上位机已退出，调试器已释放');});
+$('connect').onclick=()=>action(async()=>{if(connected())await request('disconnect');else{await request('connect',{probe_id:$('probe').value});samples=[];lastTick=null;toast('Flash 核对通过，H743 已连接');}});
+for(const [id,n] of Object.entries({prepare:1,enable:2,run:3,stop:4,'clear-fault':6})) $(id).onclick=()=>action(()=>command(n));
+let disabling=false;
+async function disable(){if(!connected()||disabling)return;disabling=true;try{await command(5);}catch(error){toast(error.message,true);}finally{disabling=false;await poll();}}
+$('disable').onclick=disable;
+$('stop-all').onclick=stopAll;
+document.querySelectorAll('[data-motor]').forEach(el=>el.onclick=()=>selectMotor(Number(el.dataset.motor)));
+$('change-id').onclick=()=>action(async()=>{await request('setup',{command:2,isolated:$('isolated-confirmed').checked});$('isolated-confirmed').checked=false;toast('改 ID 请求已提交，请等待配置完成回执');});
+$('verify-pair').onclick=()=>action(async()=>{await request('setup',{command:1,pair_confirmed:$('pair-confirmed').checked});toast('已请求双电机身份核对');});
+$('isolated-confirmed').onchange=renderDual;
+$('pair-confirmed').onchange=renderDual;
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();stopAll();}});
+$('pause-chart').onclick=()=>{paused=!paused;const el=$('pause-chart');el.textContent=paused?'▶':'Ⅱ';el.title=paused?'继续曲线':'暂停曲线';el.setAttribute('aria-label',el.title);if(!paused)drawChart();};
+for(const id of ['show-target','show-actual','chart-metric']) $(id).onchange=()=>{chartNeedsDraw=true;drawChart();};
+$('export').onclick=async()=>{try{const r=await fetch('/api/export');if(!r.ok)throw new Error((await r.json()).error);const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='RobStride05_'+new Date().toISOString().replace(/[:.]/g,'-')+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('真实采集数据已导出');}catch(error){toast(error.message,true);}};
+$('copy-log').onclick=async()=>{try{await navigator.clipboard.writeText((data?.logs||[]).map(r=>`${r.time} [${r.kind}] ${r.message}`).join('\n'));toast('事件日志已复制');}catch{toast('浏览器未允许复制，请手动选择日志文本',true);}};
+window.addEventListener('resize',()=>{chartNeedsDraw=true;drawChart();});
+setInterval(()=>{text('clock',new Intl.DateTimeFormat('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date()));if(performance.now()-lastStatusAt>800&&data?.connected){bridgeAvailable=false;render();}},500);
+(async()=>{try{updateRange();sessionToken=location.protocol==='file:'?'preview':(await(await fetch('/api/session')).json()).token;await poll();await action(refreshProbes);}catch(error){toast(error.message,true);}setInterval(poll,200);drawChart();})();
+
+function renderDual() {
+  const live=connected(),snap=data?.snapshot||{},dual=data?.motor_count===2;
+  for(let i=0;i<2;i++) {
+    const m=(i===0?snap.motor:snap.motor2)||{};
+    const valid=live && data.sample_age_ms<600 && (i===0?snap.coherent:snap.coherent2);
+    const fresh=valid && m.online && m.feedback_age_ms+data.sample_age_ms<150;
+    text('summary-'+i,!live?'等待连接':!dual&&i===1?'当前固件仅支持单电机':`${fresh?'在线':'离线 / 过期'} · ${states[m.state]||'未知'} · 实测 ${fresh?format(m.velocity_rad_s):'—'} / 目标 ${valid?format(m.target_rad_s):'—'} rad/s`);
+    $('select-motor-'+i).classList.toggle('selected',selectedMotor===i);
+    $('select-motor-'+i).disabled=busy || (live && i===1 && !dual);
+  }
+  text('selected-label',`当前控制：电机 ${selectedMotor+1} · ID ${selectedMotor===0?127:126}。下方参数、命令和曲线均对应此电机。`);
+  text('pair-state',snap.setup?.dual_ready?'身份核对通过':data?.setup_pending?'正在配置，请等待回执':'尚未核对，运动命令锁定');
+  const idle=live && dual && !busy && !data?.setup_pending && !data?.pending_motors?.some(Boolean) && !snap.setup?.busy;
+  $('change-id').disabled=!(idle && $('isolated-confirmed').checked);
+  $('verify-pair').disabled=!(idle && $('pair-confirmed').checked);
+  $('stop-all').disabled=!live;
+}
+function selectMotor(index) {
+  if(index===selectedMotor || busy)return;
+  edits[selectedMotor]={target:targetRad(),cap:Number($('speed-limit').value),current:Number($('current-limit').value),accel:Number($('accel-limit').value),confirmed:$('confirmed').checked,compat:$('compatibility-confirmed').checked};
+  selectedMotor=index;
+  const e=edits[index];
+  $('speed-limit').value=e.cap;$('current-limit').value=e.current;$('accel-limit').value=e.accel;
+  $('confirmed').checked=e.confirmed;$('compatibility-confirmed').checked=e.compat;
+  setTarget(e.target);updateRange();samples=[];lastTick=null;chartNeedsDraw=true;render();
+}
+let allStopping=false;
+async function stopAll() {
+  window.forgetDrive?.();
+  if(!connected()||allStopping)return;
+  allStopping=true;
+  try {await request('stop_all');toast('两台失能请求已提交，请查看两台反馈确认');}
+  catch(error){toast(error.message,true);}
+  finally {allStopping=false;await poll();}
+}
+
+</script><script>
+'use strict';
+const ledNames=['自定义循环','流动彩虹','双向彗星','极光波浪','火焰','流动等离子','往返扫描','纯色常亮'];
+const ledDefaults={enabled:1,mode:0,brightness:64,speed_percent:100,color_order:0,red:32,green:180,blue:255,cycle_interval_ms:8000,cycle_modes:[1,2,3,4,5,6]};
+let ledPlaylist=[...ledDefaults.cycle_modes],ledLoaded=false;
+$('log-section').insertAdjacentHTML('beforebegin',`
+<section id="view-led" class="panel led-panel view hidden">
+ <div class="panel-heading"><div><span class="section-index">04 /</span><h2>WS2812 灯带控制</h2></div><span id="led-status" class="badge">等待连接</span></div>
+ <div class="led-live"><div><span>板上当前显示</span><strong id="led-live-mode">—</strong><p id="led-live-detail">连接设备后读取灯带状态</p></div><div><span>应用状态</span><strong id="led-sync">尚未读取</strong><p id="led-errors">—</p></div></div>
+ <div class="led-grid"><div class="led-settings">
+  <h3>当前灯效与外观</h3><p class="led-hint">编辑后点击“应用到灯带”。灯带控制无需准备或使能电机。</p>
+  <label class="led-check"><input id="led-enabled" type="checkbox" checked> 开启灯带</label>
+  <label>显示方式<select id="led-mode">${ledNames.map((n,i)=>`<option value="${i}">${n}</option>`).join('')}</select></label>
+  <div class="led-pair"><label>亮度 · 0–255<input id="led-brightness" type="number" min="0" max="255" step="1" value="64"></label><label>动画速度 · %<input id="led-speed" type="number" min="1" max="400" step="1" value="100"></label></div>
+  <label>自定义颜色<input id="led-color" type="color" value="#20b4ff"></label>
+  <div class="led-rgb">${['red','green','blue'].map((n,i)=>`<label>${['R 红','G 绿','B 蓝'][i]}<input id="led-${n}" type="number" min="0" max="255" step="1" value="${[32,180,255][i]}"></label>`).join('')}</div>
+  <p class="led-hint">自定义颜色作用于“往返扫描”和“纯色常亮”；其它灯效使用自身配色。动画速度与循环切换间隔独立。</p>
+  <details><summary>高级设置</summary><label>灯带颜色顺序<select id="led-order"><option value="0">GRB · 默认 WS2812</option><option value="1">RGB</option></select></label></details>
+ </div><div class="led-cycle">
+  <h3>自定义循环列表</h3><p class="led-hint">按列表从上到下循环，可重复添加；最多 8 项。显示方式选择“自定义循环”后生效。</p>
+  <label>每项播放时长 · 秒<input id="led-interval" type="number" min="1" max="600" step="0.1" value="8"></label>
+  <ol id="led-playlist" class="led-playlist"></ol>
+  <div class="led-add"><select id="led-add-mode" aria-label="要添加的灯效">${ledNames.slice(1).map((n,i)=>`<option value="${i+1}">${n}</option>`).join('')}</select><button id="led-add" class="button secondary">添加灯效 ＋</button></div>
+  <div class="led-presets"><button id="led-all" class="button secondary">循环全部 7 种</button><button id="led-default" class="button secondary">恢复默认编辑值</button></div>
+  <p class="led-hint">循环由开发板运行，关闭页面或断开上位机后继续。板上设置在 MCU 重启后恢复默认；可保存到本机，重新读取后点击应用。</p>
+ </div></div>
+ <div class="led-actions"><button id="led-apply" class="button primary" disabled>应用到灯带 ↗</button><button id="led-off" class="button secondary" disabled>关闭灯带</button><button id="led-read" class="button secondary" disabled>读取板上设置</button><button id="led-save" class="button secondary">保存到本机</button><button id="led-load" class="button secondary">读取本机方案</button></div>
+</section>`);
+
+function ledBoardConfig() {
+  const l=data?.snapshot?.led;
+  if(!l || !Array.isArray(l.cycle_modes))return null;
+  return Object.fromEntries(Object.keys(ledDefaults).map(k=>[k,k==='cycle_modes'?l.cycle_modes.slice(0,l.cycle_count):l[k]]));
+}
+function ledDraft() {
+  const c={enabled:$('led-enabled').checked?1:0,mode:Number($('led-mode').value),
+    brightness:Number($('led-brightness').value),speed_percent:Number($('led-speed').value),
+    color_order:Number($('led-order').value),red:Number($('led-red').value),green:Number($('led-green').value),blue:Number($('led-blue').value),
+    cycle_interval_ms:Math.round(Number($('led-interval').value)*1000),cycle_modes:[...ledPlaylist]};
+  for(const id of ['led-brightness','led-speed','led-red','led-green','led-blue','led-interval'])
+    if(!$(id).checkValidity() || $(id).value==='')throw new Error('请填写范围内的灯效参数');
+  if(!c.cycle_modes.length)throw new Error('请至少添加一项循环灯效');
+  return c;
+}
+function ledFill(c) {
+  $('led-enabled').checked=!!c.enabled;$('led-mode').value=c.mode;
+  for(const [id,k] of [['led-brightness','brightness'],['led-speed','speed_percent'],['led-order','color_order'],['led-red','red'],['led-green','green'],['led-blue','blue']])$(id).value=c[k];
+  $('led-interval').value=c.cycle_interval_ms/1000;ledPlaylist=[...c.cycle_modes];ledUpdateColor();ledRenderPlaylist();
+}
+function ledUpdateColor() {
+  $('led-color').value='#'+['red','green','blue'].map(k=>Math.max(0,Math.min(255,Number($('led-'+k).value)||0)).toString(16).padStart(2,'0')).join('');
+}
+function ledRenderPlaylist() {
+  $('led-playlist').innerHTML=ledPlaylist.map((mode,i)=>`<li><span>${i+1}. ${esc(ledNames[mode])}</span><button data-at="${i}" data-op="up" aria-label="上移第 ${i+1} 项" ${i===0?'disabled':''}>↑</button><button data-at="${i}" data-op="down" aria-label="下移第 ${i+1} 项" ${i===ledPlaylist.length-1?'disabled':''}>↓</button><button data-at="${i}" data-op="remove" aria-label="移除第 ${i+1} 项" ${ledPlaylist.length===1?'disabled':''}>×</button></li>`).join('');
+  $('led-add').disabled=ledPlaylist.length>=8;
+}
+function renderLed() {
+  const live=connected(),supported=data?.led_supported,l=data?.snapshot?.led;
+  const usable=live&&supported&&!!l;
+  if(usable&&!ledLoaded){ledFill(ledBoardConfig());ledLoaded=true;}
+  for(const id of ['led-apply','led-off','led-read'])$(id).disabled=!usable||busy;
+  badge('led-status',!live?'等待连接':!supported?'请下载新版灯效固件':!l?.ready?'灯带发送异常':`${l.led_count} 颗 · 已连接`,usable&&l.ready?'online':'');
+  text('led-live-mode',usable?l.enabled?ledNames[l.active_mode]||'等待发送':'已关闭':'—');
+  text('led-live-detail',usable?`${l.mode===0?`循环第 ${l.cycle_index+1}/${l.cycle_count} 项 · `:'固定灯效 · '}亮度 ${l.brightness}/255 · 动画 ${l.speed_percent}% · RGB ${l.red}, ${l.green}, ${l.blue}`:'连接设备后读取灯带状态');
+  text('led-errors',usable?`已发送 ${l.frames_done} 帧 · 错误 ${l.errors} · 最近错误码 ${l.last_error}`:'—');
+  let same=false;try {const draft=ledDraft(),board=ledBoardConfig();same=!!board&&Object.keys(draft).every(k=>JSON.stringify(draft[k])===JSON.stringify(board[k]));}catch{}
+  text('led-sync',!usable?'等待连接':same?'与板上设置一致':'编辑值尚未应用');
+}
+$('view-led').addEventListener('input',renderLed);
+$('led-color').oninput=()=>{const h=$('led-color').value;['red','green','blue'].forEach((k,i)=>$('led-'+k).value=parseInt(h.slice(1+i*2,3+i*2),16));renderLed();};
+for(const k of ['red','green','blue'])$('led-'+k).oninput=()=>{ledUpdateColor();renderLed();};
+$('led-playlist').onclick=event=>{const b=event.target.closest('button');if(!b)return;const i=Number(b.dataset.at),op=b.dataset.op;if(op==='remove')ledPlaylist.splice(i,1);else{const j=i+(op==='up'?-1:1);[ledPlaylist[i],ledPlaylist[j]]=[ledPlaylist[j],ledPlaylist[i]];}ledRenderPlaylist();renderLed();};
+$('led-add').onclick=()=>{if(ledPlaylist.length<8)ledPlaylist.push(Number($('led-add-mode').value));ledRenderPlaylist();renderLed();};
+$('led-all').onclick=()=>{ledPlaylist=[1,2,3,4,5,6,7];$('led-mode').value=0;ledRenderPlaylist();renderLed();};
+$('led-default').onclick=()=>{ledFill(ledDefaults);renderLed();};
+$('led-read').onclick=()=>{ledFill(ledBoardConfig());renderLed();toast('已读取板上设置到编辑区');};
+$('led-apply').onclick=()=>action(async()=>{const result=await request('led',ledDraft());toast(`灯效已获固件确认 · 序号 ${result.seq}`);});
+$('led-off').onclick=()=>action(async()=>{const c=ledBoardConfig();c.enabled=0;await request('led',c);ledFill(c);toast('灯带已关闭，重新勾选开启并应用即可恢复');});
+$('led-save').onclick=()=>{try{localStorage.setItem('robstride.led.v1',JSON.stringify(ledDraft()));toast('灯效方案已保存到本机浏览器');}catch(e){toast(e.message,true);}};
+$('led-load').onclick=()=>{try{const c=JSON.parse(localStorage.getItem('robstride.led.v1'));if(!c || Object.keys(ledDefaults).some(k=>!(k in c)) || !Array.isArray(c.cycle_modes) || !c.cycle_modes.length || c.cycle_modes.length>8 || c.cycle_modes.some(m=>!Number.isInteger(m)||m<1||m>7))throw new Error('没有有效的本机灯效方案');ledFill(c);ledDraft();renderLed();toast('已读取本机方案，点击应用后生效');}catch(e){toast(e.message,true);}};
+ledRenderPlaylist();renderLed();
+
+</script><script>
+'use strict';
+(() => {
+  const keys=new Set(), codes=['KeyW','KeyA','KeyS','KeyD'];
+  let owner=null, starting=false, sending=false, dirty=false;
+  const settings=['drive-speed','drive-left','drive-left-sign','drive-right-sign'];
+  const editing=el=>!!el?.closest('input,select,textarea,[contenteditable=true],[role=dialog]');
+  function targets() {
+    const speed=Number($('drive-speed').value);
+    if($('drive-speed').value==='' || !Number.isFinite(speed) || speed<0 || speed>MAX_SPEED_RAD_S)
+      throw new Error('轮速需在现有范围 0–33 rad/s 内');
+    const f=Number(keys.has('KeyW'))-Number(keys.has('KeyS'));
+    const t=Number(keys.has('KeyD'))-Number(keys.has('KeyA'));
+    const divisor=Math.max(1,Math.abs(f)+Math.abs(t));
+    const left=(f+t)/divisor*speed*Number($('drive-left-sign').value);
+    const right=(f-t)/divisor*speed*Number($('drive-right-sign').value);
+    return $('drive-left').value==='0'?[left,right]:[right,left];
+  }
+  function drawKeys() {
+    document.querySelectorAll('[data-drive-key]').forEach(el=>el.classList.toggle('pressed',keys.has(el.dataset.driveKey)));
+  }
+  function forget() {owner=null;keys.clear();dirty=false;drawKeys();renderControls();}
+  async function leave() {
+    if(starting){starting=false;}
+    const previous=owner;
+    forget();
+    if(!previous)return;
+    try {await request('drive_exit',{owner:previous});}
+    catch(error){toast(error.message,true);}
+    finally{await poll();}
+  }
+  async function send() {
+    if(!owner)return;
+    dirty=true;
+    if(sending)return;
+    sending=true;
+    const session=owner;
+    try {
+      do {
+        dirty=false;
+        await request('drive_update',{owner:session,targets:targets()});
+      } while(dirty && owner===session);
+    } catch(error) {
+      if(owner===session){toast(error.message,true);await leave();}
+    } finally{sending=false;}
+  }
+  function zero(){keys.clear();drawKeys();void send();}
+  function renderDrive() {
+    const active=!!owner || !!data?.drive_active;
+    const snap=data?.snapshot, motors=[snap?.motor,snap?.motor2];
+    const ready=connected() && data?.drive_supported && snap?.coherent && snap?.coherent2 &&
+      snap?.setup?.dual_ready && !data?.setup_pending && !data?.pending_motors?.some(Boolean) &&
+      motors.every(m=>m && [2,3,4].includes(m.state) && m.enabled && m.enable_requested && !m.job_command && m.online);
+    $('drive-enter').disabled=!!(active || starting || busy || !ready);
+    $('drive-exit').disabled=!owner;
+    $('drive-zero').disabled=!owner;
+    settings.forEach(id=>$(id).disabled=active || starting);
+    text('drive-status',owner?'键盘控制已开启 · 按住 WASD 行驶，松键归零':active?'小车模式由其他页面控制':
+      connected() && !data?.drive_supported?'请下载本次新版 H7 固件后使用 WASD':
+      ready?'可进入键盘控制 · 进入时接管两轮目标并归零，无需等待实测零速':
+      '未进入小车模式 · 两台电机需分别准备、使能');
+    if(active) {
+      for(const id of ['prepare','enable','run','speed-limit','current-limit','accel-limit','change-id','verify-pair'])$(id).disabled=true;
+    }
+    if(owner && (!connected() || !data?.drive_active)) {
+      // Fresh status follows the acquire receipt; H7 can revoke the session.
+      forget();
+    }
+  }
+  $('drive-enter').onclick=async()=>{
+    if(starting || owner)return;
+    try {
+      targets();
+      starting=true;renderControls();
+      const result=await request('drive_enter');
+      // Losing focus while acquire was in flight cancels its resulting session.
+      if(!starting){await request('drive_exit',{owner:result.owner});return;}
+      owner=result.owner;keys.clear();
+      await poll();
+      $('drive-enter').blur();
+    } catch(error){toast(error.message,true);}
+    finally{starting=false;renderControls();}
+  };
+  $('drive-exit').onclick=leave;
+  $('drive-zero').onclick=zero;
+  $('drive-panel').addEventListener('toggle',()=>{if(!$('drive-panel').open)void leave();});
+  document.addEventListener('keydown',event=>{
+    if(!owner)return;
+    if(event.code==='Escape'){forget();return;}
+    if(editing(event.target) || event.ctrlKey || event.altKey || event.metaKey || event.isComposing)return;
+    if(event.repeat)return;
+    if(event.code==='Space'){event.preventDefault();zero();return;}
+    if(!codes.includes(event.code))return;
+    event.preventDefault();
+    if(!keys.has(event.code)){keys.add(event.code);drawKeys();void send();}
+  });
+  document.addEventListener('keyup',event=>{
+    if(keys.delete(event.code)){event.preventDefault();drawKeys();void send();}
+  });
+  document.addEventListener('focusin',event=>{if(owner && editing(event.target))zero();});
+  window.addEventListener('blur',()=>void leave());
+  window.addEventListener('pagehide',()=>{
+    if(owner)void fetch('/api/drive_exit',{method:'POST',keepalive:true,
+      headers:{'Content-Type':'application/json','X-Console-Token':sessionToken},body:JSON.stringify({owner})});
+    forget();
+  });
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)void leave();});
+  setInterval(()=>{if(owner)void send();},180);
+  window.renderDrive=renderDrive;window.leaveDrive=leave;window.forgetDrive=forget;
+  renderDrive();
+})();
+
+</script><script>
+// The same point field runs on an OffscreenCanvas worker, with a main-thread fallback.
+(() => {
+  class PixelField {
+    constructor(canvas) { this.canvas=canvas; this.context=canvas.getContext('2d',{alpha:true}); }
+    resize(width,height,dpr) {
+      this.width=width;this.height=height;
+      this.dpr=dpr;
+      this.canvas.width=Math.round(width*dpr);this.canvas.height=Math.round(height*dpr);
+      this.context?.setTransform(dpr,0,0,dpr,0,0);
+    }
+    paint(now,preferences,accent,reduced) {
+      const {width,height,context}=this;
+      if (!context || !width || !height) return;
+      const time=reduced?0:now*.0003*preferences.speed;
+      const rgb=/^#[a-f0-9]{6}$/i.test(accent)?[1,3,5].map(i=>parseInt(accent.slice(i,i+2),16)):[50,240,140];
+      const cell=(Number(preferences.spacing)||7)*(width>1000?1:1.1);
+      context.clearRect(0,0,width,height);
+      for(let y=12;y<height;y+=cell) for(let x=3;x<width;x+=cell) {
+        const u=x/width,v=y/height;
+        const warp=.1*Math.sin(u*8+v*5+time*.3)+.06*Math.sin(v*14-u*7-time*.24);
+        const ridge=.64+.17*Math.sin(u*6-.9+time*.35)+warp;
+        const band=Math.exp(-(((v-ridge)/.19)**2));
+        const left=Math.exp(-(((u+.03+.06*Math.sin(v*8+time*.2))/.32)**2)-((v-.38)/.43)**2);
+        const right=.6*Math.exp(-(((u-1.02)/.16)**2)-((v-.08-.07*Math.sin(time*.3))/.18)**2);
+        const grain=.62+.38*Math.sin(x*.019+y*.025+Math.sin(y*.013-time*.4)*2);
+        const hollow=1-.9*Math.exp(-(((u-.64)/.29)**2)-((v-.28)/.24)**2);
+        const amount=Math.max(band,left,right)*(.6+.4*grain)*hollow;
+        const flicker=.65+.35*Math.sin(x*.021+y*.057+time*2.1);
+        const seed=Math.sin(x*12.9898+y*78.233)*43758.5453,scatter=seed-Math.floor(seed);
+        const opacity=Math.min(.82,Math.max(0,(amount-.16-scatter*.25)*1.3*flicker));
+        if(opacity<.035)continue;
+        const green=Math.sin(x*.014+y*.023+time*.4)>.35&&scatter>.35;
+        context.fillStyle=green?`rgba(${rgb.map(c=>Math.round(c*.65)).join(',')},${opacity*.7})`:`rgba(183,190,186,${opacity*.8})`;
+        context.fillRect(Math.round(x),Math.round(y),Math.max(2,cell-2),Math.max(2,cell-2));
+      }
+    }
+  }
+  globalThis.ControlDeskPixels=PixelField;
+  if(typeof document!=='undefined')return;
+  let field,state,timer=0;
+  const draw=()=>{
+    timer=0;
+    if(!state?.preferences.enabled){field?.context?.clearRect(0,0,field.width,field.height);return;}
+    if(!state.visible)return;
+    field.paint(performance.now(),state.preferences,state.accent,state.reduced);
+    if(!state.reduced)timer=setTimeout(draw,32);
+  };
+  onmessage=event=>{
+    const next=event.data;
+    if(next.canvas)field=new PixelField(next.canvas);
+    if(!field || !next.preferences)return;
+    if(field.width!==next.width||field.height!==next.height||field.dpr!==next.dpr)field.resize(next.width,next.height,next.dpr);
+    state=next;
+    clearTimeout(timer);timer=setTimeout(draw,0);
+  };
+})();
+
+</script><script>
+/* Presentation and navigation only. Hardware actions remain in app.js / led.js.
+   Layout, carousel and pixel field adapted from upper-computer-template. */
+(() => {
+  'use strict';
+  const byId = id => document.getElementById(id);
+  const modules = [
+    ['control', '电机控制', '独立控制，协同运转。', '选择一个关节，编辑它的速度与运行限制。准备、使能、运行，每一步都有明确的反馈。'],
+    ['telemetry', '数据观测', '把每一刻，看得更清楚。', '观测当前所选电机最近 30 秒的真实反馈。切换指标、暂停曲线，或导出采集记录。'],
+    ['diagnostics', '通信诊断', '连接的每个细节，有据可查。', '从固件身份到 CAN 收发、参数回执与健康状态，逐层了解你的设备。'],
+    ['led', '灯带控制', '色彩与节奏，由你编排。', '选择灯效，调整颜色、亮度与速度。按自己的顺序编排循环，把方案保存到本机。'],
+    ['guide', '使用指南', '从连接，到第一次转动。', '沿着熟悉的操作流程，完成设备连接、身份核对与第一次低速调试。'],
+  ];
+  const defaults = {accent:'#26ed89',motion:true,speed:1,spacing:8,compact:false,logs:true};
+  const storageKey = 'robstride.workspace.v1';
+  let preferences = {...defaults};
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    if (/^#[0-9a-f]{6}$/i.test(saved.accent)) preferences.accent = saved.accent;
+    for (const key of ['motion','compact','logs']) if (typeof saved[key] === 'boolean') preferences[key] = saved[key];
+    if (Number.isFinite(saved.speed)) preferences.speed = Math.min(2, Math.max(.2, saved.speed));
+    if (Number.isFinite(saved.spacing)) preferences.spacing = Math.min(14, Math.max(5, saved.spacing));
+  } catch { /* Defaults also work when browser storage is unavailable. */ }
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const smooth = () => reducedMotion.matches ? 'instant' : 'smooth';
+  let selected = 'control';
+
+  const navigation = document.createElement('div');
+  navigation.className = 'monitor-navigation';
+  navigation.innerHTML = `<div class="monitor-tabs" role="tablist" aria-label="工作空间模块">${modules.map(([id,label],i)=>`<button class="monitor-tab" id="tab-${id}" role="tab" aria-controls="slide-${id}" aria-selected="${i===0}" tabindex="${i===0?0:-1}" data-module="${id}"><span>0${i+1}</span>${label}</button>`).join('')}</div><div class="monitor-arrows"><button class="square-arrow" id="module-previous" aria-label="上一个模块">←</button><button class="square-arrow next" id="module-next" aria-label="下一个模块">→</button></div>`;
+  const viewport = document.createElement('div');
+  viewport.className = 'monitor-viewport';
+  viewport.id = 'monitor-viewport';
+  viewport.tabIndex = 0;
+  viewport.setAttribute('role','region');
+  viewport.setAttribute('aria-label','模块卡片，使用左右方向键切换');
+  const track = document.createElement('div');
+  track.className = 'monitor-track';
+  viewport.append(track);
+  const chart = byId('chart-section');
+  const telemetry = document.createElement('section');
+  telemetry.id = 'view-telemetry';
+  telemetry.innerHTML = '<p class="telemetry-intro">当前电机由上方卡片选择。暂停只冻结曲线，后台继续采集；导出保留两个电机的记录。</p>';
+  chart.parentNode.insertBefore(telemetry,chart);
+  telemetry.append(chart);
+  const first = byId('view-control');
+  first.before(navigation,viewport);
+  for (const [id,label,title,description] of modules) {
+    const content = id === 'telemetry' ? telemetry : byId('view-'+id);
+    content.classList.remove('hidden');
+    const slide = document.createElement('section');
+    slide.className = 'monitor-slide';
+    slide.id = 'slide-'+id;
+    slide.dataset.module = id;
+    slide.setAttribute('role','tabpanel');
+    slide.setAttribute('aria-labelledby','tab-'+id);
+    slide.innerHTML = `<div class="module-window"><div class="window-bar"><span class="window-mark">⌘</span><span>${label}</span><span class="window-meta">ROBSTRIDE / 2026 AIC</span></div><div class="module-content"></div></div><div class="slide-caption"><div><h3>${title}</h3><div class="module-step">0${modules.findIndex(m=>m[0]===id)+1} / 05</div></div><p>${description}</p></div><button class="preview-cover" aria-label="切换到${label}" tabindex="-1"></button>`;
+    slide.querySelector('.module-content').append(content);
+    slide.querySelector('.preview-cover').onclick = () => switchView(id);
+    track.append(slide);
+  }
+  const hint = document.createElement('p');
+  hint.className = 'module-nav-hint';
+  hint.textContent = '← → 切换模块 · 触摸滑动标题栏或卡片说明 · Esc 两台全部失能';
+  viewport.after(hint);
+
+  function position() {
+    const slide = byId('slide-'+selected);
+    if (!slide) return;
+    track.style.transform = `translateX(${(viewport.clientWidth-slide.offsetWidth)/2-slide.offsetLeft}px)`;
+    viewport.style.height = `${slide.offsetHeight+28}px`;
+  }
+  function show(id) {
+    if (!modules.some(m=>m[0]===id)) return;
+    selected = id;
+    for (const [key] of modules) {
+      const active = id===key, slide = byId('slide-'+key), tab = byId('tab-'+key);
+      slide.classList.toggle('is-active',active);
+      slide.setAttribute('aria-hidden',String(!active));
+      slide.querySelector('.module-window').inert = !active;
+      slide.querySelector('.preview-cover').hidden = active;
+      tab.setAttribute('aria-selected',String(active));
+      tab.tabIndex = active?0:-1;
+    }
+    byId('module-previous').disabled = id===modules[0][0];
+    byId('module-next').disabled = id===modules.at(-1)[0];
+    byId('log-section').classList.toggle('hidden',!preferences.logs || id==='guide');
+    position();
+    requestAnimationFrame(()=>{chartNeedsDraw=true;drawChart();});
+  }
+  window.consoleUi = {show};
+  function move(delta, focusTab=false) {
+    const current = modules.findIndex(m=>m[0]===selected), next = Math.max(0,Math.min(modules.length-1,current+delta));
+    switchView(modules[next][0]);
+    if (focusTab) byId('tab-'+selected).focus({preventScroll:true});
+  }
+  navigation.querySelector('.monitor-tabs').onclick = event => {
+    const tab = event.target.closest('[data-module]');
+    if (tab) switchView(tab.dataset.module);
+  };
+  byId('module-previous').onclick = ()=>move(-1);
+  byId('module-next').onclick = ()=>move(1);
+  document.querySelectorAll('.primary-nav .nav-item').forEach(button=>button.addEventListener('click',()=>navigation.scrollIntoView({behavior:smooth(),block:'start'})));
+  for (const region of [navigation,viewport]) region.addEventListener('keydown',event=>{
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.target.closest('input,select,textarea,[contenteditable=true]')) return;
+    const inTabs = !!event.target.closest('[role=tablist]');
+    if (event.key==='ArrowLeft' || event.key==='ArrowRight') {
+      event.preventDefault();move(event.key==='ArrowRight'?1:-1,inTabs);
+    } else if (inTabs && ['Home','End'].includes(event.key)) {
+      event.preventDefault();switchView(event.key==='Home'?modules[0][0]:modules.at(-1)[0]);
+      byId('tab-'+selected).focus({preventScroll:true});
+    }
+  });
+  let startTouch = null;
+  viewport.addEventListener('touchstart',event=>{
+    const touch = event.touches[0];
+    startTouch = event.touches.length===1 && event.target.closest('.window-bar,.slide-caption') ? {x:touch.clientX,y:touch.clientY} : null;
+  },{passive:true});
+  viewport.addEventListener('touchend',event=>{
+    if (!startTouch) return;
+    const touch = event.changedTouches[0],dx=touch.clientX-startTouch.x,dy=touch.clientY-startTouch.y;
+    startTouch=null;
+    if (Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5) move(dx<0?1:-1);
+  },{passive:true});
+  viewport.addEventListener('touchcancel',()=>{startTouch=null;},{passive:true});
+  const observer = new ResizeObserver(position);
+  observer.observe(viewport);
+  track.querySelectorAll('.monitor-slide').forEach(slide=>observer.observe(slide));
+  byId('enter-console').onclick = ()=>{
+    byId('console').scrollIntoView({behavior:smooth(),block:'start'});
+    byId('console').focus({preventScroll:true});
+  };
+  byId('dismiss-announcement').onclick = ()=>byId('announcement').remove();
+
+  const drawer=byId('settings-drawer'),scrim=byId('settings-scrim');
+  let lastFocus=null, previousOverflow='';
+  const outside = ()=>document.querySelectorAll('body>.site-header,body>.announcement,body>.app-shell,body>.back-top,body>.skip-link');
+  function closeSettings() {
+    if (drawer.hidden) return;
+    drawer.hidden=true;scrim.hidden=true;
+    outside().forEach(el=>{el.inert=false;});
+    document.body.style.overflow=previousOverflow;
+    lastFocus?.focus({preventScroll:true});
+  }
+  byId('open-settings').onclick = ()=>{
+    lastFocus=document.activeElement;previousOverflow=document.body.style.overflow;
+    drawer.hidden=false;scrim.hidden=false;document.body.style.overflow='hidden';
+    outside().forEach(el=>{el.inert=true;});byId('close-settings').focus();
+  };
+  byId('close-settings').onclick=closeSettings;scrim.onclick=closeSettings;
+  document.addEventListener('keydown',event=>{
+    if (drawer.hidden) return;
+    // Do not suppress Escape: app.js also sends the existing stop-all request.
+    if (event.key==='Escape') closeSettings();
+    if (event.key!=='Tab') return;
+    const focusable=[...drawer.querySelectorAll('button,input,select,[tabindex="0"]')].filter(el=>!el.disabled);
+    const first=focusable[0],last=focusable.at(-1);
+    if (event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+  });
+
+  function syncSettings() {
+    byId('accent-color').value=preferences.accent;
+    byId('motion-enabled').checked=preferences.motion;
+    byId('motion-speed').value=preferences.speed;
+    byId('pixel-density').value=preferences.spacing;
+    byId('compact-layout').checked=preferences.compact;
+    byId('show-logs').checked=preferences.logs;
+    byId('motion-speed-value').textContent=Number(preferences.speed).toFixed(1)+'×';
+    byId('pixel-density-value').textContent=preferences.spacing+' px';
+  }
+  function applyPreferences(save=false) {
+    document.documentElement.style.setProperty('--accent',preferences.accent);
+    document.body.classList.toggle('is-compact',preferences.compact);
+    byId('log-section').classList.toggle('hidden',!preferences.logs||selected==='guide');
+    syncSettings();
+    if(save)try{localStorage.setItem(storageKey,JSON.stringify(preferences));}catch{toast('浏览器未允许保存，外观仅在本页生效',true);}
+    requestDraw();requestAnimationFrame(position);
+    document.dispatchEvent(new Event('upper-computer:config'));
+  }
+  for(const [id,key,type] of [['accent-color','accent','value'],['motion-enabled','motion','checked'],['compact-layout','compact','checked'],['show-logs','logs','checked'],['motion-speed','speed','number'],['pixel-density','spacing','number']]){
+    byId(id).addEventListener('input',()=>{
+      preferences[key]=type==='number'?Number(byId(id).value):byId(id)[type];applyPreferences(true);
+    });
+  }
+  byId('reset-settings').onclick=()=>{
+    preferences={...defaults};applyPreferences(true);
+    for(const id of ['signalMotionEnabled','footerMotionEnabled']){
+      byId(id).checked=true;byId(id).dispatchEvent(new Event('change'));
+    }
+  };
+
+  // The same warped point field as the template; never represents motor data.
+  let canvas=byId('pixelField');
+  const hero=byId('overview');
+  let width=0,height=0,dpr=1,frame=0,lastDraw=0;
+  let worker=null,renderer=null,lastWorkerState='',transferred=false;
+  function fallback(){
+    worker?.terminate();worker=null;
+    const replacement=canvas.cloneNode(false);canvas.replaceWith(replacement);canvas=replacement;
+    renderer=new ControlDeskPixels(canvas);resizeField();requestDraw();
+  }
+  try{
+    if(!canvas.transferControlToOffscreen||!window.Worker)throw new Error('Worker canvas unavailable');
+    worker=new Worker('/pixel-field.js');
+    const offscreen=canvas.transferControlToOffscreen();transferred=true;
+    worker.postMessage({canvas:offscreen},[offscreen]);
+    worker.addEventListener('error',event=>{event.preventDefault();fallback();},{once:true});
+  }catch{
+    if(transferred)fallback();
+    else{worker?.terminate();worker=null;renderer=new ControlDeskPixels(canvas);}
+  }
+  function resizeField(){
+    const box=hero.getBoundingClientRect();width=box.width;height=box.height;dpr=Math.min(devicePixelRatio||1,1.5);
+    canvas.style.width=width+'px';canvas.style.height=height+'px';renderer?.resize(width,height,dpr);requestDraw();
+  }
+  function draw(now){
+    frame=0;
+    if(!preferences.motion){renderer?.context?.clearRect(0,0,width,height);return;}
+    const box=hero.getBoundingClientRect();
+    if(document.hidden||box.bottom<0||box.top>innerHeight)return;
+    if(now-lastDraw<32){frame=requestAnimationFrame(draw);return;}
+    lastDraw=now;
+    renderer?.paint(now,preferences,preferences.accent,reducedMotion.matches);
+    if(!reducedMotion.matches)frame=requestAnimationFrame(draw);
+  }
+  function requestDraw(){
+    if(worker){
+      const box=hero.getBoundingClientRect();
+      const state={width,height,dpr,preferences:{enabled:preferences.motion,speed:preferences.speed,spacing:preferences.spacing},accent:preferences.accent,reduced:reducedMotion.matches,visible:!document.hidden&&box.bottom>=0&&box.top<=innerHeight};
+      const signature=JSON.stringify(state);
+      if(signature!==lastWorkerState){lastWorkerState=signature;worker.postMessage(state);}
+      return;
+    }
+    if(!frame)frame=requestAnimationFrame(draw);
+  }
+  new ResizeObserver(resizeField).observe(hero);
+  function scrollUpdate(){
+    const max=document.documentElement.scrollHeight-innerHeight;
+    document.querySelector('.scroll-progress').style.width=(max>0?scrollY/max*100:0)+'%';
+    byId('back-to-top').hidden=scrollY<500;requestDraw();
+  }
+  addEventListener('scroll',scrollUpdate,{passive:true});
+  document.addEventListener('visibilitychange',requestDraw);
+  reducedMotion.addEventListener('change',requestDraw);
+  byId('back-to-top').onclick=()=>window.scrollTo({top:0,behavior:smooth()});
+  resizeField();applyPreferences();show('control');scrollUpdate();
+})();
+
+</script><script>
+// Shared by the footer and functional surfaces: identical input, damping and sampling.
+(() => {
+  class DistortionGrid {
+    constructor() {
+      this.size = 15;
+      this.field = new Float32Array(this.size * this.size * 2);
+      this.pointer = null;
+    }
+    clear() { this.field.fill(0); this.pointer = null; }
+    leave() { this.pointer = null; }
+    move(x, y) {
+      if (!this.pointer) { this.pointer = {x, y}; return false; }
+      const vx = Math.max(-.12, Math.min(.12, x - this.pointer.x));
+      const vy = Math.max(-.12, Math.min(.12, y - this.pointer.y));
+      this.pointer = {x, y};
+      if (Math.abs(vx) + Math.abs(vy) < .0001) return false;
+      for (let row = 0; row < this.size; row++) for (let col = 0; col < this.size; col++) {
+        const distance = Math.hypot(x - (col + .5) / this.size, y - (row + .5) / this.size);
+        if (distance >= .25) continue;
+        const influence = Math.min(.25 / Math.max(distance, .025), 10);
+        const i = (col + row * this.size) * 2;
+        this.field[i] = Math.max(-8, Math.min(8, this.field[i] + 15 * vx * influence));
+        this.field[i + 1] = Math.max(-8, Math.min(8, this.field[i + 1] + 15 * vy * influence));
+      }
+      return true;
+    }
+    advance(elapsed) {
+      const damping = Math.pow(.9, Math.min(50, elapsed) / (1000 / 60));
+      let energy = 0;
+      for (let i = 0; i < this.field.length; i++) {
+        this.field[i] *= damping;
+        energy = Math.max(energy, Math.abs(this.field[i]));
+      }
+      return energy > .005;
+    }
+    draw(context, source, width, height) {
+      context.clearRect(0, 0, width, height);
+      const cw = width / this.size, ch = height / this.size;
+      for (let row = 0; row < this.size; row++) for (let col = 0; col < this.size; col++) {
+        const i = (col + row * this.size) * 2;
+        const x = Math.round(col * cw), y = Math.round(row * ch);
+        const w = Math.round((col + 1) * cw) - x, h = Math.round((row + 1) * ch) - y;
+        context.drawImage(source, x - this.field[i] * .02 * width,
+          y - this.field[i + 1] * .02 * height, w, h, x, y, w, h);
+      }
+    }
+  }
+  window.ControlDeskGrid = DistortionGrid;
+})();
+
+</script><script>
+// Pointer velocity -> local displacement grid -> resample the original wordmark.
+// Independent Canvas 2D implementation; no external textures or rendering libraries.
+(() => {
+  const surface = document.querySelector('#footerWordmark');
+  const canvas = document.querySelector('#footerDistortion');
+  const fallback = document.querySelector('#footerWordmarkText');
+  const toggle = document.querySelector('#footerMotionEnabled');
+  const context = canvas?.getContext('2d');
+  const source = document.createElement('canvas');
+  const sourceContext = source.getContext('2d');
+  if (!surface || !context || !sourceContext || !fallback) return;
+
+  const grid = new ControlDeskGrid();
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const finePointer = matchMedia('(any-hover: hover) and (any-pointer: fine)');
+  const preferenceKey = 'robstride.footer-motion.v1';
+  let enabled = true, visible = false, frame = 0, lastFrame = 0;
+  let width = 0, height = 0;
+  try { enabled = localStorage.getItem(preferenceKey) !== 'false'; } catch {}
+
+  const canAnimate = () => enabled && !reducedMotion.matches && finePointer.matches && !document.hidden && visible;
+
+  function paint() {
+    grid.draw(context, source, width, height);
+  }
+
+  function reset() {
+    cancelAnimationFrame(frame);
+    frame = 0;
+    lastFrame = 0;
+    grid.clear();
+    if (width && height) paint();
+  }
+
+  function resize() {
+    const rect = surface.getBoundingClientRect();
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    width = Math.max(1, Math.round(rect.width * dpr));
+    height = Math.max(1, Math.round(rect.height * dpr));
+    canvas.width = source.width = width;
+    canvas.height = source.height = height;
+    // Render the template's own text once. Only this cached image is sampled per frame.
+    const text = (fallback.textContent.trim() || 'ControlDesk').slice(0, 40);
+    sourceContext.font = '900 200px Arial, "Microsoft YaHei", sans-serif';
+    const metrics = sourceContext.measureText(text);
+    const left = metrics.actualBoundingBoxLeft;
+    const inkWidth = left + metrics.actualBoundingBoxRight;
+    const inkHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+    const scaleX = width * .94 / Math.max(1, inkWidth);
+    const scaleY = height * .84 / Math.max(1, inkHeight);
+    sourceContext.setTransform(scaleX, 0, 0, scaleY, width * .03 + left * scaleX,
+      height * .08 + metrics.actualBoundingBoxAscent * scaleY);
+    sourceContext.fillStyle = '#090b0a';
+    sourceContext.fillText(text, 0, 0);
+    sourceContext.resetTransform();
+    surface.classList.add('is-ready');
+    reset();
+  }
+
+  function animate(now) {
+    frame = 0;
+    if (!canAnimate()) { reset(); return; }
+    const elapsed = lastFrame ? Math.min(50, now - lastFrame) : 1000 / 60;
+    lastFrame = now;
+    const moving = grid.advance(elapsed);
+    paint();
+    if (moving) frame = requestAnimationFrame(animate);
+    else reset();
+  }
+
+  surface.addEventListener('pointermove', event => {
+    if (event.pointerType === 'touch' || !canAnimate()) return;
+    const rect = surface.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width;
+    const y = (event.clientY - rect.top) / rect.height;
+    if (grid.move(x, y) && !frame) { lastFrame = 0; frame = requestAnimationFrame(animate); }
+  }, { passive: true });
+  surface.addEventListener('pointerleave', () => grid.leave());
+  surface.addEventListener('pointercancel', reset);
+  addEventListener('blur', reset);
+  addEventListener('scroll', () => grid.leave(), { passive: true });
+
+  function syncPreference() {
+    if (toggle) toggle.checked = enabled;
+    surface.classList.toggle('is-static', !enabled || reducedMotion.matches || !finePointer.matches);
+    reset();
+  }
+  toggle?.addEventListener('change', () => {
+    enabled = toggle.checked;
+    try { localStorage.setItem(preferenceKey, String(enabled)); } catch {}
+    syncPreference();
+  });
+  document.querySelector('#open-settings')?.addEventListener('click', syncPreference);
+  reducedMotion.addEventListener('change', syncPreference);
+  finePointer.addEventListener('change', syncPreference);
+  document.addEventListener('visibilitychange', reset);
+  document.addEventListener('upper-computer:config', resize);
+  new ResizeObserver(resize).observe(surface);
+  new IntersectionObserver(entries => {
+    visible = entries[0].isIntersecting;
+    if (!visible) reset();
+  }).observe(surface);
+  resize();
+  syncPreference();
+})();
+
+</script><script>
+// Cache changed content once; animate with the exact same sampler as the footer.
+(() => {
+  if (!window.ControlDeskGrid) return;
+  const selector = '.session-intro h2, .panel-heading h2, .metrics article, .diagnostic-item, .chart-wrap, .logs, .guide-grid article, .slide-caption, .joint-position, .status-details > div, .led-live > div, .drawer-heading h2, .settings-drawer legend';
+  const controls = 'button, input, select, textarea, a, label, summary, [contenteditable], [role="tab"], [role="switch"]';
+  const properties = ('display position box-sizing width height min-width min-height max-width max-height top left right bottom margin padding border border-top border-right border-bottom border-left border-collapse border-spacing border-radius background background-color background-image background-size background-position color font font-family font-size font-weight font-style line-height letter-spacing text-align text-decoration text-transform text-overflow white-space word-break overflow overflow-x overflow-y vertical-align opacity transform transform-origin flex flex-direction flex-wrap flex-grow flex-shrink flex-basis align-items align-content align-self justify-content gap grid-template-columns grid-template-rows grid-column grid-row row-gap column-gap fill stroke stroke-width stroke-dasharray stop-color stop-opacity box-shadow object-fit').split(' ');
+  const toggle = document.querySelector('#signalMotionEnabled');
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const finePointer = matchMedia('(any-hover: hover) and (any-pointer: fine)');
+  const preferenceKey = 'robstride.signal-motion.v1';
+  const cache = new Map(), active = new Map();
+  let enabled = true, frame = 0, lastFrame = 0, hovered = null, pending = null, warmTimer = 0, stylesheet = null;
+  try { enabled = localStorage.getItem(preferenceKey) !== 'false'; } catch {}
+  const canAnimate = () => enabled && !reducedMotion.matches && finePointer.matches && !document.hidden;
+  const visible = surface => {
+    const r = surface.getBoundingClientRect();
+    return surface.isConnected && !surface.closest('[inert]') && r.width > 0 && r.height > 0 && r.bottom > (surface.closest('.settings-drawer')?0:64) && r.top < innerHeight && r.right > 0 && r.left < innerWidth && !surface.closest('.monitor-slide:not(.is-active)');
+  };
+  const settled = surface => {
+    for (let node=surface; node && node!==document.body; node=node.parentElement) {
+      if (node.getAnimations({subtree:node===surface}).some(animation => animation.playState === 'running')) return false;
+    }
+    return true;
+  };
+
+  function remove(surface) {
+    const state = active.get(surface);
+    if (!state) return;
+    surface.classList.remove('signal-distorting');
+    state.canvas.remove();
+    state.grid.clear();
+    if (pending === state.grid) pending = null;
+    active.delete(surface);
+  }
+  function reset() {
+    cancelAnimationFrame(frame);
+    frame = lastFrame = 0;
+    hovered = pending = null;
+    for (const surface of active.keys()) remove(surface);
+  }
+  function clearCache() { reset(); cache.clear(); stylesheet=null; }
+  function snapshotStyles() {
+    if (stylesheet!==null) return stylesheet;
+    // Match media against the browser viewport, not the smaller snapshot image.
+    // All descendant rules, inheritance and pseudo elements then remain native CSS.
+    const flatten = rules => [...rules].map(rule => rule instanceof CSSMediaRule
+      ? (matchMedia(rule.conditionText).matches ? flatten(rule.cssRules) : '')
+      : rule.cssText).join('\n');
+    stylesheet=[...document.styleSheets].map(sheet=>flatten(sheet.cssRules)).join('\n')+
+      '\n*{animation:none!important;transition:none!important;scrollbar-width:none!important}::-webkit-scrollbar{display:none!important}';
+    return stylesheet;
+  }
+  async function capture(surface) {
+    if (cache.has(surface)) return cache.get(surface).ready;
+    const rect = surface.getBoundingClientRect();
+    if (!visible(surface) || !settled(surface)) return null;
+    while (cache.size >= 16) {
+      const victim = [...cache.keys()].find(node => !active.has(node) && node !== hovered);
+      if (!victim) return null;
+      cache.delete(victim);
+    }
+    const entry = {source:null, width:rect.width, height:rect.height, ready:null};
+    cache.set(surface, entry);
+    entry.ready = new Promise(resolve => {
+      const prepare = async () => {
+        try {
+          if (cache.get(surface)!==entry || !surface.isConnected) { resolve(null); return; }
+          const clone = surface.cloneNode(true);
+          const style=getComputedStyle(surface);
+          for (const key of [...properties, ...Array.from(style).filter(key=>key.startsWith('--'))]) clone.style.setProperty(key,style.getPropertyValue(key));
+          // Preserve unitless inheritance for descendants with smaller font sizes.
+          const lineHeight=parseFloat(style.lineHeight)/parseFloat(style.fontSize);
+          if (Number.isFinite(lineHeight)) clone.style.lineHeight=String(lineHeight);
+          const originals = [surface, ...surface.querySelectorAll('*')];
+          const copies = [clone, ...clone.querySelectorAll('*')];
+          originals.forEach((node, i) => {
+            copies[i].classList.remove('signal-distorting');
+            // Canvas pixels are not copied by cloneNode. Preserve real curve pixels.
+            if (node instanceof HTMLCanvasElement) {
+              const image=document.createElement('img');
+              image.src=node.toDataURL();
+              image.style.cssText=copies[i].style.cssText;
+              image.className=node.className;image.id=node.id;
+              image.width=node.width;image.height=node.height;
+              copies[i].replaceWith(image);
+            }
+            if (node instanceof HTMLElement) {
+              // Preserve viewport content for horizontally/vertically scrolled lists.
+              if ((node.scrollTop || node.scrollLeft) && copies[i].firstElementChild) {
+                const wrapper = document.createElement('div');
+                wrapper.style.transform = `translate(${-node.scrollLeft}px, ${-node.scrollTop}px)`;
+                wrapper.append(...copies[i].childNodes);
+                copies[i].append(wrapper);
+              }
+            }
+          });
+          Object.assign(clone.style, {position:'relative', top:'auto', left:'auto', right:'auto', bottom:'auto', margin:'0', transform:'none', opacity:active.get(surface)?.opacity || style.opacity, width:`${rect.width}px`, height:`${rect.height}px`, overflow:'hidden'});
+          const NS='http://www.w3.org/2000/svg';
+          const svg=document.createElementNS(NS,'svg');
+          svg.setAttribute('width',rect.width);svg.setAttribute('height',rect.height);
+          const styles=document.createElementNS(NS,'style');styles.textContent=snapshotStyles();svg.append(styles);
+          const object=document.createElementNS(NS,'foreignObject');object.setAttribute('width','100%');object.setAttribute('height','100%');svg.append(object);
+          // Retain ancestor selectors (metrics, settings drawer, active slide) in snapshots.
+          let wrapped=clone;
+          for(let node=surface.parentElement;node;node=node.parentElement){
+            const shell=document.createElement('div');shell.className=node.className;shell.id=node.id;
+            Object.assign(shell.style,{display:'block',position:'static',width:'100%',height:'100%',margin:'0',padding:'0',border:'0',transform:'none',opacity:'1',background:'transparent'});
+            shell.append(wrapped);wrapped=shell;
+            if(node.matches('.signal-zone'))break;
+          }
+          object.append(wrapped);
+          const image = new Image();
+          image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(svg));
+          await image.decode();
+          if (cache.get(surface) !== entry || !surface.isConnected) { resolve(null); return; }
+          const dpr = Math.min(devicePixelRatio || 1, 2);
+          const source = document.createElement('canvas');
+          source.width = Math.max(1, Math.round(rect.width*dpr));
+          source.height = Math.max(1, Math.round(rect.height*dpr));
+          const context = source.getContext('2d');
+          if (!context) throw new Error('Canvas unavailable');
+          context.drawImage(image, 0, 0, source.width, source.height);
+          entry.source = source;
+          resolve(entry);
+        } catch {
+          // Retain a failed entry until content/layout changes, avoiding idle retries.
+          entry.failed = true;
+          resolve(null); // Keep the native interface if snapshot rendering is unavailable.
+        }
+      };
+      // Never clone or resolve styles inside the pointer event handler.
+      if (window.requestIdleCallback) requestIdleCallback(prepare,{timeout:100}); else setTimeout(prepare,0);
+    });
+    return entry.ready;
+  }
+  function surfacePath(surface) {
+    const parts=[];
+    for(let node=surface;node;node=node.parentElement) {
+      if(node.id){parts.unshift('#'+CSS.escape(node.id));break}
+      parts.unshift(node.localName+':nth-child('+([...node.parentElement.children].indexOf(node)+1)+')');
+    }
+    return parts.join(' > ');
+  }
+  function updateSnapshot(surface,state,entry) {
+    if(active.get(surface)!==state||!entry?.source)return;
+    state.entry=entry;state.dirtyAt=0;
+    if(state.canvas.width!==entry.source.width)state.canvas.width=entry.source.width;
+    if(state.canvas.height!==entry.source.height)state.canvas.height=entry.source.height;
+  }
+  function refresh(surface,state) {
+    capture(surface).then(entry=>{
+      if(entry)updateSnapshot(surface,state,entry);
+      else if(cache.get(surface)?.failed)remove(surface);
+    });
+  }
+  function create(surface, entry, grid) {
+    // Small cards may decay together; large tables share a bounded pixel budget.
+    let pixels=entry.source.width*entry.source.height;
+    for(const state of active.values())pixels+=state.canvas.width*state.canvas.height;
+    while(active.size&&(active.size>=6||pixels>8_000_000)){
+      const [oldSurface,oldState]=active.entries().next().value;
+      pixels-=oldState.canvas.width*oldState.canvas.height;remove(oldSurface);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.className = 'signal-overlay';
+    canvas.setAttribute('aria-hidden', 'true');
+    canvas.width = entry.source.width;
+    canvas.height = entry.source.height;
+    if (surface.closest('.settings-drawer')) canvas.classList.add('signal-overlay-drawer');
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+    const state = {canvas, context, entry, grid, opacity:getComputedStyle(surface).opacity, path:surfacePath(surface), dirtyAt:0};
+    active.set(surface, state);
+    return state;
+  }
+  function animate(now) {
+    frame = 0;
+    if (!canAnimate()) { reset(); return; }
+    const elapsed = lastFrame ? Math.min(50, now-lastFrame) : 1000/60;
+    lastFrame = now;
+    for (const [surface, state] of active) {
+      const rect = surface.getBoundingClientRect();
+      if (!visible(surface) || Math.abs(rect.width-state.entry.width)>.5 || Math.abs(rect.height-state.entry.height)>.5 || !state.grid.advance(elapsed)) { remove(surface); continue; }
+      // Keep motion continuous while replacing content. Never hold an old image
+      // beyond 80ms if a new snapshot is delayed or a CSS transition is running.
+      if(state.dirtyAt&&performance.now()-state.dirtyAt>80){surface.classList.remove('signal-distorting');state.canvas.remove();continue}
+      const {canvas, context, entry} = state;
+      Object.assign(canvas.style, {left:`${rect.left}px`, top:`${rect.top}px`, width:`${rect.width}px`, height:`${rect.height}px`});
+      state.grid.draw(context, entry.source, canvas.width, canvas.height);
+      if (!canvas.isConnected) { document.body.append(canvas); surface.classList.add('signal-distorting'); }
+    }
+    if (active.size) frame = requestAnimationFrame(animate); else lastFrame = 0;
+  }
+  function changeHover(surface) {
+    if (hovered === surface) return;
+    active.get(hovered)?.grid.leave();
+    hovered = surface;
+    pending = null;
+  }
+  document.addEventListener('pointermove', event => {
+    if (event.pointerType === 'touch' || event.buttons || !canAnimate()) { changeHover(null); return; }
+    if (event.target.closest(controls)) {
+      for (const surface of active.keys()) if (surface.contains(event.target)) remove(surface);
+      changeHover(null); return;
+    }
+    const surface = event.target.closest(selector);
+    if (!surface?.closest('.signal-zone') || !visible(surface)) { changeHover(null); return; }
+    changeHover(surface);
+    const rect = surface.getBoundingClientRect();
+    const x = (event.clientX-rect.left)/rect.width, y = (event.clientY-rect.top)/rect.height;
+    let entry = cache.get(surface);
+    if (entry && (Math.abs(rect.width-entry.width)>.5 || Math.abs(rect.height-entry.height)>.5)) {
+      remove(surface); cache.delete(surface); entry=null;
+    }
+    const grid = active.get(surface)?.grid || (pending ||= new ControlDeskGrid());
+    const moved = grid.move(x,y);
+    if (!entry?.source) {
+      capture(surface).then(ready => {
+        if(!ready||!canAnimate()||hovered!==surface)return;
+        if(active.has(surface)){updateSnapshot(surface,active.get(surface),ready);return}
+        if(pending!==grid)return;
+        if(!grid.field.some(value=>Math.abs(value)>.005))return;
+        create(surface, ready, grid);
+        if (!frame) { lastFrame=0; frame=requestAnimationFrame(animate); }
+      });
+      return;
+    }
+    // A previous surface may still be animating. Keep the entry coordinate out
+    // of that loop until this grid receives movement, or it gets cleared before
+    // the next pointer event and the next card can never start.
+    if(!moved&&!active.has(surface))return;
+    const state = active.get(surface) || create(surface, entry, grid);
+    if (state && moved && !frame) { lastFrame=0; frame=requestAnimationFrame(animate); }
+  }, {passive:true});
+
+  // Prewarm one visible surface per idle task, never serialize in the animation loop.
+  function scheduleWarm() {
+    if (warmTimer || !canAnimate()) return;
+    warmTimer = setTimeout(() => {
+      warmTimer = 0;
+      if (!canAnimate()) return;
+      for (const surface of cache.keys()) if (!surface.isConnected) cache.delete(surface);
+      const next = [...document.querySelectorAll(selector)].find(surface => surface.closest('.signal-zone') && visible(surface) && settled(surface) && !cache.has(surface));
+      if (!next || cache.size >= 16) return;
+      capture(next).then(scheduleWarm);
+    }, 32);
+  }
+  new MutationObserver(records => {
+    let changed = false;
+    const dirty=new Set();
+    // The simulator replaces metric elements. Transfer the running field to the
+    // same logical card rather than restarting its spring on every data update.
+    for(const [surface,state] of active) {
+      if(surface.isConnected)continue;
+      const replacement=document.querySelector(state.path);
+      if(!replacement){remove(surface);continue}
+      surface.classList.remove('signal-distorting');active.delete(surface);cache.delete(surface);
+      state.opacity=getComputedStyle(replacement).opacity;
+      replacement.classList.add('signal-distorting');
+      active.set(replacement,state);dirty.add(replacement);
+      if(hovered===surface)hovered=replacement;
+    }
+    for (const record of records) {
+      if (record.type === 'childList' && [...record.addedNodes, ...record.removedNodes].every(node => node.nodeType === Node.ELEMENT_NODE && node.classList.contains('signal-overlay'))) continue;
+      // The controller republishes unchanged readouts on every poll.
+      if(record.type==='childList' && [...record.addedNodes,...record.removedNodes].every(node=>node.nodeType===Node.TEXT_NODE) && [...record.addedNodes].map(node=>node.textContent).join('')===[...record.removedNodes].map(node=>node.textContent).join(''))continue;
+      const node = record.target.nodeType === Node.ELEMENT_NODE ? record.target : record.target.parentElement;
+      if (!node) continue;
+      if (record.attributeName === 'class' && (record.oldValue || '').replace(/\bsignal-distorting\b/g,'').trim() === node.className?.toString().replace(/\bsignal-distorting\b/g,'').trim()) continue;
+      if (!node.closest('.signal-zone') && !node.querySelector('.signal-zone')) continue;
+      changed = true;
+      for (const surface of new Set([...cache.keys(),...active.keys()])) if (!surface.isConnected || surface === node || surface.contains(node) || node.contains(surface)) dirty.add(surface);
+    }
+    for(const surface of dirty){
+      cache.delete(surface);
+      const state=active.get(surface);
+      if(state){state.dirtyAt ||= performance.now();refresh(surface,state)}
+    }
+    if (changed) scheduleWarm();
+  }).observe(document.body, {subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['class','style','hidden','width','height'], attributeOldValue:true});
+  function syncPreference() { if (toggle) toggle.checked=enabled; clearCache(); scheduleWarm(); }
+  toggle?.addEventListener('change', () => {
+    enabled=toggle.checked;
+    try { localStorage.setItem(preferenceKey,String(enabled)); } catch {}
+    syncPreference();
+  });
+  document.querySelector('#open-settings')?.addEventListener('click', scheduleWarm);
+  document.addEventListener('upper-computer:config', syncPreference);
+  document.addEventListener('transitionend', () => {
+    for(const [surface,state] of active)if(state.dirtyAt)refresh(surface,state);
+    scheduleWarm();
+  });
+  document.fonts?.ready.then(() => { clearCache(); scheduleWarm(); });
+  document.addEventListener('visibilitychange', () => { reset(); scheduleWarm(); });
+  document.addEventListener('pointercancel', reset);
+  document.addEventListener('pointerdown', reset, {passive:true});
+  document.addEventListener('focusin', reset);
+  document.addEventListener('pointerout', event => { if (!event.relatedTarget) changeHover(null); });
+  addEventListener('scroll', () => { clearCache(); scheduleWarm(); }, {passive:true, capture:true});
+  addEventListener('resize', () => { clearCache(); scheduleWarm(); });
+  addEventListener('blur', reset);
+  reducedMotion.addEventListener('change', syncPreference);
+  finePointer.addEventListener('change', syncPreference);
+  syncPreference();
+})();
+
+</script>
+</body></html>

@@ -1,0 +1,16 @@
+{
+  "ready": true,
+  "connected": false,
+  "chassis_supported": true,
+  "url": "http://127.0.0.1:29844",
+  "axf_sha256": "9bfe473f5c447537b5f02952addf34a8fd2abd139e0c74e2d1c73720f68c91e8",
+  "exe_sha256": "e0bef96fe81980e14262dfddf6d23d9a0a19f8aed38d70dc5ed412f78d3f5357",
+  "assets": {
+    "/": "bb9dd1c639b52c28b53ceb53959be815f66cc4192902ec8f7e286cbb783c2819",
+    "/chassis.js": "2ceccc89242a540f7467adda293cbc53f402cca38e038f2c08a0c4eecc507a82",
+    "/chassis.css": "cd952b106b58ce3e477bda06f3cccb5ac9a180b1cec14f9d4ff732a0c6c4cf29",
+    "/drive.js": "86ecc7ccc52d32ddb0136cef99700796711b8b9e3ce5efaebd05a3d6533d753b",
+    "/app.js": "d9dc1963239e8fd43b97953eb9b74dbf55f7d46b71f05da7e14537d6b4d7f1ff",
+    "/signal-distortion.js": "8401b610f6c5dfa4ca4a8c5c62527f372ddf051abec11927714384f6f796eea4"
+  }
+}

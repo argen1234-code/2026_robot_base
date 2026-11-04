@@ -1,0 +1,7 @@
+load STM32H743IITx
+project name RobStride05_H743
+project toolchain "MDK-ARM V5"
+project path D:/竞赛/2026 AIC/RobStride05_H743
+config saveas D:/竞赛/2026 AIC/RobStride05_H743/RobStride05_H743.ioc
+help
+exit

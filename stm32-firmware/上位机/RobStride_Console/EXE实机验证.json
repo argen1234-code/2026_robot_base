@@ -1,0 +1,230 @@
+{
+  "status": {
+    "connected": true,
+    "snapshot": {
+      "motor": {
+        "snapshot_seq": 4623530,
+        "accepted_seq": 6,
+        "executed_seq": 6,
+        "result": 0,
+        "reject_reason": 0,
+        "state": 0,
+        "mode": 0,
+        "online": 1,
+        "enabled": 0,
+        "enable_requested": 0,
+        "motor_state": 0,
+        "feedback_age_ms": 3,
+        "fault_bits": 0,
+        "fault": 0,
+        "warning": 0,
+        "target_rad_s": 0.0,
+        "applied_rad_s": 0.0,
+        "position_rad": -0.2852153778076172,
+        "velocity_rad_s": -0.038909912109375,
+        "torque_nm": -8.392333984375e-05,
+        "temperature_c": 28.0,
+        "current_a": 0.0,
+        "bus_voltage_v": 25.615114212036133,
+        "current_limit_a": 0.0,
+        "speed_limit_rad_s": 0.0,
+        "accel_rad_s2": 0.0,
+        "current_age_ms": 364,
+        "voltage_age_ms": 264,
+        "timeout_readback": 0,
+        "version": 327683,
+        "version_valid": 1,
+        "motor_heartbeat": 2311764,
+        "health_fault": 0,
+        "cpu_dcache_enabled": 0,
+        "job_command": 0,
+        "job_step": 1,
+        "can": {
+          "rx": 258812,
+          "tx_ok": 27745,
+          "tx_fail": 0,
+          "rx_drop": 1,
+          "errors": 1,
+          "bus_off": 0,
+          "recoveries": 0,
+          "last_hal_error": 0,
+          "tec": 0,
+          "rec": 0,
+          "rx_irq": 258797,
+          "rx_other": 0,
+          "last_rx_id": 33587197,
+          "last_rx_dlc": 8,
+          "last_rx_extended": 1,
+          "last_rx_data": [
+            125,
+            24,
+            127,
+            230,
+            127,
+            255,
+            1,
+            24
+          ]
+        },
+        "configured_id": 127,
+        "identity_valid": 1,
+        "identity_id": 127,
+        "identity_uid": [
+          152,
+          126,
+          59,
+          138,
+          0,
+          116,
+          48,
+          18
+        ],
+        "feedback_count": 232785,
+        "parameter_count": 18496,
+        "unmatched_frames": 0
+      },
+      "coherent": true,
+      "diagnostics_coherent": false,
+      "cmd": {
+        "seq": 6,
+        "command": 5,
+        "confirm_key": 1381183541,
+        "target_rad_s": 0.0,
+        "speed_limit_rad_s": 0.20000000298023224,
+        "current_limit_a": 0.30000001192092896,
+        "accel_rad_s2": 0.20000000298023224
+      },
+      "oled": {
+        "heartbeat": 2311766,
+        "ready": 1,
+        "refresh_ok": 11558,
+        "refresh_fail": 0,
+        "consecutive_fail": 0,
+        "recovery_attempts": 0,
+        "recovery_ok": 0,
+        "last_error": 0,
+        "last_success_ms": 2311617,
+        "next_retry_ms": 0
+      },
+      "system": {
+        "loop_heartbeat": 2311766,
+        "health_heartbeat": 23117,
+        "max_service_us": 691,
+        "last_service_us": 19,
+        "fatal": 0,
+        "boot_stage": 9,
+        "tick_ms": 2311766,
+        "vtor": 134217728,
+        "ccr": 262656,
+        "cfsr": 0,
+        "hfsr": 0,
+        "exception": 0
+      }
+    },
+    "sample_age_ms": 65,
+    "pending": null,
+    "logs": [
+      {
+        "time": "18:03:41",
+        "kind": "就绪",
+        "message": "连接调试器后读取真实 H743 数据；连接不会使能电机"
+      },
+      {
+        "time": "18:03:57",
+        "kind": "连接",
+        "message": "正在核对板上完整 Flash 与 AXF，请稍候"
+      },
+      {
+        "time": "18:03:57",
+        "kind": "已连接",
+        "message": "Flash 一致，H743 正在运行；请查看电机在线状态"
+      }
+    ],
+    "probes": [
+      {
+        "id": "d9381b44",
+        "name": "Horco Horco CMSIS-DAP"
+      }
+    ],
+    "profile": {
+      "axf_sha256": "aaee30b80c7f86fae5e491d9496d31cd9db484d1ae397b2dbfc71c5bf44fd8aa",
+      "address": "0x20000014",
+      "source": "D:\\竞赛\\2026 AIC\\RobStride05_H743_HAL\\MDK-ARM\\Objects\\RobStride05_H743_HAL.axf"
+    },
+    "history_count": 177
+  },
+  "samples": [
+    {
+      "connected": true,
+      "age_ms": 59,
+      "coherent": true,
+      "tick": 2309549
+    },
+    {
+      "connected": true,
+      "age_ms": 77,
+      "coherent": true,
+      "tick": 2309733
+    },
+    {
+      "connected": true,
+      "age_ms": 15,
+      "coherent": true,
+      "tick": 2309997
+    },
+    {
+      "connected": true,
+      "age_ms": 12,
+      "coherent": true,
+      "tick": 2310202
+    },
+    {
+      "connected": true,
+      "age_ms": 22,
+      "coherent": true,
+      "tick": 2310394
+    },
+    {
+      "connected": true,
+      "age_ms": 32,
+      "coherent": true,
+      "tick": 2310586
+    },
+    {
+      "connected": true,
+      "age_ms": 54,
+      "coherent": true,
+      "tick": 2310766
+    },
+    {
+      "connected": true,
+      "age_ms": 82,
+      "coherent": true,
+      "tick": 2310940
+    },
+    {
+      "connected": true,
+      "age_ms": 7,
+      "coherent": true,
+      "tick": 2311218
+    },
+    {
+      "connected": true,
+      "age_ms": 36,
+      "coherent": true,
+      "tick": 2311391
+    },
+    {
+      "connected": true,
+      "age_ms": 46,
+      "coherent": true,
+      "tick": 2311583
+    },
+    {
+      "connected": true,
+      "age_ms": 65,
+      "coherent": true,
+      "tick": 2311766
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+#bluetooth-panel .bt-connect-row{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin:16px 0}
+#bluetooth-panel label{display:flex;flex-direction:column;gap:8px}
+#bt-port{min-width:220px;max-width:100%}
+.bt-remote{display:grid;grid-template-columns:minmax(320px,1fr) minmax(200px,1fr);gap:24px;margin:20px 0}
+.bt-pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-self:start}
+.bt-pad button{min-height:66px;padding:10px 8px;white-space:normal;touch-action:none;user-select:none}
+.bt-pad button.pressed{outline:2px solid #c7e8d1;background:#284536;color:#fff}
+#bt-keyboard[aria-pressed=true]{outline:1px solid #c7e8d1}
+.bt-readout{border:1px solid #303833;border-radius:12px;padding:0 18px;background:#111513}
+#bt-status{color:#d4e8da;font-weight:600}
+.bt-log{max-height:180px;overflow:auto;background:#101311;border:1px solid #303833;border-radius:10px;padding:14px;color:#b9c8be;font:12px/1.7 Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+.bt-instructions{margin:18px 0;overflow:auto}
+.bt-instructions table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
+.bt-instructions th,.bt-instructions td{text-align:left;border-bottom:1px solid #303833;padding:10px}
+@media(max-width:650px){.bt-remote{grid-template-columns:minmax(0,1fr)}#bt-port{min-width:0;width:100%}.bt-connect-row label{max-width:100%}.bt-pad{gap:6px}.bt-pad button{font-size:12px}.bt-instructions table{min-width:340px}}

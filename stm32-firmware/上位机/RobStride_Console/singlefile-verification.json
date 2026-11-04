@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "exe_sha256": "9a6eed0a4626607763783f1cbf7c1a0a4aa23e2fa66fbcc93e0d8c24138d3754",
+  "working_directory": "C:/Windows/Temp",
+  "connected": false,
+  "profile_sha256": "3a25e7d675a65e3f8fd83556651502d929363eb15156723ed0e850b8d32039d5",
+  "probe_api": {
+    "ok": true,
+    "data": [
+      {
+        "id": "d9381b44",
+        "name": "Horco Horco CMSIS-DAP"
+      }
+    ]
+  }
+}

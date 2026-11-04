@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "standalone_directory_contains_only_exe_and_startup_logs": true,
+  "exe_sha256": "dfcec875b006ae5f1c8f670923f30d6579f6f2dbc76ad10167ee7dc56314fe29",
+  "exe_bytes": 32694526,
+  "all_packaged_web_assets_match_source": {
+    "app.js": "41e0428646ffec54a7435b74ad0aeb39e9137885a4fe136799bd4ee4de68d163",
+    "distortion-grid.js": "9b91907ab100fe95b0258ba2d1aaf28f2de10cd1a4c3b97623618b68bdc75322",
+    "footer-distortion.js": "53211f3e0d795eb94436ca8ed1a7ce1904f1000cfbcc722a894827d91f74f15e",
+    "index.html": "f7312e3099453d9c8ed5af701fd3cef599dafcbb3177f387558922a25c522ca4",
+    "led.js": "c2f69b811ddb7082d7fee2018c74de7f4e66cdf94e329484855682494b76cd3b",
+    "pixel-field.js": "c45973fc9af9c0dd6ebf9052e03a8903038a350e8f96295fb0577610532f415e",
+    "signal-distortion.js": "8401b610f6c5dfa4ca4a8c5c62527f372ddf051abec11927714384f6f796eea4",
+    "signal-theme.css": "820ca7c8a29d9d3348711b859f6b7af1ff9ca1fe8898f4b2dc668cfcf04cae83",
+    "style.css": "a74a204b9b5eb6d0c68553e1959e16e44f2b71deca70067ae9dba336d4316f15",
+    "template-ui.js": "f7bc3498d23049bf86c750d8503b6818872ef588fdf39b8130dc83cc02489924",
+    "template.css": "241e81e134572c7253ab712435ecf04f90adb486aaf532b04e41d236eba3bc3d"
+  },
+  "profile_sha256": "3784c5ad801a4ea34524c3d587fd35d5355e44a25882671827daf652ed0e7736",
+  "motor_count": 2,
+  "connected": false,
+  "unauthenticated_command_rejected": true,
+  "hardware_tested": false
+}

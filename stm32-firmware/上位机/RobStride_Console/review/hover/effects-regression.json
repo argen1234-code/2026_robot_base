@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "template_commit": "71f6c076b7723165c5e875ad8a2ecdb82b27a908",
+  "checks": [
+    "all four metric surfaces start on cross-card movement; overlays are bounded and pointer-transparent",
+    "fixture telemetry updates through active effects and restores native content after decay",
+    "live chart pixels copied into snapshots; keyboard/select restore native controls without requests",
+    "diagnostics replaced by polling, LED live state and guide content support hover effects",
+    "footer wordmark distorts and returns exactly to its static pixels",
+    "independent effect toggles persist and reset with the existing appearance settings",
+    "reduced motion and blur clear overlays; numeric inputs retain editing without issuing commands",
+    "hero point field runs with OffscreenCanvas support, native fallback and worker failure; disable clears pixels"
+  ]
+}

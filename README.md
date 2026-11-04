@@ -7,10 +7,14 @@
 | 导航（ROS 2 Jazzy） | `robot_ros2_ws/` | 底盘运动学/激光里程计/雷达/建图/Nav2 导航 |
 | AI 能力（ROS 2 Humble） | `ai_ws/` | 语音识别/合成、云端大模型、视觉与任务状态机 |
 | 相机依赖（第三方） | `third_party/orbbec_ws/` | Orbbec Astra Pro 驱动（锁定上游 commit） |
-| STM32 固件 | `stm32-firmware/` | STM32H743 四轮全向小车（FreeRTOS + LVGL + GPS） |
+| STM32 固件 | `stm32-firmware/` | STM32H743 RobStride05 双电机固件（FreeRTOS + CAN + OLED + WS2812 + JDY31 蓝牙） |
+| PC 上位机 | `stm32-firmware/上位机/` | RobStride Console（Python 服务 + 浏览器前端 + 单文件 EXE） |
 | 微信小程序 | `wechat-mini-program/` | 远程控制小程序（MQTT 桥接） |
 | 容器与脚本 | `docker/`、`scripts/` | 环境固化、模型下载、冒烟测试、密钥扫描 |
 | 文档 | `docs/` | 迁移记录、AI 栈说明、运行手册 |
+
+> 固件工程来自 [MacSwimmm/2026-AIC](https://github.com/MacSwimmm/2026-AIC)，保留其内部结构、
+> 文档与上位机。原 H743 全向底盘固件已移除，可在历史提交 `ed4d5d7` 中恢复。
 
 ## 环境分层
 

@@ -1,0 +1,99 @@
+{
+  "date": "2026-11-02",
+  "project": "D:\\竞赛\\2026 AIC\\2026-AIC",
+  "build": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "python_tests": 35,
+  "host_checks": [
+    "dual motor and drive production service",
+    "OLED",
+    "WS2812"
+  ],
+  "ui_checks": [
+    "source WASD entry simplification",
+    "packaged WASD entry simplification",
+    "17 original UI regression groups"
+  ],
+  "original_debug_abi_preserved": true,
+  "integration_idempotent": true,
+  "physical_motion_tested": false,
+  "flashed": false,
+  "artifacts": {
+    "上位机/RobStrideConsole.exe": "7b30ffb5e1e402a1a473fb770d60d8691c1f4f6e855b151c7540699062c00a09",
+    "RobStride05_H743/MDK-ARM/Objects/RobStride05_H743.axf": "de02c6efe9933c2b92ff1f534a2f97a99d3b1cfd8e52ad002302396d9cb1939a",
+    "RobStride05_H743/MDK-ARM/Objects/RobStride05_H743.hex": "3328c94ecfc1c948500b1e98c7ebdc40365d2d54dfaae4319bfdbe3db9037630"
+  },
+  "evidence": [
+    "RobStride05_H743/Docs/build_output.log",
+    "上位机/RobStride_Console/review/wasd-entry-source/checks.json",
+    "上位机/RobStride_Console/review/wasd-entry-packaged/checks.json",
+    "上位机/RobStride_Console/review/wasd-entry-regression/ui-regression.json",
+    "上位机/RobStride_Console/review/wasd-entry-regression/effects-regression.json"
+  ],
+  "revision": "remove-wasd-entry-zero-speed-gates",
+  "entry_behavior": [
+    "no measured-zero threshold",
+    "no previous target/output zero requirement",
+    "accept enabled/running/stopping",
+    "no repeated preparation confirmations",
+    "acquire zeros both targets using existing ramps"
+  ],
+  "direction_revision": {
+    "revision": "correct-vehicle-left-right-wheel-assignment",
+    "default_left_motor": 2,
+    "default_left_id": 126,
+    "left_forward_sign": -1,
+    "default_right_motor": 1,
+    "default_right_id": 127,
+    "right_forward_sign": 1,
+    "motor1_motor2_unit_targets": {
+      "W": [
+        1,
+        -1
+      ],
+      "S": [
+        -1,
+        1
+      ],
+      "A": [
+        1,
+        1
+      ],
+      "D": [
+        -1,
+        -1
+      ],
+      "W+A": [
+        1,
+        0
+      ],
+      "W+D": [
+        0,
+        -1
+      ],
+      "S+A": [
+        0,
+        1
+      ],
+      "S+D": [
+        -1,
+        0
+      ]
+    },
+    "firmware_changed": false,
+    "physical_motion_tested": false,
+    "evidence": [
+      "上位机/RobStride_Console/review/wasd-turn-source/checks.json",
+      "上位机/RobStride_Console/review/wasd-turn-packaged/checks.json"
+    ]
+  },
+  "publication_rebuild": {
+    "date": "2026-11-02",
+    "errors": 0,
+    "warnings": 0,
+    "flash_and_abi_identical_to_motion_tested_image": true,
+    "independent_motor_wireless_evidence": "Docs/无线DAP实测_20261102.md"
+  }
+}

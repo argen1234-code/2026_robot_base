@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "problems": [],
+  "axf": "D:\\竞赛\\2026 AIC\\RobStride05_H743\\MDK-ARM\\Objects\\RobStride05_H743.axf",
+  "axf_sha256": "dbf8ec9edbb50efcdb347da65f6e6776cea2d8010a1261c53f4c588e133406c1",
+  "probe": {
+    "id": "d9381b44",
+    "name": "Horco Horco CMSIS-DAP"
+  },
+  "samples": {
+    "boot_stage": 9,
+    "fatal": 0,
+    "vtor": "0x8000000",
+    "ccr": "0x40200",
+    "loop_heartbeat": [
+      824,
+      1127,
+      1434
+    ],
+    "tick_ms": [
+      1646,
+      2252,
+      2866
+    ],
+    "health_heartbeat": 29,
+    "max_service_us": 41,
+    "last_service_us": 13,
+    "motor": {
+      "state": 0,
+      "online": 1,
+      "enabled": 0,
+      "motor_state": 0,
+      "feedback_age_ms": 4,
+      "snapshot_seq": 288,
+      "result": 0,
+      "job_command": 0
+    },
+    "can": {
+      "rx": 639,
+      "tx_ok": 68,
+      "tx_fail": 0,
+      "rx_drop": 0,
+      "errors": 0,
+      "bus_off": 0
+    },
+    "oled": {
+      "heartbeat": 1434,
+      "ready": 1,
+      "refresh_ok": 14,
+      "refresh_fail": 0,
+      "last_error": 0
+    },
+    "led": {
+      "ready": 1,
+      "busy": 0,
+      "active_mode": 1,
+      "frames_started": 144,
+      "frames_done": 144,
+      "errors": 0,
+      "last_error": 0
+    },
+    "coherent": [
+      true,
+      true,
+      true
+    ]
+  }
+}

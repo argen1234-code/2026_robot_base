@@ -1,0 +1,115 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "javascript_errors": [],
+  "checks": [
+    "independent motor drafts and offline movement gates",
+    "all modules, inactive controls inert, bounded arrows and keyboard navigation",
+    "LED RGB, ordered playlist, local save/load, offline apply gate",
+    "settings modal focus trap, Escape, persistence and reset",
+    "1920 / 1280 / 768 / 390 layouts without horizontal overflow",
+    "touch swipe on card caption",
+    "normal animation mode, live pixel animation and carousel positioning",
+    "HTTP fixtures: connection-ready run / stop / disable / clear, motor routing, Escape in drawer, CSV and LED",
+    "no real hardware connection or command submitted",
+    "all four metric surfaces start on cross-card movement; overlays are bounded and pointer-transparent",
+    "fixture telemetry updates through active effects and restores native content after decay",
+    "live chart pixels copied into snapshots; keyboard/select restore native controls without requests",
+    "diagnostics replaced by polling, LED live state and guide content support hover effects",
+    "footer wordmark distorts and returns exactly to its static pixels",
+    "independent effect toggles persist and reset with the existing appearance settings",
+    "reduced motion and blur clear overlays; numeric inputs retain editing without issuing commands",
+    "hero point field runs with OffscreenCanvas support, native fallback and worker failure; disable clears pixels"
+  ],
+  "fixture_requests": [
+    [
+      "probes",
+      {}
+    ],
+    [
+      "command",
+      {
+        "motor": 0,
+        "command": 3,
+        "target_rad_s": 1,
+        "speed_limit_rad_s": 33,
+        "current_limit_a": 2.4,
+        "accel_rad_s2": 20
+      }
+    ],
+    [
+      "command",
+      {
+        "motor": 0,
+        "command": 4,
+        "target_rad_s": 0,
+        "speed_limit_rad_s": 33,
+        "current_limit_a": 2.4,
+        "accel_rad_s2": 20
+      }
+    ],
+    [
+      "command",
+      {
+        "motor": 0,
+        "command": 5,
+        "target_rad_s": 0,
+        "speed_limit_rad_s": 33,
+        "current_limit_a": 2.4,
+        "accel_rad_s2": 20
+      }
+    ],
+    [
+      "command",
+      {
+        "motor": 1,
+        "command": 3,
+        "target_rad_s": 1,
+        "speed_limit_rad_s": 33,
+        "current_limit_a": 2.4,
+        "accel_rad_s2": 20
+      }
+    ],
+    [
+      "stop_all",
+      {}
+    ],
+    [
+      "command",
+      {
+        "motor": 1,
+        "command": 6,
+        "target_rad_s": 0,
+        "speed_limit_rad_s": 33,
+        "current_limit_a": 2.4,
+        "accel_rad_s2": 20
+      }
+    ],
+    [
+      "led",
+      {
+        "enabled": 1,
+        "mode": 7,
+        "brightness": 64,
+        "speed_percent": 100,
+        "color_order": 0,
+        "red": 17,
+        "green": 34,
+        "blue": 51,
+        "cycle_interval_ms": 8000,
+        "cycle_modes": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      }
+    ],
+    [
+      "probes",
+      {}
+    ]
+  ]
+}

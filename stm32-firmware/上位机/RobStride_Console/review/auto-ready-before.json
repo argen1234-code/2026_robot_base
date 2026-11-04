@@ -1,0 +1,651 @@
+{
+  "connected": true,
+  "snapshot": {
+    "diagnostics_coherent": false,
+    "motor": {
+      "snapshot_seq": 187628,
+      "accepted_seq": 16,
+      "executed_seq": 16,
+      "result": 0,
+      "reject_reason": 0,
+      "state": 2,
+      "mode": 2,
+      "online": 1,
+      "enabled": 1,
+      "enable_requested": 1,
+      "motor_state": 2,
+      "feedback_age_ms": 28,
+      "fault_bits": 0,
+      "fault": 0,
+      "warning": 0,
+      "target_rad_s": 0.0,
+      "applied_rad_s": 0.0,
+      "position_rad": 7.356714248657227,
+      "velocity_rad_s": 0.002288818359375,
+      "torque_nm": 0.016029834747314453,
+      "temperature_c": 31.0,
+      "current_a": 0.005176004022359848,
+      "bus_voltage_v": 25.22913360595703,
+      "current_limit_a": 2.4000000953674316,
+      "speed_limit_rad_s": 33.0,
+      "accel_rad_s2": 20.0,
+      "current_age_ms": 100,
+      "voltage_age_ms": 200,
+      "timeout_readback": 0,
+      "version": 327683,
+      "version_valid": 1,
+      "motor_heartbeat": 938131,
+      "health_fault": 0,
+      "cpu_dcache_enabled": 0,
+      "job_command": 0,
+      "job_step": 7,
+      "published_tick_ms": 1876260,
+      "can": {
+        "rx": 479921,
+        "tx_ok": 117876,
+        "tx_fail": 13,
+        "rx_drop": 0,
+        "errors": 0,
+        "bus_off": 0,
+        "recoveries": 0,
+        "last_hal_error": 0,
+        "tec": 0,
+        "rec": 0,
+        "rx_irq": 479921,
+        "rx_other": 0,
+        "last_rx_id": 41975805,
+        "last_rx_dlc": 8,
+        "last_rx_extended": 1,
+        "last_rx_data": [
+          202,
+          233,
+          128,
+          1,
+          128,
+          95,
+          1,
+          54
+        ]
+      },
+      "configured_id": 127,
+      "identity_valid": 1,
+      "identity_id": 127,
+      "identity_uid": [
+        152,
+        126,
+        59,
+        138,
+        0,
+        116,
+        48,
+        18
+      ],
+      "feedback_count": 134606,
+      "parameter_count": 9628,
+      "unmatched_frames": 0,
+      "readback_index": 28682,
+      "readback_expected": 0,
+      "readback_actual": 0,
+      "readback_status": 1,
+      "accel_motor_supported": 0,
+      "accel_parameter": 8222,
+      "timeout_parameter": 8204,
+      "timeout_motor_supported": 0
+    },
+    "coherent": true,
+    "motor2": {
+      "snapshot_seq": 187628,
+      "accepted_seq": 16,
+      "executed_seq": 16,
+      "result": 6,
+      "reject_reason": 6,
+      "state": 5,
+      "mode": 2,
+      "online": 1,
+      "enabled": 0,
+      "enable_requested": 0,
+      "motor_state": 0,
+      "feedback_age_ms": 30,
+      "fault_bits": 0,
+      "fault": 0,
+      "warning": 0,
+      "target_rad_s": 0.0,
+      "applied_rad_s": 0.0,
+      "position_rad": 6.647417068481445,
+      "velocity_rad_s": 0.000762939453125,
+      "torque_nm": -8.392333984375e-05,
+      "temperature_c": 31.0,
+      "current_a": 0.0,
+      "bus_voltage_v": 25.053688049316406,
+      "current_limit_a": 2.4000000953674316,
+      "speed_limit_rad_s": 33.0,
+      "accel_rad_s2": 20.0,
+      "current_age_ms": 478,
+      "voltage_age_ms": 378,
+      "timeout_readback": 0,
+      "version": 327683,
+      "version_valid": 1,
+      "motor_heartbeat": 938131,
+      "health_fault": 0,
+      "cpu_dcache_enabled": 0,
+      "job_command": 0,
+      "job_step": 0,
+      "published_tick_ms": 1876260,
+      "can": {
+        "rx": 479921,
+        "tx_ok": 117876,
+        "tx_fail": 13,
+        "rx_drop": 0,
+        "errors": 0,
+        "bus_off": 0,
+        "recoveries": 0,
+        "last_hal_error": 0,
+        "tec": 0,
+        "rec": 0,
+        "rx_irq": 479921,
+        "rx_other": 0,
+        "last_rx_id": 41975805,
+        "last_rx_dlc": 8,
+        "last_rx_extended": 1,
+        "last_rx_data": [
+          202,
+          233,
+          128,
+          1,
+          128,
+          95,
+          1,
+          54
+        ]
+      },
+      "configured_id": 126,
+      "identity_valid": 1,
+      "identity_id": 126,
+      "identity_uid": [
+        180,
+        108,
+        59,
+        138,
+        0,
+        116,
+        48,
+        19
+      ],
+      "feedback_count": 121917,
+      "parameter_count": 8865,
+      "unmatched_frames": 0,
+      "readback_index": 28682,
+      "readback_expected": 0,
+      "readback_actual": 0,
+      "readback_status": 1,
+      "accel_motor_supported": 0,
+      "accel_parameter": 8222,
+      "timeout_parameter": 8204,
+      "timeout_motor_supported": 0
+    },
+    "coherent2": true,
+    "cmd": {
+      "seq": 16,
+      "command": 2,
+      "confirm_key": 1381183541,
+      "target_rad_s": 0.0,
+      "speed_limit_rad_s": 33.0,
+      "current_limit_a": 2.4000000953674316,
+      "accel_rad_s2": 20.0
+    },
+    "cmd2": {
+      "seq": 16,
+      "command": 2,
+      "confirm_key": 1381183541,
+      "target_rad_s": 0.0,
+      "speed_limit_rad_s": 33.0,
+      "current_limit_a": 2.4000000953674316,
+      "accel_rad_s2": 20.0
+    },
+    "oled": {
+      "heartbeat": 938142,
+      "ready": 1,
+      "refresh_ok": 9381,
+      "refresh_fail": 0,
+      "consecutive_fail": 0,
+      "recovery_attempts": 0,
+      "recovery_ok": 0,
+      "last_error": 0,
+      "last_success_ms": 1876234,
+      "next_retry_ms": 0
+    },
+    "system": {
+      "loop_heartbeat": 938143,
+      "health_heartbeat": 18763,
+      "max_service_us": 63,
+      "last_service_us": 27,
+      "fatal": 0,
+      "boot_stage": 9,
+      "tick_ms": 1876284,
+      "vtor": 134217728,
+      "ccr": 262656,
+      "cfsr": 0,
+      "hfsr": 0,
+      "exception": 0
+    },
+    "setup": {
+      "seq": 12,
+      "key": 1381183541,
+      "command": 1,
+      "old_id": 127,
+      "new_id": 126,
+      "isolated_key": 0,
+      "executed_seq": 12,
+      "result": 0,
+      "busy": 0,
+      "dual_ready": 1
+    },
+    "drive": {
+      "executed_seq": 0,
+      "result": 0,
+      "active": 0
+    },
+    "publication_age_ms": 24,
+    "publication_age2_ms": 24,
+    "chassis": {
+      "snapshot_seq": 187628,
+      "executed_seq": 30,
+      "result": 3,
+      "active": 0,
+      "mode": 0,
+      "published_tick_ms": 1876280,
+      "imu_online": 1,
+      "imu": {
+        "ready": 1,
+        "angle_tick_ms": 1876212,
+        "angle_frames": 13754,
+        "gyro_frames": 13754,
+        "checksum_errors": 0,
+        "roll_deg": 1.12060546875,
+        "pitch_deg": 7.7069091796875,
+        "raw_yaw_deg": -176.7645263671875,
+        "yaw_deg": 21.2310791015625,
+        "gyro_z_deg_s": 0.0
+      },
+      "yaw_deg": 21.2310791015625,
+      "target_deg": 20.0,
+      "angle_error_deg": -1.2310791015625,
+      "turn_rad_s": 0.0,
+      "left_target_rad_s": -0.0,
+      "right_target_rad_s": 0.0,
+      "left_speed_rad_s": 0.002288818359375,
+      "right_speed_rad_s": 0.008392333984375,
+      "left_error_rad_s": -0.002288818359375,
+      "right_error_rad_s": -0.008392333984375,
+      "left_iq_a": -0.0,
+      "right_iq_a": 0.005176004022359848,
+      "config": {
+        "seq": 30,
+        "key": 1381183541,
+        "command": 3,
+        "left_slot": 1,
+        "left_sign": -1.0,
+        "right_sign": 1.0,
+        "yaw_sign": 1.0,
+        "target_deg": 20.0,
+        "left_rad_s": 0.0,
+        "right_rad_s": 0.0,
+        "turn_limit_rad_s": 2.0,
+        "angle_kp": 0.03999999910593033,
+        "angle_ki": 0.0,
+        "angle_kd": 0.004999999888241291
+      }
+    },
+    "chassis_coherent": true,
+    "led": {
+      "enabled": 1,
+      "mode": 0,
+      "brightness": 64,
+      "speed_percent": 100,
+      "color_order": 0,
+      "red": 32,
+      "green": 180,
+      "blue": 255,
+      "ready": 1,
+      "busy": 0,
+      "active_mode": 1,
+      "led_count": 16,
+      "service_count": 375260,
+      "frames_started": 93815,
+      "frames_done": 93815,
+      "errors": 0,
+      "last_error": 0,
+      "last_frame_ms": 1876285,
+      "last_render_us": 128,
+      "max_render_us": 146,
+      "executed_seq": 0,
+      "result": 0,
+      "cycle_index": 0,
+      "cycle_count": 6,
+      "cycle_interval_ms": 8000,
+      "cycle_modes": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        0,
+        0
+      ]
+    }
+  },
+  "sample_age_ms": 86,
+  "pending": null,
+  "pending_motors": [
+    null,
+    null
+  ],
+  "continuous": false,
+  "continuous_motors": [
+    false,
+    false
+  ],
+  "motor_count": 2,
+  "led_supported": true,
+  "drive_supported": true,
+  "drive_active": false,
+  "chassis_supported": true,
+  "setup_pending": null,
+  "logs": [
+    {
+      "time": "22:29:16",
+      "kind": "就绪",
+      "message": "连接调试器后读取真实 H743 数据；连接不会使能电机"
+    },
+    {
+      "time": "22:29:19",
+      "kind": "连接",
+      "message": "正在核对板上完整 Flash 与 AXF，请稍候"
+    },
+    {
+      "time": "22:29:21",
+      "kind": "已连接",
+      "message": "Flash 一致 · RobStride05_H743 · H743 正在运行；请查看电机在线状态"
+    },
+    {
+      "time": "22:29:25",
+      "kind": "失能请求",
+      "message": "断开前提交序号 6；断开后无法确认机械状态"
+    },
+    {
+      "time": "22:29:25",
+      "kind": "已断开",
+      "message": "SWD 会话已释放"
+    },
+    {
+      "time": "22:29:26",
+      "kind": "连接",
+      "message": "正在核对板上完整 Flash 与 AXF，请稍候"
+    },
+    {
+      "time": "22:29:28",
+      "kind": "已连接",
+      "message": "Flash 一致 · RobStride05_H743 · H743 正在运行；请查看电机在线状态"
+    },
+    {
+      "time": "22:29:36",
+      "kind": "配置提交",
+      "message": "单电机 127 → 126，等待固件回执"
+    },
+    {
+      "time": "22:29:36",
+      "kind": "配置完成",
+      "message": "单电机 127 → 126 · 成功"
+    },
+    {
+      "time": "22:29:42",
+      "kind": "配置提交",
+      "message": "双电机身份核对，等待固件回执"
+    },
+    {
+      "time": "22:29:42",
+      "kind": "配置失败",
+      "message": "双电机身份核对 · 电机离线"
+    },
+    {
+      "time": "22:29:52",
+      "kind": "底盘控制",
+      "message": "当前位置已设为零度"
+    },
+    {
+      "time": "22:29:53",
+      "kind": "底盘控制",
+      "message": "参数已应用"
+    },
+    {
+      "time": "22:29:58",
+      "kind": "失能请求",
+      "message": "断开前提交序号 8；断开后无法确认机械状态"
+    },
+    {
+      "time": "22:29:58",
+      "kind": "已断开",
+      "message": "SWD 会话已释放"
+    },
+    {
+      "time": "22:29:59",
+      "kind": "连接",
+      "message": "正在核对板上完整 Flash 与 AXF，请稍候"
+    },
+    {
+      "time": "22:30:01",
+      "kind": "已连接",
+      "message": "Flash 一致 · RobStride05_H743 · H743 正在运行；请查看电机在线状态"
+    },
+    {
+      "time": "22:32:00",
+      "kind": "全部失能",
+      "message": "两台失能请求 10 已提交，请查看两台反馈确认"
+    },
+    {
+      "time": "22:33:55",
+      "kind": "全部失能",
+      "message": "两台失能请求 12 已提交，请查看两台反馈确认"
+    },
+    {
+      "time": "22:33:55",
+      "kind": "失能请求",
+      "message": "断开前提交序号 14；断开后无法确认机械状态"
+    },
+    {
+      "time": "22:33:55",
+      "kind": "已断开",
+      "message": "SWD 会话已释放"
+    },
+    {
+      "time": "22:34:01",
+      "kind": "连接",
+      "message": "正在核对板上完整 Flash 与 AXF，请稍候"
+    },
+    {
+      "time": "22:34:03",
+      "kind": "已连接",
+      "message": "Flash 一致 · RobStride05_H743 · H743 正在运行；请查看电机在线状态"
+    },
+    {
+      "time": "22:36:01",
+      "kind": "全部失能",
+      "message": "两台失能请求 16 已提交，请查看两台反馈确认"
+    },
+    {
+      "time": "22:36:03",
+      "kind": "配置提交",
+      "message": "双电机身份核对，等待固件回执"
+    },
+    {
+      "time": "22:36:03",
+      "kind": "配置完成",
+      "message": "双电机身份核对 · 成功"
+    },
+    {
+      "time": "22:41:44",
+      "kind": "已提交",
+      "message": "电机 1 · 准备 · 序号 10，等待固件确认"
+    },
+    {
+      "time": "22:41:45",
+      "kind": "完成",
+      "message": "电机 1 · 序号 10 · 成功"
+    },
+    {
+      "time": "22:41:46",
+      "kind": "已提交",
+      "message": "电机 1 · 使能 · 序号 12，等待固件确认"
+    },
+    {
+      "time": "22:41:47",
+      "kind": "完成",
+      "message": "电机 1 · 序号 12 · 成功"
+    },
+    {
+      "time": "22:41:55",
+      "kind": "已提交",
+      "message": "电机 2 · 准备 · 序号 10，等待固件确认"
+    },
+    {
+      "time": "22:41:55",
+      "kind": "完成",
+      "message": "电机 2 · 序号 10 · 成功"
+    },
+    {
+      "time": "22:41:56",
+      "kind": "已提交",
+      "message": "电机 2 · 使能 · 序号 12，等待固件确认"
+    },
+    {
+      "time": "22:41:56",
+      "kind": "完成",
+      "message": "电机 2 · 序号 12 · 成功"
+    },
+    {
+      "time": "22:42:01",
+      "kind": "底盘控制",
+      "message": "绝对角度目标已应用"
+    },
+    {
+      "time": "22:42:14",
+      "kind": "底盘控制",
+      "message": "绝对角度目标已应用"
+    },
+    {
+      "time": "22:42:23",
+      "kind": "底盘控制",
+      "message": "绝对角度目标已应用"
+    },
+    {
+      "time": "22:42:38",
+      "kind": "底盘控制",
+      "message": "绝对角度目标已应用"
+    },
+    {
+      "time": "22:46:36",
+      "kind": "底盘控制",
+      "message": "绝对角度目标已应用"
+    },
+    {
+      "time": "22:48:40",
+      "kind": "失能请求",
+      "message": "断开前提交序号 18；断开后无法确认机械状态"
+    },
+    {
+      "time": "22:48:40",
+      "kind": "已断开",
+      "message": "SWD 会话已释放"
+    },
+    {
+      "time": "22:48:46",
+      "kind": "连接",
+      "message": "正在核对板上完整 Flash 与 AXF，请稍候"
+    },
+    {
+      "time": "22:48:48",
+      "kind": "已连接",
+      "message": "Flash 一致 · RobStride05_H743 · H743 正在运行；请查看电机在线状态"
+    },
+    {
+      "time": "22:48:54",
+      "kind": "配置提交",
+      "message": "双电机身份核对，等待固件回执"
+    },
+    {
+      "time": "22:48:54",
+      "kind": "配置完成",
+      "message": "双电机身份核对 · 成功"
+    },
+    {
+      "time": "22:49:00",
+      "kind": "已提交",
+      "message": "电机 2 · 准备 · 序号 14，等待固件确认"
+    },
+    {
+      "time": "22:49:00",
+      "kind": "完成",
+      "message": "电机 2 · 序号 14 · 成功"
+    },
+    {
+      "time": "22:49:02",
+      "kind": "已提交",
+      "message": "电机 2 · 使能 · 序号 16，等待固件确认"
+    },
+    {
+      "time": "22:49:02",
+      "kind": "完成",
+      "message": "电机 2 · 序号 16 · 成功"
+    },
+    {
+      "time": "22:49:08",
+      "kind": "已提交",
+      "message": "电机 1 · 准备 · 序号 14，等待固件确认"
+    },
+    {
+      "time": "22:49:08",
+      "kind": "完成",
+      "message": "电机 1 · 序号 14 · 成功"
+    },
+    {
+      "time": "22:49:10",
+      "kind": "已提交",
+      "message": "电机 1 · 使能 · 序号 16，等待固件确认"
+    },
+    {
+      "time": "22:49:10",
+      "kind": "完成",
+      "message": "电机 1 · 序号 16 · 成功"
+    },
+    {
+      "time": "22:49:15",
+      "kind": "底盘控制",
+      "message": "绝对角度目标已应用"
+    }
+  ],
+  "probes": [
+    {
+      "id": "d9381b44",
+      "name": "Horco Horco CMSIS-DAP"
+    }
+  ],
+  "profile": {
+    "axf_sha256": "959d7efa6c44811a0406804f509635c91064d1687d331298bf0c7930fc7b9a52",
+    "address": "0x200000ac",
+    "source": "D:\\竞赛\\2026 AIC\\2026-AIC\\RobStride05_H743\\MDK-ARM\\Objects\\RobStride05_H743.axf"
+  },
+  "history_count": 31832,
+  "limits": {
+    "target_rad_s": 33.0,
+    "speed_limit_rad_s": 33.0,
+    "current_limit_a": 11.0,
+    "accel_rad_s2": 150.0
+  },
+  "defaults": {
+    "target_rad_s": 0.0,
+    "speed_limit_rad_s": 33.0,
+    "current_limit_a": 2.4,
+    "accel_rad_s2": 20.0
+  }
+}

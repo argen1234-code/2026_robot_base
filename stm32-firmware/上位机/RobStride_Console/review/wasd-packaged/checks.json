@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "checks": [
+    "W/S/A/D and diagonal mapping retain full existing 33 rad/s range; keyup zeros both",
+    "Space clears held vector",
+    "editing/settings ignore movement keys; window blur releases the session",
+    "module switch releases; original Esc all-disable stays available",
+    "left/right motor assignment and mounting polarity are configurable"
+  ],
+  "errors": [],
+  "physical_motion_tested": false
+}

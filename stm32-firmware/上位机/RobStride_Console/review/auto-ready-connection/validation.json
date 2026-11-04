@@ -1,0 +1,35 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "javascript_errors": [],
+  "requests": [
+    [
+      "probes",
+      {}
+    ],
+    [
+      "connect",
+      {
+        "probe_id": "fixture",
+        "motor_params": [
+          {
+            "speed_limit_rad_s": 12,
+            "current_limit_a": 3,
+            "accel_rad_s2": 20
+          },
+          {
+            "speed_limit_rad_s": 33,
+            "current_limit_a": 2.4,
+            "accel_rad_s2": 25
+          }
+        ]
+      }
+    ]
+  ],
+  "checks": [
+    "both per-motor limits submitted on connect",
+    "movement blocked during automatic initialization",
+    "ready state enables angle, wheel-speed and WASD controls",
+    "manual setup controls absent"
+  ]
+}

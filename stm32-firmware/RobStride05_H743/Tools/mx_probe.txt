@@ -1,0 +1,4 @@
+load STM32H743IIT6
+config saveas "D:/??/2026 AIC/RobStride05_H743/RobStride05_H743.ioc"
+help
+exit

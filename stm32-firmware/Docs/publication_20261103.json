@@ -1,0 +1,67 @@
+{
+  "date": "2026-11-03",
+  "repository": "MacSwimmm/2026-AIC",
+  "branch": "main",
+  "features": [
+    "JY901S USART6 boot-zero continuous heading",
+    "Heading PID drives RS05 internal speed loop; redundant MCU wheel-speed PID removed",
+    "Automatic pair identification, speed-mode preparation and zero-speed enable on connect",
+    "Manual confirmation and ID-change UI removed; stop/disable preserved"
+  ],
+  "firmware_rebuild": {
+    "errors": 0,
+    "warnings": 0,
+    "flash_segments_equal_to_accepted": true,
+    "schema_equal_to_accepted": true,
+    "hex_equal_to_accepted": true,
+    "accepted_release_artifacts_retained": true,
+    "rebuild_axf_sha256": "5d4243151fc2da654edbcfab635e0ee6609bf58891b6d182e5406792c1ba0ac6"
+  },
+  "python_tests": {
+    "passed": 48,
+    "failed": 0
+  },
+  "c_host_checks_passed": true,
+  "integration_idempotent": true,
+  "browser_checks": {
+    "chassis": {
+      "passed": true,
+      "report": "上位机/RobStride_Console/review/auto-ready-chassis/checks.json"
+    },
+    "wasd": {
+      "passed": true,
+      "report": "上位机/RobStride_Console/review/auto-ready-wasd/checks.json"
+    },
+    "template": {
+      "passed": true,
+      "report": "上位机/RobStride_Console/review/auto-ready-template/ui-regression.json"
+    },
+    "packaged_connection": {
+      "passed": true,
+      "report": "上位机/RobStride_Console/review/auto-ready-packaged-connection/validation.json"
+    },
+    "packaged_chassis": {
+      "passed": true,
+      "report": "上位机/RobStride_Console/review/auto-ready-packaged-chassis/checks.json"
+    }
+  },
+  "automatic_zero_speed_enable_hardware_passed": true,
+  "stop_and_initialization_cancel_hardware_passed": true,
+  "hardware_report": "上位机/RobStride_Console/review/auto-ready-hardware.json",
+  "nonzero_motion_commanded_for_publication": false,
+  "firmware_flashed_for_publication": false,
+  "artifacts": {
+    "RobStride05_H743/MDK-ARM/Objects/RobStride05_H743.axf": {
+      "size": 2076980,
+      "sha256": "959d7efa6c44811a0406804f509635c91064d1687d331298bf0c7930fc7b9a52"
+    },
+    "RobStride05_H743/MDK-ARM/Objects/RobStride05_H743.hex": {
+      "size": 203550,
+      "sha256": "c7801e9f7e228d8eed604112a06c4a6ac8fa1965070485f5acb58439c7624b77"
+    },
+    "上位机/RobStrideConsole.exe": {
+      "size": 32720167,
+      "sha256": "47a4984e4e175804bc95b4fa95419e0d4c64022b0c1daddd30c5c9d21c9a68ef"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "url": "http://127.0.0.1:29845",
+  "firmware_sha256": "0cacf051c83c857b30373523ae236f44318cc86f70fcb5ac9c2387d798f15604",
+  "connected": false,
+  "bluetooth_connected": false,
+  "serial_enumeration_ok": true,
+  "csrf_rejection_ok": true,
+  "assets_ok": true,
+  "physical_hardware_tested": false
+}

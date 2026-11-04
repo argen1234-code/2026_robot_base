@@ -1,0 +1,28 @@
+{
+  "as_of_shanghai": "2026-10-21T16:17:24.457449+08:00",
+  "project_file_entries": 56,
+  "all_sources_local": true,
+  "errors": 0,
+  "warnings": 0,
+  "code_bytes": 51572,
+  "ro_bytes": 1740,
+  "rw_bytes": 276,
+  "zi_bytes": 34628,
+  "host_check_groups": 11,
+  "artifacts": {
+    "axf": {
+      "path": "MDK-ARM\\Objects\\RobStride05_H743.axf",
+      "bytes": 1932772,
+      "sha256": "a884351c29267732a0c564cbb0592e248de3cd198be4a73d8c023e182dd99407",
+      "modified_shanghai": "2026-10-21T16:15:10.400027+08:00"
+    },
+    "hex": {
+      "path": "MDK-ARM\\Objects\\RobStride05_H743.hex",
+      "bytes": 150777,
+      "sha256": "37ad61030b9fb7be0b762212b81e6b61659887cf253e5f8257cf0b6d252bc26f",
+      "modified_shanghai": "2026-10-21T16:15:10.513276+08:00"
+    }
+  },
+  "flashed": false,
+  "hardware_tested": false
+}

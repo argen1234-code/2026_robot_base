@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "checks": [
+    "connection-ready motors allow direct heading, speed and independent control without manual setup",
+    "absolute +90/0/-90/360 commands preserve screenshot wheel assignment and mounting polarity",
+    "live PID changes preserve active heading control",
+    "paired forward-positive speed targets, stop, and explicit zero are connected",
+    "WASD sends changed wheel mapping into the same chassis configuration",
+    "telemetry, four chart metrics, desktop/mobile layout render without horizontal overflow"
+  ],
+  "errors": [],
+  "physical_motion_tested": false
+}
