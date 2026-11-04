@@ -1,0 +1,16 @@
+# 由 MDK-ARM/RobStride05_H743.uvprojx 自动生成
+set(FIRMWARE_INCLUDES
+  ${PROJECT_ROOT}/App
+  ${PROJECT_ROOT}/BSP
+  ${PROJECT_ROOT}/Core/Inc
+  ${PROJECT_ROOT}/Devices
+  ${PROJECT_ROOT}/Drivers/CMSIS/Device/ST/STM32H7xx/Include
+  ${PROJECT_ROOT}/Drivers/CMSIS/Include
+  ${PROJECT_ROOT}/Drivers/CMSIS/RTOS2/Include
+  ${PROJECT_ROOT}/Drivers/STM32H7xx_HAL_Driver/Inc
+  ${PROJECT_ROOT}/Drivers/STM32H7xx_HAL_Driver/Inc/Legacy
+  ${PROJECT_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2
+  ${PROJECT_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/include
+  ${PROJECT_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1
+  ${PROJECT_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM7/r0p1
+)

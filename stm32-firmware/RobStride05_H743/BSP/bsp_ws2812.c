@@ -13,7 +13,11 @@
 /* Scatter places this ZI section in UNINIT D2 SRAM1 at 0x30000000.
  * CRT MUST NOT zero D2 SRAM before its clock is enabled in Init().
  * Never place this buffer in DTCM; cache OFF does not make DTCM DMA-accessible. */
+#if defined(__GNUC__)
+__attribute__((section("WS2812_DMA"), aligned(32)))
+#else
 __attribute__((section("WS2812_DMA"),zero_init,aligned(32)))
+#endif
 static uint16_t waveform[LED_WORDS];
 static bool ready,busy;
 static uint32_t error,start_ms;

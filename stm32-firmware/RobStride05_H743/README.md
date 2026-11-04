@@ -94,3 +94,17 @@ Cache 为什么会让旧版一上电就 HardFault：见 [Docs/08_Cache为什么�
 ## 小车 WASD 更新（2026-11-02）
 
 本工程已增加配套上位机的小车成对速度命令与模式超时处理，使用现有 SWD 调试连接。原独立双电机、OLED、WS2812、时钟及 Cache 配置保留。请将本次 AXF/HEX 与同仓库新版 EXE 配套使用；操作、软件测试结果及未做实车验证的范围见 [WASD 说明](../Docs/WASD.md)。
+
+## Linux / 树莓派 GCC 构建（可选）
+
+除 Keil 外，`gcc/` 目录提供 `arm-none-eabi-gcc` + CMake 构建：
+
+```bash
+cd gcc
+./build.sh      # 生成 build/firmware.{elf,hex,bin}
+./flash.sh      # DAPLink (CMSIS-DAP) + OpenOCD 烧录
+./debug.sh      # 启动 OpenOCD GDB server
+```
+
+GCC 版的启动文件、FreeRTOS 移植层、内存布局与 Keil 的差异见 [gcc/README.md](gcc/README.md)。
+已验证编译产物：FLASH ≈ 86KB、DTCM ≈ 44KB。
