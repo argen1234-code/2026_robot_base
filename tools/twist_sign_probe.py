@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """角速度符号 / 转速 实测探针（一次性诊断工具，不属于 robot_base_bringup 包）。
 
+⚠️ 2026-11-04 底盘已换成两轮 CAD 模型；本脚本仍按旧四轮固件的
+   motor_speed[4]/duty[4] 字段解析，只适用于旧 HAL 工程/旧 bag。
+   当前两轮 USB 桥测试请用 tools/usb_bridge_test.py。
+
 目的
 ----
 原地转弯"响应慢 + 卡顿"的候选根因里，有一个必须实测才能排除的：

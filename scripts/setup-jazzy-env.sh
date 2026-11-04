@@ -28,6 +28,7 @@ mkdir -p "$MAMBA_ROOT"
   -c "$ROBOSTACK" -c "$CONDA_FORGE" --strict-channel-priority \
   ros-jazzy-ros-base \
   ros-jazzy-nav2-bringup \
+  ros-jazzy-foxglove-bridge \
   ros-jazzy-slam-toolbox \
   ros-jazzy-ros2-control \
   ros-jazzy-ros2-controllers \
@@ -40,7 +41,7 @@ mkdir -p "$MAMBA_ROOT"
   colcon-common-extensions \
   cmake make compilers pkg-config \
   libboost-devel eigen yaml-cpp \
-  python=3.12 pip
+  python=3.12 pip pyserial
 
 echo
 echo "Done. 用法："

@@ -6,8 +6,10 @@
 |---|---|
 | `yahboom/ros-humble-ai:base-v1.0` | 原始基础镜像快照（导入镜像，无法从零复现） |
 | `yahboom/ros-humble-ai:snapshot-20261104` | AI 容器 `docker commit` 快照（含 ASR/TTS/LLM 依赖与临时安装） |
-| `yahboom/ros-nav:snapshot-20261104` | 导航容器快照（含 ros2_control 等） |
 | `yahboom/ros-humble-ai:2026.11` | 由 `Dockerfile` 从 snapshot 派生（entrypoint/label） |
+
+> 导航容器镜像 `yahboom/ros-nav:snapshot-20261104` 已于 2026-11-05 删除；
+> 导航统一在主机 `ros_jazzy` 环境运行，不再使用 Humble 回退容器。
 
 完整依赖清单见 `base-image-manifest.txt`。
 
@@ -26,8 +28,6 @@ docker build -f docker/Dockerfile -t yahboom/ros-humble-ai:2026.11 docker/
 docker/run-ai.sh
 # AI + 指定 launch
 docker/run-ai.sh ros_humble_ai_dev ros2 launch largemodel largemodel_control.launch.py
-# 导航（Humble 回退）
-docker/run-nav.sh
 # 后台 AI 服务
 docker/run-ai-service.sh
 ```

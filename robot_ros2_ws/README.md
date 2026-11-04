@@ -1,8 +1,8 @@
 # 2026_robot_base
 
-四轮底盘的 ROS 2 Jazzy（Ubuntu 24.04）工作空间。真机室内导航通过 MCU USB CDC 模式 3 接收前进和旋转速度指令；单雷达的 rf2o 负责里程计。该方案仍需实车速度和方向标定。
+两轮差速底盘的 ROS 2 Jazzy（Ubuntu 24.04）工作空间。真机室内导航通过 MCU USB CDC 模式 3 接收前进和旋转速度指令；rf2o 激光、轮速和 IMU 陀螺经 EKF 松耦合融合成 `/odom`。该方案仍需实车速度和方向标定。
 
-仓库保留的 `diff_drive_controller`/`robot_base_driver` 是旧的双轮桩实现，不读取真实编码器，也不适用于当前四轮 CAD 模型；真机建图和导航不启用它。请勿把其命令回声里程计当作闭环反馈。
+`diff_drive_controller`/`robot_base_driver` 仍是桩实现，不读取真实编码器；默认启动用 `joint_state_publisher` 提供关节状态，实际运动走 `chassis_bridge.py` + MCU。新 URDF 里已经包含 `<ros2_control>` 段，但默认不启动 controller_manager。不要用命令回声里程计当闭环反馈。
 
 ## 包结构
 
@@ -13,7 +13,7 @@
 | `robot_base_driver` | ros2_control `SystemInterface` 硬件插件（当前为桩实现） |
 | `robot_base_bringup` | 拉起整套栈的 launch 与控制器参数 |
 | `ydlidar_ros2_driver` | 激光雷达驱动（从 [ros2_hunble_nav_jeston_orin_nano_super](https://github.com/argen1234-code/ros2_hunble_nav_jeston_orin_nano_super) 移植） |
-| `rf2o_laser_odometry` | 激光里程计（同上仓库移植），当前 odom 的来源 |
+| `rf2o_laser_odometry` | 激光里程计原始输出 `/odom_rf2o`，经 ZUPT 后进入 EKF |
 
 依赖方向：`msgs` → `driver` → `bringup`；`description` 独立。
 
@@ -61,9 +61,54 @@ source ~/2026_robot_base/robot_ros2_ws/install/setup.bash
 
 ### 单雷达建图与 Nav2 导航（真机）
 
-此工作区的真机运动模型使用底盘 MCU 的 ROS 室内模式；Nav2 控制器被限制为前进和原地旋转。雷达扫描配准产生 `/odom`，建图时由 SLAM 发布 `map -> odom`；导航时关闭 SLAM，由 AMCL 接管该 TF。两种模式不要同时启动。
+此工作区的真机运动模型使用底盘 MCU 的 ROS 室内模式；Nav2 控制器被限制为前进和原地旋转。`/odom` 由 EKF 融合 rf2o、轮速和 IMU 陀螺产生，建图时由 SLAM 发布 `map -> odom`；导航时关闭 SLAM，由 AMCL 接管该 TF。两种模式不要同时启动。
 
-CAD STL 含四轮的最大水平外廓距 `base_footprint` 约 0.265 m。URDF 的半透明圆盘表示半径 0.30 m 的导航碰撞边界（含约 35 mm 安装余量），在 `view_robot.launch.py` 和建图/导航 RViz 中随车可见；导航圆盘在 Gazebo 中不作为物理接触体。Nav2 本地与全局 costmap 均使用 `robot_radius: 0.30`、`footprint_padding: 0.0`，膨胀半径 0.50 m，即从圆盘边缘向外 0.20 m 的渐变代价区；碰撞监控停止圈半径为 0.38 m。安装额外外凸设备时须重新测量并同步修改 URDF 与 Nav2 参数。
+两轮 CAD 模型（2026-11-04）的整车包络为长 0.291 m、宽 0.236 m（含轮宽），
+`base_footprint` 在两轮接地点中点、地面高度。URDF 的半透明圆盘
+`navigation_footprint` 圆心在 `x=+0.1005`；Nav2 本地/全局 costmap 多边形
+footprint 为
+`[[-0.0450,-0.1180],[-0.0450,0.1180],[0.2460,0.1180],[0.2460,-0.1180]]`、
+`footprint_padding: 0.0`，膨胀半径 0.50 m。安装额外外凸设备或换轮子时须
+重新测量并同步修改 URDF、`nav2_params.yaml`、`controllers.yaml` 与固件常数。
+
+### 统一启动入口（推荐）
+
+整个工程只需要一个入口，用 `slam` 切换模式：
+
+```bash
+# 建图模式：默认加载 ~/maps 最新 posegraph 续建；没有则从零建图
+ros2 launch robot_base_bringup bringup.launch.py \
+  slam:=true motor_enable:=true visualization:=foxglove
+
+# 先验地图模式：slam_toolbox localization + Nav2
+ros2 launch robot_base_bringup bringup.launch.py \
+  slam:=false map:=$HOME/maps/robot_map \
+  motor_enable:=true visualization:=foxglove
+```
+
+- `map` 是 **posegraph 前缀**（不带 `.posegraph`/`.yaml`）；
+- `slam:=true`：默认用 `~/maps` 下最新 `*.posegraph` 续建；没有则从零建图；
+  `map:=<prefix>` 指定特定地图，`map:=none` 强制从零建图；
+- `slam:=false`：默认用 `~/maps` 最新 posegraph；没有会在启动节点前报错；
+- `slam:=false` 使用 **slam_toolbox localization**，不再使用 AMCL/map_server；
+  初始位姿由 `map_start_pose`（默认 `[0,0,0]`）或 `map_start_at_dock` 决定；
+- `bringup.launch.py` 只是组合 `mapping_navigation.launch.py` 和
+  `navigation.launch.py`，两个底层入口仍可单独调试。
+
+### Nav2 鲁棒性策略
+
+不是单纯调 Nav2 参数：
+
+- `goal_sanitizer` 接管 `/goal_pose`，经 `/goal_pose_safe` 交给 `bt_navigator`；
+  - 终点在致命格：1 m 内找最近自由格并替换；找不到则拒绝；
+  - 起点在致命格：清 local/global costmap，再由 BT 的 `BackUp`/`Spin` 恢复；
+  - 目标 frame 建议用 `map`；若为 `base_link`，stamp TF 失败会回退最新 TF；
+- 使用 Nav2 默认 BT（已包含清图、spin、wait、backup 恢复）；
+  参考仓库的旧版自定义 BT 与当前 Jazzy `bt_navigator` 节点 ID 不兼容，
+  未在运行时启用；`behavior_trees/` 中文件仅作参考；
+- 观测：`/goal_pose_safe`、`/goal_sanitizer_status`。
+
+### 底层入口（调试用）
 
 先建图：
 
@@ -71,36 +116,51 @@ CAD STL 含四轮的最大水平外廓距 `base_footprint` 约 0.265 m。URDF �
 ros2 launch robot_base_bringup mapping.launch.py
 ```
 
-无已保存地图、需要在 RViz 设置目标并观察规划路径时，使用建图与 Nav2 联合入口（默认不驱动电机）：
+无已保存地图、需要设置目标并观察规划路径时，使用建图与 Nav2 联合入口（默认不驱动电机）：
 
 ```bash
-ros2 launch robot_base_bringup mapping_navigation.launch.py
+ros2 launch robot_base_bringup mapping_navigation.launch.py \
+  motor_enable:=true visualization:=foxglove
 ```
 
-Jetson 内存紧张时可用 `visualization:=none` 关闭 RViz，另开电脑查看 ROS 话题。
+`visualization` 默认 `foxglove`（本机 RViz2 在 Ogre 初始化时会段错误），
+浏览器打开 `https://studio.foxglove.dev` 连接 `ws://<树莓派IP>:8765`。
+内存紧张时用 `visualization:=none`，另开电脑用 Foxglove/RViz 查看 ROS 话题。
 
 等待雷达产生 `/map` 且 Nav2 的 `/planner_server`、`/bt_navigator` 进入 active 后，在 RViz 使用 **Nav2 Goal** 指定目标；红色为 `/plan` 全局路径，蓝色为 `/local_plan` 局部路径。没有地图覆盖的区域无法保证规划成功。该入口只启动一份 SLAM，不启动 AMCL；不要同时运行 `navigation.launch.py`。本入口无地图文件要求，电机默认关闭，因此即使规划成功也不会移动实车。
 
-保存地图（文件名前缀，不带扩展名）：
+保存地图（建图栈运行中；同时生成 slam_toolbox posegraph 和 2D 图）：
 
 ```bash
-mkdir -p ~/maps
-ros2 run nav2_map_server map_saver_cli -f ~/maps/robot_map
+bash tools/save_slam_map.sh ~/maps/robot_map
 ```
 
-载入地图并启动 Nav2，默认只观察 `/cmd_vel`，不连接/驱动 MCU：
+生成：
+
+```text
+~/maps/robot_map.posegraph/.data   # slam_toolbox localization/续建使用
+~/maps/robot_map.yaml/.pgm         # 仅供查看/其他工具
+```
+
+`map_saver_cli` 单独产生的 `.yaml/.pgm` **不能**用于 slam_toolbox localization。
+
+载入先验地图并启动 Nav2（默认不 ARM）：
 
 ```bash
-ros2 launch robot_base_bringup navigation.launch.py map:=$HOME/maps/robot_map.yaml
+ros2 launch robot_base_bringup bringup.launch.py \
+  slam:=false map:=$HOME/maps/robot_map \
+  motor_enable:=false visualization:=foxglove
 ```
 
-确认扫描、定位和路径都正常后，架空驱动轮并显式启用底盘输出：
+确认扫描、定位和路径正常后，显式启用底盘输出：
 
 ```bash
-ros2 launch robot_base_bringup navigation.launch.py map:=$HOME/maps/robot_map.yaml motor_enable:=true mcu_port:=/dev/stm32
+ros2 launch robot_base_bringup bringup.launch.py \
+  slam:=false map:=$HOME/maps/robot_map \
+  motor_enable:=true visualization:=foxglove
 ```
 
-`chassis_bridge` 按 STM32 `develop` 固件 `bsp_usb.c` 的 12 字节 USB CDC 帧发送模式 3、速度 float 和 XOR 校验；ROS 前进速度会按固件约定转换为负 Vx。桥接限速为 0.20 m/s、0.45 rad/s，命令超时 0.25 秒即周期发送零速，短于 MCU 的 0.5 秒离线保护。STM32 与雷达的稳定设备名由 `src/robot_base_bringup/udev/99-robot-base.rules` 统一提供（`/dev/stm32` 与 `/dev/ydlidar`），两者都按 USB **物理口** `devpath` 绑定，不要把二者配成同一个名字。⚠️ 早先 STM32 是按 USB 序列号绑定的，但实测该序列号会失效，详见下方「STM32 端口绑定」。固件室内模式不支持倒车和横移，桥接会拒绝倒车命令。首次上电请架空车轮并备好物理急停；完成实际方向、轮廓尺寸和制动距离标定前，不要无人值守运行。
+`chassis_bridge` 走 STM32 原生 USB CDC（`/dev/stm32`，0483:5740）：下行是 `AA 55` 12 字节速度帧（模式 3、速度 float、XOR），以及 `BB 55` 4 字节 ARM/DISARM 服务帧；上行是 `CC 55` 104 字节遥测（50 Hz，轮速/目标/电流、IMU 的 roll/pitch/yaw/陀螺/加速度、ARM/超时/故障标志）。ROS 前进速度会按固件约定转换为负 Vx。先验地图启动时桥接限速为 0.24 m/s、0.55 rad/s，建图启动时为 0.20 m/s、0.45 rad/s；命令超时 0.25 秒即周期发送零速，短于 MCU 的 0.5 秒离线保护。STM32 与雷达的稳定设备名由 `src/robot_base_bringup/udev/99-robot-base.rules` 提供（`/dev/stm32` 与 `/dev/ydlidar`）：STM32 按 VID:PID `0483:5740` 绑定，雷达按物理口 `KERNELS=="3-2"` 绑定，不要把二者配成同一个名字。固件室内模式不支持倒车和横移，桥接会拒绝倒车命令。首次上电请架空车轮并备好物理急停；完成实际方向、轮廓尺寸和制动距离标定前，不要无人值守运行。
 
 首次部署 udev 规则（规则模板位于 `src/robot_base_bringup/udev/99-robot-base.rules`）：
 
@@ -126,7 +186,9 @@ ros2 run robot_base_bringup chassis_bridge.py --ros-args -p port:=/dev/stm32 -p 
 export WECHAT_MQTT_CLIENT_ID='robot_001_jetson'
 export WECHAT_MQTT_USERNAME='your-username'
 export WECHAT_MQTT_PASSWORD='your-password'
-ros2 launch robot_base_bringup navigation.launch.py map:=$HOME/maps/robot_map.yaml motor_enable:=true wechat:=true
+ros2 launch robot_base_bringup bringup.launch.py \
+  slam:=false map:=$HOME/maps/robot_map \
+  motor_enable:=true wechat:=true
 ```
 
 如需覆盖默认连接地址，可设置 `WECHAT_MQTT_BROKER` 和 `WECHAT_MQTT_PORT`。EMQX 管理 API Key 用于管理 REST API，不是 MQTT 登录凭据；请在 EMQX 控制台创建 MQTT 用户名/密码。API Key、用户名和密码均不要提交到 Git。
@@ -167,9 +229,10 @@ ros2 launch robot_base_bringup robot_base.launch.py
 
 启动 `robot_state_publisher`、`ros2_control_node`（加载本仓库的硬件插件）、
 `joint_state_broadcaster`、`diff_drive_controller`、`ydlidar_ros2_driver`、
-`scan_to_scan_filter_chain`（角度过滤）、`slam_toolbox`（建图），以及 RViz。
+`scan_to_scan_filter_chain`（角度过滤）、`slam_toolbox`（建图），以及 Foxglove Bridge。
 
-可用参数：`rviz:=false`、`lidar:=false`、`lidar_filter:=false`、`slam:=false`、`lidar_port:=...`。
+可用参数：`visualization:=foxglove|rviz|none`、`lidar:=false`、`lidar_filter:=false`、
+`slam:=false`、`lidar_port:=...`、`foxglove_port:=8765`。
 
 ### 3. 遥控与验证
 
@@ -192,7 +255,9 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -p stamped:=true
 | 话题 | 类型 | 说明 |
 |---|---|---|
 | `/cmd_vel` | `geometry_msgs/TwistStamped` | 速度指令输入（**必须带 `header.stamp`**） |
-| `/odom` | `nav_msgs/Odometry` | 里程计（激光里程计 rf2o），同时发布 `odom → base_footprint` TF |
+| `/odom` | `nav_msgs/Odometry` | EKF 融合里程计（rf2o+ZUPT、轮速、IMU gyro z），同时发布唯一的 `odom → base_footprint` TF |
+| `/odom_stabilized` | `nav_msgs/Odometry` | rf2o + ZUPT 的中间输出，供 EKF 使用，不发 TF |
+| `/wheel/odom` | `nav_msgs/Odometry` | 轮速积分（有效轮径 0.041713 / 轮距 0.148），供 EKF 使用，不发 TF |
 | `/joint_states` | `sensor_msgs/JointState` | 关节状态 |
 | `/scan` | `sensor_msgs/LaserScan` | 雷达**原始**扫描，10 Hz，`frame_id: laser_frame` |
 | `/scan_filtered` | `sensor_msgs/LaserScan` | 角度过滤**后**的扫描 —— slam_toolbox 用这个 |
@@ -208,8 +273,15 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -p stamped:=true
 
 ## 激光雷达
 
-底盘上的雷达是 **YDLIDAR Tmini Pro**（USB 转串口 CP2102，`/dev/ydlidar`，230400 bps），
-由移植进来的 `ydlidar_ros2_driver` 包驱动，发布 `/scan`（10 Hz）。
+底盘上的雷达是 **YDLIDAR Tmini Plus**（USB 转串口 CP2102，`/dev/ydlidar`，230400 bps，
+Model Code 151 / FW 1.2，实测 SN `2025110300090362`），由移植进来的
+`ydlidar_ros2_driver` 包驱动，发布 `/scan`（默认 10 Hz，约 430 点/圈）。
+
+⚠️ Tmini Plus 与 Tmini Pro 的参数不同：这台雷达不输出强度信息，必须用
+`params/TminiPlus.yaml`（`intensity: false`、`intensity_bit: 0`）；照抄
+`TminiPro.yaml`（`intensity: true`、`intensity_bit: 8`）会持续报
+`Checksum error` 并反复切换强度位。SDK 默认开启强度位自动探测，启动瞬间
+（电机起转/首帧不完整）仍可能打印几条校验和错误，稳定后 `/scan` 为 10 Hz。
 
 `laser_frame` 是 URDF 里挂在 `base_link` 上的雷达 link，所以 TF 链
 `odom → base_link → laser_frame` 由 `robot_state_publisher` 提供，
@@ -242,7 +314,7 @@ USB 转串口设备时都会变。雷达参数文件里写死一个编号，换�
 装好后生效于 `/etc/udev/rules.d/99-robot-base.rules`。雷达那一条是：
 
 ```
-KERNEL=="ttyUSB*", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{devpath}=="2.3", GROUP="dialout", MODE="0660", SYMLINK+="ydlidar"
+SUBSYSTEM=="tty", KERNEL=="ttyUSB*", KERNELS=="3-2", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", GROUP="dialout", MODE="0660", SYMLINK+="ydlidar"
 ```
 
 各属性的来由（`udevadm info -a -n /dev/ttyUSB0` 得到）：
@@ -252,9 +324,10 @@ KERNEL=="ttyUSB*", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{devp
 | `idVendor` | `10c4` | Silicon Labs |
 | `idProduct` | `ea60` | CP2102 USB-UART 芯片 |
 | `serial` | `0001` | ⚠️ **CP2102 的通用值，同型号设备全都一样，不能用来区分** |
-| `devpath` | `2.3` | USB **物理口**编号 —— 区分同型号设备就靠它 |
+| `KERNELS` | `3-2` | USB **物理口**（总线 3、端口 2）—— 区分同型号设备就靠它 |
+| `devpath` | `2` | 兜底规则用；`KERNELS` 失效时仍能命中 |
 
-**换 USB 物理口后 `devpath` 会变，规则会失效**，需要重新查并改这一行：
+**换 USB 物理口后 `KERNELS`/`devpath` 会变，规则会失效**，需要重新查并改这一行：
 
 ```bash
 udevadm info -a -n /dev/ttyUSB0 | grep -E "looking at|ATTRS\{(devpath|idVendor|idProduct|serial)\}"
@@ -270,38 +343,51 @@ ls -l /dev/stm32 /dev/ydlidar
 
 ### STM32 端口绑定（udev）
 
-STM32 的 `/dev/stm32` 原先按 **USB 序列号** 绑定（序列号由固件 `usbd_desc.c` 的
-`Get_SerialNum()` 从芯片 UID 派生，本意是芯片唯一、换口不改名）。**实测会失效：**
+STM32 烧录本仓库固件后会枚举为 `0483:5740` 的原生 USB CDC。**不要按 `ttyACM`
+编号绑定**：`ttyACM0`/`ttyACM1` 会随枚举顺序变化（本机 DAPLink 的 VCP 就可能是
+其中任意一个）。当前规则按 **VID:PID** 匹配：
 
-> 接调试器 / 复位后重新枚举时，主机读到的序列号会变成厂商串 `STMicroelectronics`，
-> 按序列号匹配的规则于是不再命中，`/dev/stm32` 直接消失、`chassis_bridge` 开不了口：
-> `Cannot open MCU /dev/stm32: [Errno 2] No such file or directory`，且每 5 秒重试一次。
-
-所以现在**主规则改成按物理口 `devpath` 绑定**（与雷达同一写法），另外**保留一条按
-序列号的规则作为兜底** —— udev 的多条规则是「或」关系，同时命中只是重复创建同一个
-软链接、无害；这样把 STM32 插到别的口时，只要这次序列号读得出来，名字照样正确。
+```
+SUBSYSTEM=="tty", KERNEL=="ttyACM*", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", GROUP="dialout", MODE="0660", SYMLINK+="stm32"
+```
 
 | 属性 | 值 | 说明 |
 |---|---|---|
 | `idVendor` / `idProduct` | `0483` / `5740` | ST Microelectronics 内置 USB CDC |
-| `devpath` | `2.2` | USB **物理口**编号，与雷达的 `2.3` 同属集线器 `1-2` |
-| `serial` | `3159396C3430` | ⚠️ 本应芯片唯一，但**会读成 `STMicroelectronics`**，只能当兜底 |
+| `serial` | `337434543133`（本机） | ⚠️ **不要作为匹配条件**：重新枚举/旧固件下可能读成厂商串 `STMicroelectronics` |
+
+> 历史：早先 `/dev/stm32` 按 USB 序列号绑定，重新枚举后序列号变成
+> `STMicroelectronics`，规则不再命中，`chassis_bridge` 报
+> `Cannot open MCU /dev/stm32: [Errno 2] No such file or directory`。
+> 现在改按 VID:PID 匹配，换 USB 口也能命中。
+>
+> 调试器 DAPLink 的 VCP 单独命名为 `/dev/dap-vcp`（按物理口
+> `KERNELS=="1-1.1"` + `faed:4873` 匹配），不会占用 `/dev/stm32`，
+> 避免把“调试器串口”误当成“底盘 MCU 串口”。
 
 **排查这类问题的三步**（不依赖 ROS）：
 
 ```bash
-ls -l /dev/stm32 /dev/ydlidar
+ls -l /dev/stm32 /dev/dap-vcp /dev/ydlidar
 udevadm info -a -n /dev/ttyACM0 | grep -E "looking at|ATTRS\{(devpath|idVendor|idProduct|serial)\}"
 udevadm trigger --subsystem-match=tty    # 重新触发一遍规则
 ```
 
+> `ttyACM*` 编号会变，排查时先用 `lsusb` 或
+> `udevadm info -q property -n /dev/ttyACM0 | grep ID_VENDOR_ID` 确认哪个是
+> 0483:5740（STM32），哪个是 faed:4873（DAPLink）。
+
 ⚠️ 若旧部署里还留着 `/etc/udev/rules.d/99-stm32.rules`（同机重复副本，不在仓库里），
 装本规则后请删掉它：`sudo rm -f /etc/udev/rules.d/99-stm32.rules`
 
-验证（应看到 `ydlidar -> ttyUSB0`）：
+验证（软链接名是稳定的，右侧 tty 编号可能互换）：
 
 ```bash
-ls -l /dev | grep -E "ttyUSB|ydlidar"
+ls -l /dev/stm32 /dev/dap-vcp /dev/ydlidar
+# 例如：
+#   /dev/stm32   -> ttyACM0   (0483:5740)
+#   /dev/dap-vcp -> ttyACM1   (faed:4873)
+#   /dev/ydlidar -> ttyUSB0   (10c4:ea60)
 ```
 
 > 教程示例用的是 `MODE:="777"`、`GROUP="users"`（任何用户可读写）。
@@ -337,20 +423,29 @@ ydlidar_ros2_driver -> /scan -> [车尾扇区遮罩] -> /scan_filtered -> RViz /
 sudo apt install ros-jazzy-laser-filters
 ```
 
-#### 当前滤波链：只保留角度滤波
+#### 当前滤波链：距离截断 + 车尾后向角度掩码
 
 配置在 [config/laser_filters.yaml](src/robot_base_bringup/config/laser_filters.yaml)：
 
 | # | 插件 | 作用 | 当前参数 |
 |---|---|---|---|
-| 1 | `LaserScanAngularBoundsFilterInPlace` | 屏蔽车尾 90° | 雷达角 `-135°～-45°`；绿色 `laser_frame +Y` 为车头 |
+| 1 | `LaserScanRangeFilter` | 去掉自回波和过远无效点 | `0.20 ~ 10.0 m`，越界替换为 `inf` |
+| 2 | `LaserScanAngularBoundsFilterInPlace` | 掩掉车尾后向盲区 | raw `+80°..+110°` 置 `NaN` |
 
 实测：
 
 ```
 /scan          430 束/帧   -180.0°~180.0°
-/scan_filtered 430 束/帧   保留整圈角度元数据，车尾约 90° 的束标记为无效回波
+/scan_filtered 430 束/帧   0.20~10 m 距离截断；raw +80°..+110° 置 NaN
 ```
+
+> 2026-11-05 `laser_frame` yaw 从 -90° 修正为 **+90°** 后，raw
+> `laser_frame +90°` 经 TF 对应 `base_link` **车尾**（雷达后侧安装结构
+> 的自回波，0.087 m 左右）；车头为 raw `-90°`。实测持续自回波在
+> raw `+86.0°..+104.5°`；按 URDF 车体后向理论阴影，掩码取
+> raw `+80°..+110°`（实测自回波 +86..+104.5，两侧留余量）。
+> 2026-11-05 四轮离线回放中，`+80..+110` 的孤立连通域/unique occupied
+> 更少，故最终采用该范围；`+66..+114` 作为车体阴影备选。
 
 > 曾经试过串联 5 级滤波（角度 + 距离 + 车体 + 阴影 + 散斑），已全部移除，
 > 原因见 [laser_filters.yaml](src/robot_base_bringup/config/laser_filters.yaml) 末尾的说明。
@@ -394,8 +489,11 @@ sudo apt install ros-jazzy-laser-filters
 
 ### 换型号 / 换串口
 
-驱动包 `params/` 下自带各型号参数（X2 / X4 / G1 / G2 / TG / TminiPro ...）。
-本机实测是 TminiPro（230400 bps，10 Hz，实测有效距离 0.04~7.4 m），launch 默认用它。
+驱动包 `params/` 下自带各型号参数（X2 / X4 / G1 / G2 / TG / TminiPro /
+TminiPlus ...）。本机实测是 **Tmini Plus**（Model Code 151，230400 bps，
+默认 10 Hz、约 430 点/圈），launch 默认用 `params/TminiPlus.yaml`。
+型号规格的扫描频率是 **6–12 Hz**；提高到 12 Hz 时每圈点数会降到约 358，
+不适合需要更密点云的场景。
 
 ```bash
 # 换成别的型号（型号名即 params/ 下的文件名，不带 .yaml）
@@ -423,17 +521,35 @@ ros2 launch ydlidar_ros2_driver ydlidar_launch.py publish_static_tf:=true  # 自
 
 ### 当前模型与运动学边界
 
-当前 `robot_base_description/urdf/robot_base.urdf.xacro` 已完全使用仓库最新的
-`mecanum_car_model` CAD 网格与四个麦克纳姆轮关节，并额外补齐
-`base_footprint -> base_link -> laser_frame` 的 TF 链。`robot_state_publisher`
-根据 `/robot_description` 发布 TF，RViz 的 `RobotModel` 订阅该话题显示模型；
-Gazebo 只负责生成模型和传感器，不是 TF 的发布者。
+`robot_base_description/urdf/robot_base.urdf.xacro` 已切换为 2026-11-04 接收的
+**两轮差速 CAD 模型**（网格在 `meshes/`）：
 
-当前仓库的串口硬件插件和 `diff_drive_controller` 仍然是“两轮差速”接口，
-不能驱动四轮麦克纳姆底盘的横移/全向运动。因此默认建图启动使用
-`joint_state_publisher` 发布关节状态，适合手推车或外部里程计建图；不要把
-`/cmd_vel` 的差速控制结果当作麦克纳姆运动学。要实现真实四轮控制，需要另行
-接入四轮控制器（或自定义麦克纳姆运动学控制器）及对应硬件接口。
+- 几何轮半径 **0.041 m**；2026-11-05 标定有效滚动半径 **0.041713 m**；
+  左右轮接地点中心 **y=±0.074 m**（有效轮距 **0.148 m**）；
+- `base_footprint` 位于两轮接地点中点、地面高度，`base_link` 是 CAD 坐标系
+  （`base_footprint → base_link = (0.075,0,0.103), yaw 0`）；
+- `laser_frame` 的 yaw 为 **+90°**：raw 扫描 -90° 对应车头，+90° 对应车尾
+  （自回波方向）；
+- TF：`map → odom → base_footprint → base_link → link_laser → laser_frame`；
+- 无麦克纳姆轮/横移，`diff_drive_controller` 与串口运动逻辑都是差速接口。
+
+标定记录（2026-11-05）：
+
+- 键盘 W/S/A/D 与实车一致；左转 yaw/gyro_z 增大、右转减小，IMU 轴符号
+  与 ROS 一致；左右轮映射无需交换。
+- IMU 静止零偏 `roll +2.005° / pitch -0.033° / yaw +218.260°` 已写入
+  [config/imu_calibration.yaml](src/robot_base_bringup/config/imu_calibration.yaml)；
+  但 JY901S 融合 yaw 在电机运行时会漂（13 s 约 97°，gyro_z 仅 -0.1°/s），
+  **绝对 yaw 不可作为航向**，短时用 gyro_z/激光里程计。
+- 速度：0.10 m/s × 12.88 s，编码器 4.998 圈 / 1.2876 m，卷尺 1.31 m，
+  雷达正前方箱体 Δ1.319 m；有效轮径 0.041713 m，固件/控制器已同步并烧录。
+  详见 [config/speed_calibration.yaml](src/robot_base_bringup/config/speed_calibration.yaml)。
+- 工具：`tools/keyboard_cmd.py`、`tools/imu_calibrate.py`、
+  `tools/run_speed_calibration.sh`。
+
+`robot_state_publisher` 根据 `/robot_description` 发布 TF，Gazebo 只负责生成
+模型和传感器，不是 TF 的发布者。旧的 `mecanum_car_model` 包保留作历史参考，
+但已不再被导航模型依赖。
 
 [slam_toolbox](https://docs.nav2.org/tutorials/docs/navigation2_with_slam.html) 做 2D SLAM，
 订阅 `/scan_filtered`，发布 `/map` 与 `map → odom` 的 TF。用 `slam:=false` 可关掉。
@@ -444,11 +560,9 @@ Gazebo 只负责生成模型和传感器，不是 TF 的发布者。
 ### TF 树
 
 ```
-map → odom → base_footprint → base_link → laser_frame
+map → odom → base_footprint → base_link → link_laser → laser_frame
                   │              ├─ left_wheel_link
-                  │              ├─ right_wheel_link
-                  │              ├─ front_caster_link
-                  │              └─ rear_caster_link
+                  │              └─ right_wheel_link
                   │
       ┌───────────┴────────────┬─────────────────────┐
       │                        │                     │
@@ -470,55 +584,53 @@ ros2 run rqt_tf_tree rqt_tf_tree --force-discover   # 图形化，可刷新
 ros2 run tf2_tools view_frames                      # 生成 PDF + frames.gv
 ```
 
-### 里程计：激光里程计（rf2o）
+### 里程计：EKF 松耦合（rf2o + 轮速 + IMU）
 
-**当前 odom 的来源是激光雷达，不是轮子。**
+2026-11-05 起 `/odom` 由 `robot_localization` 的 `ekf_filter_node` 发布，
+不再直接使用 rf2o：
 
 ```
-/scan_filtered ─┬─→ rf2o_laser_odometry ─→ /odom + odom→base_footprint 的 TF（短时先验，会漂）
-                └─→ slam_toolbox ────────→ map→odom 的 TF（扫描匹配修正）
+/scan_filtered ─→ rf2o_laser_odometry ─→ /odom_rf2o
+                                      └→ odom_stabilizer（轮速 ZUPT）→ /odom_stabilized
+/chassis/wheel_speed ─→ wheel_odom ─→ /wheel/odom（vx, vyaw）
+/chassis/imu ────────────────────────→ EKF imu0（只用 gyro z）
+                                      ↓
+                         ekf_filter_node → /odom + 唯一的 odom→base_footprint TF
+/scan_filtered ─────────────────────→ slam_toolbox → map→odom
 ```
 
-#### 为什么这么做
+- `rf2o`：短时先验，特征稀疏环境会漂；
+- `odom_stabilizer`：静止时用轮速冻结 rf2o，解决静态漂移；
+- `wheel_odom`：用有效轮径 **0.041713 m**、轮距 **0.148 m** 积分 `vx/vyaw`；
+- IMU：JY901S 融合 yaw 在电机运行时会漂，**只融合 gyro z**，不融合绝对 yaw；
+- `ekf_filter_node`：`two_d_mode`，`world_frame=odom`，融合后发布 `/odom` 和 TF；
+- `slam_toolbox` 仍只消费扫描和 TF，继续发布 `map→odom`，属于松耦合。
 
-`robot_base_driver.read()` **还是桩实现**（把速度命令回声成状态再积分），
-轮式里程计完全没有反映真实运动。而雷达是真的 —— 所以激光里程计给出的才是真实运动。
-**这带来一个实际好处：你现在推着车走就能建出真实地图，不用等电机接好。**
+配置在 [config/ekf.yaml](src/robot_base_bringup/config/ekf.yaml)，
+轮式里程计在 [scripts/wheel_odom.py](src/robot_base_bringup/scripts/wheel_odom.py)。
 
-#### ⚠️ TF 归属：不能两边都发
+#### ⚠️ TF 归属
 
-`odom → base_footprint` 现在由 rf2o 发布，因此
-[controllers.yaml](src/robot_base_bringup/config/controllers.yaml) 里
-`diff_drive_controller` 的 **`enable_odom_tf` 必须为 `false`**。
-两个节点同时发这条 TF 会让它有两个来源，树结构非法（RViz 报 `TF_REPEATED_DATA`）。
+`odom → base_footprint` **只能由 `ekf_filter_node` 发布**：
 
-同理，launch 里**去掉了** `'/diff_drive_controller/odom' → '/odom'` 的重映射，
-`/odom` 现在只有 rf2o 一个发布者。轮式里程计仍可在 `/diff_drive_controller/odom` 单独查看。
+- rf2o：`publish_tf=false`，只发 `/odom_rf2o`；
+- `odom_stabilizer`：`publish_tf=false`，只发 `/odom_stabilized`；
+- `wheel_odom`：只发 `/wheel/odom`，不发 TF；
+- `diff_drive_controller` 的 `enable_odom_tf` 保持 `false`；
+- EKF：`publish_tf=true`，输出 `/odom`（原生 `/odometry/filtered` 在 launch 中重映射）。
 
-#### 实测
+多个节点发同一条 TF 会报 `TF_REPEATED_DATA`，树结构非法。
 
-车静止不动时，rf2o 的 `/odom` 会因雷达测量噪声缓慢漂移（实测约 10cm）：
+#### 实测（2026-11-05）
 
-| | 数值 |
-|---|---|
-| rf2o 的 `/odom` | `(0.024, -0.098)` |
-| slam_toolbox 的 `map → odom` | `(-0.017, 0.098)` |
+- 静止 8 s：EKF `/odom` 位移约 **0.0000 m**，yaw 变化约 **0.0000°**；
+- 1 m 目标测试：`/odom` 从原点到 **x≈1.04 m**，轮速/IMU 融合正常；
+- EKF 输出约 **30 Hz**；Pi 同时跑 SLAM/Nav2/Foxglove 时偶发
+  `Failed to meet update rate`，不是数据错误，可把 `ekf.yaml` 的
+  `frequency` 从 30 降到 20 降低日志噪声。
 
-修正量几乎是漂移的**精确逆**，相乘后 `map → base_footprint` ≈ 单位矩阵，
-车在 map 坐标系里被钉住不动。这就是这套架构的设计意图：
-**激光里程计提供短时先验（会漂），SLAM 负责长期修正。**
-
-实测地图 30 秒内只有 2 个版本、占用格 308→347 后收敛，没有被漂移糊掉
-（对比：用桩里程计伪造运动时是 38→475、5 个版本快速变化，地图是伪影）。
-
-#### 接真机后换回轮式里程计
-
-差速底盘上轮式里程计通常更可靠 —— 激光里程计在**长走廊、空旷场地等特征稀疏环境会失效**，
-而且只有 10Hz。等编码器接好：
-
-1. [controllers.yaml](src/robot_base_bringup/config/controllers.yaml) 里 `enable_odom_tf` 改回 `true`
-2. launch 里把 `rf2o_node` 那段注释掉
-3. 恢复重映射 `'-r /diff_drive_controller/odom:=/odom'`
+历史：早期只用 rf2o + `odom_stabilizer` 的 ZUPT；现在保留 ZUPT 作为
+EKF 的一个输入，并加入轮速/IMU 融合。
 
 #### 源码移植说明
 
@@ -585,7 +697,7 @@ map_start_pose: [0.0, 0.0, 0.0]
 | `scan_topic` | `/scan_filtered` | 用过滤后的数据 |
 | `base_frame` | `base_footprint` | 必须与 `controllers.yaml` 的 `base_frame_id` 一致 |
 | `resolution` | `0.05` | 栅格 5cm |
-| `max_laser_range` | `12.0` | 与 Tmini Pro 量程一致 |
+| `max_laser_range` | `12.0` | 与 Tmini Plus 量程一致 |
 | `minimum_travel_distance` | `0.2` | 走多远插入一个位姿图节点（默认 0.5 对小车偏粗） |
 | `map_update_interval` | `3.0` | `/map` 重发间隔（秒）；会话内地图就是按这个周期持续刷新的 |
 | `use_scan_matching` | `true` | 关掉会退化成纯里程计推算，必须保持 true |
@@ -594,11 +706,18 @@ map_start_pose: [0.0, 0.0, 0.0]
 ### 保存地图
 
 ```bash
-# 运行时保存（同时存 pgm/yaml 与位姿图）
-ros2 service call /slam_toolbox/serialize_map slam_toolbox/srv/SerializePoseGraph "{filename: /home/argen/map}"
-# 或用 nav2 的 map_saver_cli
-ros2 run nav2_map_server map_saver_cli -f /home/argen/map
+# 推荐：同时保存 posegraph 和 2D 图
+bash tools/save_slam_map.sh /home/pi/maps/robot_map
+
+# 等价于：
+# ros2 service call /slam_toolbox/serialize_map \
+#   slam_toolbox/srv/SerializePoseGraph "{filename: /home/pi/maps/robot_map}"
+# ros2 run nav2_map_server map_saver_cli -f /home/pi/maps/robot_map
 ```
+
+> 只有 `.posegraph/.data` 能被 slam_toolbox mapping/localization 加载；
+> `.yaml/.pgm` 仅供查看或其他 2D 工具。统一入口默认取 `~/maps` 最新的
+> `*.posegraph`。
 
 ### ⚠️ min_pass_through：默认值会让地图"看着只有一帧"
 
@@ -643,28 +762,51 @@ ros2 topic echo /map --once | head -5
 （这也是为什么 `enable_odom_tf` 必须是 `false`：`diff_drive_controller` 的
 `/cmd_vel` 仍然接在轮子上，但它不再影响 odom。）
 
-等真机编码器接好后，轮式里程计在差速底盘上通常更可靠
-（激光里程计在长走廊等特征稀疏环境会失效），届时按上方「接真机后换回轮式里程计」切换。
+真机编码器已通过 `wheel_odom` 接入 EKF（有效轮径 0.041713、轮距 0.148），
+与 rf2o 和 IMU gyro z 松耦合；`diff_drive_controller` 仍是桩实现，
+`enable_odom_tf` 保持 `false`，不参与 odom。
 
-### RViz 视图
-
-启动时可在 RViz 和 Foxglove 之间选择；默认仍为 RViz：
+### 可视化视图（Foxglove / RViz）
 
 ```bash
-ros2 launch robot_base_bringup robot_base.launch.py visualization:=rviz
+# 默认：Foxglove Bridge 监听 8765，不启动本机 OpenGL
 ros2 launch robot_base_bringup robot_base.launch.py visualization:=foxglove
+# 单独起桥
+ros2 run foxglove_bridge foxglove_bridge --ros-args -p port:=8765
+# RViz（本机 RoboStack aarch64 当前会崩，修好后可用）
+ros2 launch robot_base_bringup robot_base.launch.py visualization:=rviz
+# 不启动任何可视化
 ros2 launch robot_base_bringup robot_base.launch.py visualization:=none
 ```
 
-Foxglove 模式需先安装桥接包：`sudo apt install ros-jazzy-foxglove-bridge`。
-然后在 Foxglove 中添加
-**Foxglove WebSocket** 连接，地址填写 `ws://localhost:8765`。
-Bridge 默认监听 `0.0.0.0:8765`；从另一台电脑可直接连接 `ws://<机器人IP>:8765`，
-或使用 SSH 端口转发后连接本机地址：
-`ssh -L 8765:127.0.0.1:8765 <机器人用户名>@<机器人IP>`，并在电脑上的
-Foxglove 连接 `ws://localhost:8765`。在 3D 面板中添加 `/robot_description`
-机器人模型、`/tf` 与 `/tf_static` 坐标变换、`/scan_filtered` 激光扫描和
-`/map` 地图；Foxglove 不会自动导入 RViz 的 `.rviz` 布局。
+浏览器打开 `https://studio.foxglove.dev` → Open connection → Foxglove WebSocket →
+`ws://<树莓派IP>:8765`。推荐面板：3D（Fixed frame `map`，订阅 `/map`、
+`/scan_filtered`、`/plan`）、Plot（`/chassis/wheel_speed`）、Raw Messages（`/chassis/imu`）。
+
+**显示机器人模型**：URDF 不是普通 topic 显示项，要在 3D 面板设置里
+「自定义图层 → 添加 URDF」：Source 选 **Topic** `/robot_description`
+（或 Parameter `/robot_state_publisher.robot_description`），
+Control mode=`Transforms`，Display mode=`Visual`。
+`/local_costmap/published_footprint` 显示的是蓝色 footprint 多边形，不是车体模型。
+
+> Foxglove 对 STL 默认按 **Y 轴向上** 加载；本车 CAD 是 Z 轴向上，若模型“躺着”，
+> 在 3D 面板 → **场景（Scene）→ 网格上轴（Mesh up axis）** 改成 **Z-up**。
+> 模型默认白色，和白色地图融为一体时可把 URDF 图层的颜色改成高对比色。
+
+**在 Foxglove 里发导航目标（等同 RViz 的 2D Goal Pose）：**
+Nav2 的 `bt_navigator` 直接订阅 `/goal_pose`（`geometry_msgs/PoseStamped`）。
+
+1. 3D 面板右侧设置 → **Publish** 段，Type 选 **Pose**，Topic 填 `/goal_pose`；
+2. 固定坐标系设为 `map`；
+3. 点 3D 面板工具栏的 **Publish pose**（目标/箭头图标），在地图上点一下并拖出朝向。
+
+也走不到的话，可在 **Publish** 面板手动发 `/goal_pose`，`header.frame_id: map`、
+`pose.orientation.w: 1.0`；或命令行：
+
+```bash
+ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
+  "{pose: {header: {frame_id: map}, pose: {position: {x: 0.5, y: 0.0}, orientation: {w: 1.0}}}}"
+```
 
 [robot_base.rviz](src/robot_base_description/rviz/robot_base.rviz) 是建图视图，订阅：
 
@@ -689,7 +831,6 @@ QoS 用 Best Effort 是为了兼容性：滤波节点是 Reliable 发布（也�
 ```bash
 ros2 launch robot_base_bringup gazebo.launch.py
 ros2 launch robot_base_bringup gazebo.launch.py gui:=false    # 只跑服务器，不显示 Gazebo 界面
-ros2 launch robot_base_bringup gazebo.launch.py visualization:=foxglove
 ros2 launch robot_base_bringup gazebo.launch.py visualization:=none
 ```
 
@@ -790,21 +931,17 @@ diff_drive_controller / joint_state_broadcaster   均为 active
   要仿真里也建图的话告诉我。
 - 仿真里没有 IMU、相机。
 
-## ⚠️ 改几何参数要同步改两个文件
+## ⚠️ 改几何参数要同步改三处
 
-`wheel_separation` 与 `wheel_radius` 在两个地方各有一份：
+两轮模型的 `wheel_separation` / `wheel_radius` 现在保持一致（0.148 / 0.041）：
 
-1. `src/robot_base_description/urdf/robot_base.common.xacro`（模型外观）
-2. `src/robot_base_bringup/config/controllers.yaml`（里程计计算）
+1. `src/robot_base_description/urdf/robot_base.urdf.xacro`（CAD 模型/关节）
+2. `src/robot_base_bringup/config/controllers.yaml`（差速里程计）
+3. `stm32-firmware/RobStride05_H743/App/app_config.h`（MCU 轮速换算）
 
-**两处不一致会导致 odom 的尺度和转向全部算错。** 改的时候务必一起改。
-
-`robot_base.common.xacro` 里的参数都可以在命令行覆盖，不必改文件：
-
-```bash
-xacro src/robot_base_description/urdf/robot_base.urdf.xacro \
-      wheel_radius:=0.06 wheel_separation:=0.40
-```
+**三处不一致会导致 odom 尺度、轮速下发和实际行走距离全部对不上。**
+新模型由 CAD 导出后生成，不再有 `wheel_radius:=` 这类 xacro 覆盖参数；
+换轮子/改轴距时改 URDF 关节和上面两处常数。
 
 ## 接真机
 
@@ -822,7 +959,9 @@ xacro src/robot_base_description/urdf/robot_base.urdf.xacro \
    double cmd = 0.0;
    get_command<double>(velocity_commands_[i], cmd, false);
    ```
-4. 把 `robot_base.ros2_control.xacro` 里的 `serial_port` / `baud_rate` 改成真机值。
+4. 真机参数在 `robot_base.urdf.xacro` 的 `<ros2_control>` 段里
+   （`serial_port=/dev/stm32`、`baud_rate=115200`）。注意实际导航运动走的是
+   `chassis_bridge.py` + MCU USB CDC，`robot_base_driver` 仍是桩实现。
 
 接口句柄在 `on_configure()`（状态）和 `on_activate()`（命令）里解析并缓存，
 控制循环中只解引用裸指针，不做 map 查找，也不走 `wait_until_*` 阻塞路径。

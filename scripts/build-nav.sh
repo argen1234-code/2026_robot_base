@@ -28,12 +28,22 @@ echo "=== build YDLidar SDK (system cmake; conda cmake 4.x rejects old policies)
   make install
 "
 
+echo "=== build robot_base_description (copy install; meshes 目录不适合 symlink-install) ==="
+"$MAMBA_BIN" run -n "$ENV_NAME" bash -c "
+  set -e
+  cd '$ROOT/robot_ros2_ws'
+  ulimit -v 4194304
+  MAKEFLAGS=-j2 colcon build --packages-select robot_base_description --parallel-workers 2 \
+    --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+"
+
 echo "=== build robot_ros2_ws (4GB address-space cap) ==="
 "$MAMBA_BIN" run -n "$ENV_NAME" bash -c "
   set -e
   cd '$ROOT/robot_ros2_ws'
   ulimit -v 4194304
-  MAKEFLAGS=-j2 colcon build --symlink-install --parallel-workers 2 \
+  MAKEFLAGS=-j2 colcon build --symlink-install \
+    --packages-skip robot_base_description --parallel-workers 2 \
     --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 "
 
