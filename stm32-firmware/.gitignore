@@ -16,6 +16,11 @@
 # Build output directories
 MDK-ARM/STM32H743/
 MDK-ARM/STM32H743_Build/
+h7_lvgl_rtos_base/gcc/build/
+*.obj
+CMakeCache.txt
+CMakeFiles/
+
 
 # Backup files
 *.Bak

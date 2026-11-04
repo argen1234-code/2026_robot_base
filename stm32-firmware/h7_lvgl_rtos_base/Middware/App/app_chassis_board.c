@@ -86,7 +86,7 @@ static uint32_t chassis_usb_route_sequence = 0U;
 
 /* Sole chassis instance; not directly accessible externally, only via pointer */
 chassis_move_t    chassis_move    = {0};
-static volatile int gui_req_mode = -1;
+volatile int gui_req_mode = -1;
 static uint8_t chassis_manual_indoor_mode = 0U;
 static volatile uint8_t chassis_init_done = 0U;
 static char chassis_init_status[64] = "\xE7\xAD\x89\xE5\xBE\x85\xE5\x88\x9D\xE5\xA7\x8B\xE5\x8C\x96";

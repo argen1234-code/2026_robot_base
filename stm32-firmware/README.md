@@ -19,6 +19,20 @@
 3. Rebuild all → Download (F8)
 4. 串口 PA9/PA10, 115200
 
+## Linux / 树莓派 GCC 构建（可选）
+
+不依赖 Keil，使用 `arm-none-eabi-gcc` + CMake：
+
+```bash
+cd h7_lvgl_rtos_base/gcc
+./build.sh          # 生成 build/firmware.{elf,hex,bin}
+./flash.sh          # DAPLink (CMSIS-DAP) + OpenOCD 烧录
+./debug.sh          # 启动 OpenOCD GDB server
+```
+
+与 Keil 的差异（FreeRTOS GCC 移植层、`libneai.a` 的 softfp ABI、链接脚本等）
+见 `h7_lvgl_rtos_base/gcc/README.md`。
+
 ## UI 界面
 
 ```
