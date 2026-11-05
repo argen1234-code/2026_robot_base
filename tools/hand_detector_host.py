@@ -37,11 +37,16 @@ def main():
     ap.add_argument('--udp', default='127.0.0.1:5005')
     ap.add_argument('--image-udp', default='',
                     help='JPEG 帧转发目标 host:port（空=关闭，供 Foxglove 查看）')
-    ap.add_argument('--image-fps', type=float, default=10.0)
-    ap.add_argument('--jpeg-quality', type=int, default=80)
+    ap.add_argument('--image-fps', type=float, default=3.0)
+    ap.add_argument('--image-width', type=int, default=320,
+                    help='Diagnostic JPEG width; hand inference still uses the full input image')
+    ap.add_argument('--jpeg-quality', type=int, default=60)
     ap.add_argument('--max-hands', type=int, default=1)
     ap.add_argument('--show', action='store_true')
     args = ap.parse_args()
+    cv2.setNumThreads(1)
+    if args.image_width < 1 or args.image_fps <= 0:
+        ap.error('image width and frame rate must be positive')
 
     host, port = args.udp.rsplit(':', 1)
     port = int(port)
@@ -132,8 +137,12 @@ def main():
                       f"fps={msg.get('fps', '-')}", flush=True)
             if (image_sock is not None and
                     now - last_image >= 1.0 / max(0.1, args.image_fps)):
+                preview = out
+                if w > args.image_width:
+                    preview = cv2.resize(out, (args.image_width, round(h*args.image_width/w)),
+                                         interpolation=cv2.INTER_AREA)
                 ok_jpg, buf = cv2.imencode(
-                    '.jpg', out,
+                    '.jpg', preview,
                     [int(cv2.IMWRITE_JPEG_QUALITY), args.jpeg_quality])
                 if ok_jpg:
                     if len(buf) <= 60000:

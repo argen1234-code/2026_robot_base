@@ -23,8 +23,10 @@
 """
 
 import argparse
+from collections import deque
 import json
 import math
+import sys
 import threading
 import time
 
@@ -32,12 +34,12 @@ import cv2
 import numpy as np
 import rclpy
 from geometry_msgs.msg import PoseStamped
-from rclpy.callback_groups import ReentrantCallbackGroup
-from rclpy.executors import MultiThreadedExecutor
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import CameraInfo, CompressedImage, Image
 from std_msgs.msg import String
+from person_inference import ConfidenceGate, PersonInference
 
 PERSON_CLASS_ID = 0
 
@@ -46,20 +48,27 @@ class PersonDetector(Node):
     def __init__(self, args):
         super().__init__('person_detector')
         self.args = args
-        self.cb_group = ReentrantCallbackGroup()
 
         cv2.setNumThreads(args.cv_threads)
-        self.net = cv2.dnn.readNetFromONNX(args.model)
-        self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
-        self.get_logger().info(f'YOLO model loaded: {args.model}')
+        if args.runtime_dir:
+            sys.path.insert(0, args.runtime_dir)
+        self.runner = PersonInference(args.model, backend=args.backend,
+            width=args.input_size, height=args.input_height, threads=args.cv_threads,
+            confidence=min(args.conf,args.support_conf), iou=args.iou)
+        self.confidence_gate = ConfidenceGate(args.conf,args.support_conf,args.support_seconds)
+        self.get_logger().info(f'YOLO model loaded: {args.model} backend={args.backend}')
 
         # OpenCV DNN 的 Net 不是线程安全的；定时器和回调可能并发。
         self._infer_lock = threading.Lock()
         self._frame_lock = threading.Lock()
+        self._frame_ready = threading.Event()
+        self._stop_worker = threading.Event()
+        self._worker = None
         self.color_msg = None
         self.color_seq = 0
         self.processed_seq = -1
         self.depth_msg = None
+        self.depth_history = deque(maxlen=12)
         # Orbbec 的 camera_info 在本机可能是 NaN，先用 Astra 640×480 的
         # 近似内参；收到有效值再覆盖。
         self.fx = float(args.fx)
@@ -71,27 +80,24 @@ class PersonDetector(Node):
         self._bad_intrinsics_logged = False
         self._last_depth_warn = 0.0
         self.last_log = 0.0
+        self.last_annotation_at = 0.0
 
         # 只保留最新一帧；推理来不及时不排队，也不解码会被丢弃的帧。
         latest_qos = QoSProfile(
             depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
         self.create_subscription(
-            CompressedImage, args.color_topic, self.color_cb, latest_qos,
-            callback_group=self.cb_group)
+            CompressedImage, args.color_topic, self.color_cb, latest_qos)
         self.create_subscription(
-            Image, args.depth_topic, self.depth_cb, latest_qos,
-            callback_group=self.cb_group)
+            Image, args.depth_topic, self.depth_cb, latest_qos)
         self.create_subscription(
             CameraInfo, args.depth_info_topic, self.info_cb,
-            latest_qos, callback_group=self.cb_group)
+            latest_qos)
 
         self.det_pub = self.create_publisher(String, args.det_topic, 10)
         self.pose_pub = self.create_publisher(PoseStamped, args.pose_topic, 10)
         self.img_pub = self.create_publisher(
             CompressedImage, args.image_topic, 1)
 
-        self.create_timer(1.0 / max(0.5, args.max_fps), self.tick,
-                          callback_group=self.cb_group)
         self.get_logger().info(
             f'person detector ready: color={args.color_topic} '
             f'depth={args.depth_topic} max_fps={args.max_fps} '
@@ -102,12 +108,44 @@ class PersonDetector(Node):
         with self._frame_lock:
             self.color_msg = msg
             self.color_seq += 1
+        self._frame_ready.set()
+
+    def start_worker(self):
+        self._worker = threading.Thread(target=self._run_worker,
+                                        name='person_inference', daemon=True)
+        self._worker.start()
+
+    def _run_worker(self):
+        next_start = 0.0
+        while not self._stop_worker.is_set():
+            if not self._frame_ready.wait(.5):
+                continue
+            self._frame_ready.clear()
+            if self._stop_worker.wait(max(0.0,next_start-time.monotonic())):
+                return
+            started = time.monotonic()
+            try:
+                self.tick()
+            except Exception as error:
+                self.get_logger().error(f'person inference worker failed: {error}')
+                self._stop_worker.set()
+                rclpy.try_shutdown()
+                return
+            next_start = started + 1.0/self.args.max_fps
+
+    def stop_worker(self):
+        self._stop_worker.set()
+        self._frame_ready.set()
+        if self._worker is not None:
+            self._worker.join()
 
     def depth_cb(self, msg):
         if msg.encoding not in ('16UC1', 'mono16'):
             return
         with self._frame_lock:
             self.depth_msg = msg
+            stamp = msg.header.stamp
+            self.depth_history.append((stamp.sec + stamp.nanosec/1e9, msg))
 
     def info_cb(self, msg):
         k = msg.k
@@ -137,7 +175,15 @@ class PersonDetector(Node):
                 return
             self.processed_seq = self.color_seq
             color_msg = self.color_msg
-            depth_msg = self.depth_msg
+            source_stamp = color_msg.header.stamp
+            source_seconds = source_stamp.sec + source_stamp.nanosec/1e9
+            depth_msg = min(self.depth_history,
+                key=lambda sample:abs(sample[0]-source_seconds))[1] if self.depth_history else None
+            if depth_msg is not None:
+                stamp = depth_msg.header.stamp
+                skew_ms = abs(source_seconds-stamp.sec-stamp.nanosec/1e9)*1000
+                if skew_ms > self.args.max_depth_skew_ms:
+                    depth_msg = None
 
         # 保留消息引用可保证底层缓冲在推理期间有效；回调只替换引用。
         decode_start = time.perf_counter()
@@ -181,6 +227,11 @@ class PersonDetector(Node):
             'count': len(persons),
             'infer_ms': round(infer_ms, 1),
             'decode_ms': round(decode_ms, 1),
+            'backend': self.args.backend,
+            'input_shape': [self.runner.height, self.runner.width],
+            'preprocess_ms': round(self.runner.last_timing.get('preprocess_ms', 0), 2),
+            'forward_ms': round(self.runner.last_timing.get('forward_ms', 0), 2),
+            'postprocess_ms': round(self.runner.last_timing.get('postprocess_ms', 0), 2),
             'input_age_ms': round(input_age_ms, 1),
             'result_age_ms': round((time.time() - source_seconds) * 1000.0, 1),
             'color_depth_skew_ms': (
@@ -207,56 +258,7 @@ class PersonDetector(Node):
                 f'result_age={data["result_age_ms"]:.0f}ms nearest={nd}')
 
     def detect(self, img):
-        size = self.args.input_size
-        h, w = img.shape[:2]
-        r = min(size / w, size / h)
-        nw, nh = int(round(w * r)), int(round(h * r))
-        resized = cv2.resize(img, (nw, nh))
-        canvas = np.full((size, size, 3), 114, np.uint8)
-        dw, dh = (size - nw) // 2, (size - nh) // 2
-        canvas[dh:dh + nh, dw:dw + nw] = resized
-
-        blob = cv2.dnn.blobFromImage(
-            canvas, 1.0 / 255.0, (size, size), swapRB=True, crop=False)
-        self.net.setInput(blob)
-        out = self.net.forward()
-        pred = out[0].T  # (N, 4 + classes)
-
-        scores = pred[:, 4:]
-        cls = scores.argmax(axis=1)
-        conf = scores.max(axis=1)
-        mask = (cls == PERSON_CLASS_ID) & (conf > self.args.conf)
-        if not mask.any():
-            return []
-
-        boxes = pred[mask, :4]
-        confs = conf[mask]
-        rects, mapped = [], []
-        for (cx, cy, bw, bh), c in zip(boxes, confs):
-            x = (cx - bw / 2.0 - dw) / r
-            y = (cy - bh / 2.0 - dh) / r
-            bw2, bh2 = bw / r, bh / r
-            x = max(0.0, min(float(w - 1), x))
-            y = max(0.0, min(float(h - 1), y))
-            bw2 = max(1.0, min(float(w) - x, bw2))
-            bh2 = max(1.0, min(float(h) - y, bh2))
-            rects.append([x, y, bw2, bh2])
-            mapped.append(float(c))
-
-        idx = cv2.dnn.NMSBoxes(
-            rects, mapped, self.args.conf, self.args.iou)
-        persons = []
-        for i in np.array(idx).flatten():
-            x, y, bw2, bh2 = rects[i]
-            persons.append({
-                'conf': round(float(mapped[i]), 3),
-                'bbox': [round(float(x), 1), round(float(y), 1),
-                         round(float(bw2), 1), round(float(bh2), 1)],
-                'center': [round(float(x + bw2 / 2.0), 1),
-                           round(float(y + bh2 / 2.0), 1)],
-            })
-        persons.sort(key=lambda p: p['conf'], reverse=True)
-        return persons
+        return self.confidence_gate.filter(self.runner.predict(img))
 
     # ---------------- depth / geometry ----------------
     def attach_depth(self, p, color_w, color_h, depth):
@@ -277,10 +279,11 @@ class PersonDetector(Node):
         x, y, bw, bh = p['bbox']
         # 在框内缩 20% 的区域取有效深度，用 30% 分位数避开背景墙。
         sx, sy = dw / float(color_w), dh / float(color_h)
-        dx0 = max(0, int((x + 0.2 * bw) * sx))
-        dx1 = min(dw, int((x + 0.8 * bw) * sx))
-        dy0 = max(0, int((y + 0.2 * bh) * sy))
-        dy1 = min(dh, int((y + 0.8 * bh) * sy))
+        offset_x, offset_y = self.args.depth_offset_x*dw, self.args.depth_offset_y*dh
+        dx0 = max(0, int((x + 0.2 * bw) * sx + offset_x))
+        dx1 = min(dw, int((x + 0.8 * bw) * sx + offset_x))
+        dy0 = max(0, int((y + 0.2 * bh) * sy + offset_y))
+        dy1 = min(dh, int((y + 0.8 * bh) * sy + offset_y))
         if dx1 <= dx0 or dy1 <= dy0:
             return
         roi = depth[dy0:dy1, dx0:dx1].astype(np.float32)
@@ -335,6 +338,10 @@ class PersonDetector(Node):
     def publish_annotated(self, img, persons, source_header):
         if self.img_pub.get_subscription_count() == 0:
             return
+        now = time.monotonic()
+        if now-self.last_annotation_at < 1.0/self.args.annotation_fps:
+            return
+        self.last_annotation_at = now
         for p in persons:
             x, y, bw, bh = [int(v) for v in p['bbox']]
             cv2.rectangle(img, (x, y), (x + bw, y + bh), (0, 255, 0), 2)
@@ -360,9 +367,20 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--model', default='/home/pi/models/yolov8n.onnx')
     ap.add_argument('--input-size', type=int, default=640)
+    ap.add_argument('--input-height', type=int, default=None,
+                    help='Model input height; defaults to --input-size (square)')
+    ap.add_argument('--backend', choices=('opencv','ncnn','onnxruntime'), default='opencv')
+    ap.add_argument('--runtime-dir', default='', help='Optional isolated inference dependency directory')
     ap.add_argument('--conf', type=float, default=0.35)
+    ap.add_argument('--support-conf', type=float, default=0.2,
+                    help='Weak current detection threshold, only with recent strong overlapping detection')
+    ap.add_argument('--support-seconds', type=float, default=0.6,
+                    help='Maximum age of strong evidence; weak boxes never extend this')
     ap.add_argument('--iou', type=float, default=0.45)
     ap.add_argument('--max-fps', type=float, default=3.0)
+    ap.add_argument('--annotation-fps', type=float, default=3.0,
+                    help='Diagnostic JPEG rate; independent of actual detection result rate')
+    ap.add_argument('--max-depth-skew-ms', type=float, default=150.0)
     ap.add_argument('--cv-threads', type=int, default=2,
                     help='OpenCV CPU threads (default: 2; independent of Nav2)')
     ap.add_argument('--color-topic',
@@ -383,16 +401,22 @@ def main():
     args, _ = ap.parse_known_args()
     if args.cv_threads < 1:
         ap.error('--cv-threads must be at least 1')
+    if args.annotation_fps <= 0 or args.max_fps <= 0 or args.max_depth_skew_ms <= 0:
+        ap.error('frame rates and depth matching limit must be positive')
+    if args.input_size < 32 or (args.input_height is not None and args.input_height < 32):
+        ap.error('model dimensions must be at least 32')
+    if not 0 <= args.support_conf <= args.conf <= 1 or args.support_seconds < 0:
+        ap.error('confidence thresholds must satisfy 0 <= support <= conf <= 1; support time >= 0')
 
     rclpy.init()
     node = PersonDetector(args)
-    ex = MultiThreadedExecutor(num_threads=3)
-    ex.add_node(node)
+    node.start_worker()
     try:
-        ex.spin()
-    except KeyboardInterrupt:
+        rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
+        node.stop_worker()
         node.destroy_node()
         rclpy.try_shutdown()
 

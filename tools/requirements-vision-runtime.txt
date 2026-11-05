@@ -1,0 +1,3 @@
+# Install with the same Python minor version used by ai_host.
+# OpenCV and NumPy are already provided by ai_host; avoid replacing them.
+ncnn==1.0.20261020

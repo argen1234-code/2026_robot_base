@@ -104,8 +104,24 @@ fi
 
 PERSON_MODEL="${PERSON_MODEL:-}"
 PERSON_INPUT_SIZE="${PERSON_INPUT_SIZE:-}"
+PERSON_BACKEND="${PERSON_BACKEND:-auto}"
+PERSON_RUNTIME_DIR="${PERSON_RUNTIME_DIR:-$HOME/vision_runtime}"
+if [[ "$PERSON_BACKEND" == "auto" ]]; then
+  if [[ -n "$PERSON_MODEL" ]]; then
+    if [[ -d "$PERSON_MODEL" ]]; then PERSON_BACKEND="ncnn"; else PERSON_BACKEND="opencv"; fi
+  elif [[ -f "$HOME/models/vision_v2/yolov8n_320_ncnn_model/model.ncnn.bin" ]] \
+       && PYTHONPATH="$PERSON_RUNTIME_DIR${PYTHONPATH:+:$PYTHONPATH}" \
+          "$HOME/micromamba/envs/ai_host/bin/python" -c 'import ncnn; assert hasattr(ncnn, "Net")' >/dev/null 2>&1; then
+    PERSON_BACKEND="ncnn"
+  else
+    PERSON_BACKEND="opencv"
+  fi
+fi
 if [[ -z "$PERSON_MODEL" ]]; then
-  if [[ -f "$HOME/models/yolov8n_320.onnx" ]]; then
+  if [[ "$PERSON_BACKEND" == "ncnn" ]]; then
+    PERSON_MODEL="$HOME/models/vision_v2/yolov8n_320_ncnn_model"
+    PERSON_INPUT_SIZE="${PERSON_INPUT_SIZE:-320}"
+  elif [[ -f "$HOME/models/yolov8n_320.onnx" ]]; then
     PERSON_MODEL="$HOME/models/yolov8n_320.onnx"
     PERSON_INPUT_SIZE="${PERSON_INPUT_SIZE:-320}"
   else
@@ -114,8 +130,17 @@ if [[ -z "$PERSON_MODEL" ]]; then
   fi
 fi
 PERSON_INPUT_SIZE="${PERSON_INPUT_SIZE:-640}"
-PERSON_CV_THREADS="${PERSON_CV_THREADS:-2}"
-PERSON_MAX_FPS="${PERSON_MAX_FPS:-3}"
+PERSON_INPUT_HEIGHT="${PERSON_INPUT_HEIGHT:-$PERSON_INPUT_SIZE}"
+if [[ "$PERSON_BACKEND" == "ncnn" ]]; then
+  PERSON_CV_THREADS="${PERSON_CV_THREADS:-1}"
+  PERSON_MAX_FPS="${PERSON_MAX_FPS:-6}"
+else
+  PERSON_CV_THREADS="${PERSON_CV_THREADS:-2}"
+  PERSON_MAX_FPS="${PERSON_MAX_FPS:-3}"
+fi
+PERSON_ANNOTATION_FPS="${PERSON_ANNOTATION_FPS:-3}"
+PERSON_CONF="${PERSON_CONF:-0.35}"
+PERSON_SUPPORT_CONF="${PERSON_SUPPORT_CONF:-0.2}"
 DEPTH_WS="${DEPTH_WS:-$HOME/orbbec_jazzy_ws}"
 # Astra Pro 在 USB2.0 上 640×480 Y11@30 实测只有 ~20–24 fps（等时带宽不足），
 # 320×240@30 可稳定 29.7 fps 且 CPU 约减半。人像距离用归一化坐标映射，
@@ -134,8 +159,13 @@ fi
 
 PERSON_ENABLE="false"
 if [[ "$PERSON" == "true" ]]; then
-  [[ -f "$PERSON_MODEL" ]] || \
-    die "--person 需要模型 $PERSON_MODEL；先运行 bash scripts/fetch-yolo.sh"
+  if [[ "$PERSON_BACKEND" == "ncnn" ]]; then
+    [[ -f "$PERSON_MODEL/model.ncnn.param" && -f "$PERSON_MODEL/model.ncnn.bin" ]] || \
+      die "--person 需要 NCNN 模型目录 $PERSON_MODEL"
+  else
+    [[ -f "$PERSON_MODEL" ]] || \
+      die "--person 需要模型 $PERSON_MODEL；先运行 bash scripts/fetch-yolo.sh"
+  fi
   PERSON_ENABLE="true"
   [[ "$DEPTH_ENABLE" == "true" ]] || warn "深度不可用，人像检测仅输出 2D"
 fi
@@ -180,7 +210,7 @@ EOF
 if [[ "$HAND_ENABLE" == "true" ]]; then
 HAND_IMAGE_ARGS=""
 if [[ "$HAND_IMAGES" == "true" ]]; then
-  HAND_IMAGE_ARGS="--image-udp 127.0.0.1:5006 --image-fps 10 --jpeg-quality 80"
+  HAND_IMAGE_ARGS="--image-udp 127.0.0.1:5006 --image-fps 3 --image-width 320 --jpeg-quality 60"
 fi
 cat >"$LOGDIR/hand_det_cmd.sh" <<EOF
 #!/usr/bin/env bash
@@ -225,9 +255,14 @@ source "\$CONDA_PREFIX/setup.bash"
 source "$HOST_AI_WS/install/setup.bash"
 export ROS_DOMAIN_ID=1
 ps -o pgid= -p \$\$ | tr -d ' ' > "$LOGDIR/person.pgid"
+export OMP_NUM_THREADS="$PERSON_CV_THREADS"
+export OPENBLAS_NUM_THREADS=1
+export OMP_WAIT_POLICY=PASSIVE
 exec nice -n 5 python3 "$ROOT/tools/person_detector_node.py" \
   --model "$PERSON_MODEL" --input-size "$PERSON_INPUT_SIZE" \
-  --max-fps "$PERSON_MAX_FPS" --cv-threads "$PERSON_CV_THREADS"
+  --input-height "$PERSON_INPUT_HEIGHT" --backend "$PERSON_BACKEND" \
+  --runtime-dir "$PERSON_RUNTIME_DIR" --conf "$PERSON_CONF" --support-conf "$PERSON_SUPPORT_CONF" \
+  --max-fps "$PERSON_MAX_FPS" --cv-threads "$PERSON_CV_THREADS" --annotation-fps "$PERSON_ANNOTATION_FPS"
 EOF
 chmod +x "$LOGDIR/person_cmd.sh"
 fi
@@ -346,7 +381,7 @@ fi
 
 if [[ "$PERSON_ENABLE" == "true" ]]; then
   echo "[host] 启动人像检测（YOLOv8n, domain 1）..."
-  echo "  model=$PERSON_MODEL input=$PERSON_INPUT_SIZE max_fps=$PERSON_MAX_FPS cv_threads=$PERSON_CV_THREADS"
+  echo "  model=$PERSON_MODEL backend=$PERSON_BACKEND input=${PERSON_INPUT_SIZE}x${PERSON_INPUT_HEIGHT} max_fps=$PERSON_MAX_FPS cv_threads=$PERSON_CV_THREADS"
   setsid --wait micromamba run -n ai_host bash "$LOGDIR/person_cmd.sh" \
     >"$LOGDIR/person.log" 2>&1 &
   for _ in $(seq 1 40); do [[ -s "$LOGDIR/person.pgid" ]] && break; sleep 0.25; done

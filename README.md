@@ -27,6 +27,7 @@ bash scripts/start_host_stack.sh --map /home/pi/maps/robot_map_20261105_054354 -
 
 地图路径按本机实际地图替换；`--motor` 启用电机。环境与设备准备见 [运行手册](docs/RUNBOOK.md)。
 
+- [NCNN 视觉优化保留版](docs/VISION_OPTIMIZATION.md)
 - [相机性能与人体识别调整](docs/CAMERA_PERFORMANCE.md)
 - [低负载 Foxglove 预览](docs/FOXGLOVE_PREVIEW.md)：原始图像供本地算法使用，电脑预览单独缩图、限帧。
 - [本地帧率监视](docs/FRAME_RATE_MONITOR.md)：区分本地彩色/深度/识别频率和预览频率。
