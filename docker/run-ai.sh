@@ -8,7 +8,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NAME="${1:-ros_humble_ai_dev}"
 shift || true
-IMAGE="${IMAGE_NAME:-yahboom/ros-humble-ai:2026.11}"
+IMAGE="${IMAGE_NAME:-yahboom/ros-humble-ai:2026.11-mqtt}"
+# 不要继承调用 shell 的 ROS_DOMAIN_ID（主机导航是 1）；AI 默认固定 2。
+AI_DOMAIN="${AI_ROS_DOMAIN_ID:-2}"
 
 ENV_ARGS=()
 [ -f "$ROOT/.env" ] && ENV_ARGS=(--env-file "$ROOT/.env")
@@ -24,6 +26,7 @@ fi
 DEVICE_ARGS=()
 [ -e /dev/video0 ] && DEVICE_ARGS+=(--device=/dev/video0)
 [ -e /dev/snd ] && DEVICE_ARGS+=(--device=/dev/snd)
+[ -e /dev/mic-kws ] && DEVICE_ARGS+=(--device=/dev/mic-kws)
 [ -e /dev/bus/usb ] && DEVICE_ARGS+=(--device=/dev/bus/usb)
 
 X11_ARGS=()
@@ -34,6 +37,7 @@ if [ -n "${DISPLAY:-}" ]; then
 fi
 if [ -d /run/user/1000/pulse ]; then
   X11_ARGS+=(-e PULSE_SERVER=unix:/run/user/1000/pulse/native
+             -e SDL_AUDIODRIVER=pulseaudio
              -v /run/user/1000/pulse:/run/user/1000/pulse:ro
              -v "$HOME/.config/pulse:/root/.config/pulse:ro")
 fi
@@ -44,7 +48,7 @@ fi
 
 exec docker run -it --name "$NAME" --net=host --privileged \
   "${MEM_ARGS[@]}" "${ENV_ARGS[@]}" "${DEVICE_ARGS[@]}" "${X11_ARGS[@]}" \
-  -e ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-2}" \
+  -e ROS_DOMAIN_ID="$AI_DOMAIN" \
   -v "$ROOT/ai_ws:/root/yahboom_ws:rw" \
   -v "$ROOT/third_party/orbbec_ws:/root/orbbec_ws:ro" \
   "$IMAGE" /usr/local/bin/entrypoint-ai.sh "$@"

@@ -38,6 +38,14 @@ class ASRNode(Node):
         self.asr_pub = self.create_publisher(String, "asr", 5)
         # 创建唤醒信息发布者 / Create a publisher for wake-up signals
         self.wakeup_pub = self.create_publisher(Bool, "wakeup", 5)
+        # 手动唤醒（调试/无 KWS 模块时）：发布 Bool true 等价于唤醒词触发。
+        self.create_subscription(Bool, "wakeup_trigger",
+                                 self.wakeup_trigger_cb, 10)
+
+    def wakeup_trigger_cb(self, msg):
+        if msg.data:
+            self.get_logger().info("Manual wakeup trigger received")
+            self.audio_request_queue.put("manual")
 
     def init_param_config(self):
         self.user_speechdir = os.path.join(get_package_share_directory('largemodel'), "resources_file", "user_speech.wav")

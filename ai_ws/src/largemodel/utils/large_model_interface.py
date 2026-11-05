@@ -2,19 +2,16 @@
 import dashscope
 from openai import OpenAI
 import os
-import piper
 import wave
 from http import HTTPStatus
 from dashscope.audio.asr import Recognition, TranslationRecognizerRealtime
-from funasr import AutoModel
+# 云端 ASR 模式下不导入 funasr/torch，避免白白占用 ~0.5GB；
+# 只有切换到本地 SenseVoice 时才在 init_local_asr_model() 里延迟导入。
 from dashscope.audio.tts_v2 import SpeechSynthesizer
 from ament_index_python.packages import get_package_share_directory
-from ollama import Client
 import yaml
 import base64
 import json
-from sparkai.llm.llm import ChatSparkLLM
-from sparkai.core.messages import ChatMessage
 import cv2
 from urllib.parse import quote_plus, urlencode
 from urllib.request import Request, urlopen
@@ -446,6 +443,7 @@ class model_interface:
 
         try:
             if self.vision_platform == 'ollama':
+                from ollama import Client
                 self.vision_client = Client(host=self.ollama_host)
                 self.vision_model_name = self.ollama_vision_model
             elif self.vision_platform == 'tongyi':
@@ -755,6 +753,7 @@ Based on the user's intent, choose the most appropriate of the following three J
     def init_ollama(self):
         """Initialize Ollama client"""
         try:
+            from ollama import Client
             self.client = Client(host=self.ollama_host)
             print(f"Ollama client initialized successfully. Using model {self.ollama_model}")
         except Exception as e:
@@ -774,6 +773,7 @@ Based on the user's intent, choose the most appropriate of the following three J
     def init_spark(self):
         """Initialize Spark client"""
         try:
+            from sparkai.llm.llm import ChatSparkLLM
             self.client = ChatSparkLLM(
                 spark_api_url=self.spark_model_url,
                 spark_app_id=self.spark_app_id,
@@ -1048,6 +1048,7 @@ Based on the user's intent, choose the most appropriate of the following three J
 
     def spark_infer(self, messages, image_path=None):
         """Infer using iFlytek Spark. / 使用讯飞星火推理。"""
+        from sparkai.core.messages import ChatMessage
         spark_messages = [ChatMessage(role=msg["role"], content=msg["content"]) for msg in messages]
         
         if image_path:
@@ -1147,6 +1148,7 @@ Based on the user's intent, choose the most appropriate of the following three J
             return ['error', result.error_message]
 
     def init_local_asr_model(self):
+        from funasr import AutoModel
         self.model_senceVoice = AutoModel(model=self.local_asr_model, trust_remote_code=False,disable_update=True)
 
     def tts_model_init(self,model_type='oline',language='zh'):
@@ -1156,6 +1158,7 @@ Based on the user's intent, choose the most appropriate of the following three J
     
             self.model_type='oline'      
         elif model_type=='local':
+            import piper
             self.model_type='local'
             if language=='zh':
                 tts_model=self.zh_tts_model

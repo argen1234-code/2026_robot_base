@@ -36,7 +36,7 @@ setup(
             'resources_file/system_vioce/en/longxiaochun-women-2.mp3',
         ]),
     ],
-    install_requires=['setuptools','ollama'],
+    install_requires=['setuptools'],
     zip_safe=True,
     maintainer='argen1234-code',
     maintainer_email='3106214334@qq.com',

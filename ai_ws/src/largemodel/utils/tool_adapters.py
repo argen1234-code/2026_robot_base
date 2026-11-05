@@ -68,6 +68,84 @@ class SummonUserToolAdapter(ToolInterface):
         )
 
 
+class MoveRelativeToolAdapter(ToolInterface):
+    """Move the base by a distance/direction relative to its current pose."""
+
+    def __init__(self, tools_manager):
+        self.tools_manager = tools_manager
+
+    @property
+    def tool_name(self) -> str:
+        return "move_relative"
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "description": (
+                "Move the mobile base relative to its CURRENT pose. Use this "
+                "for commands such as '往前走一米', '向后退半米', "
+                "'向左移动1米', 'turn right 45 degrees and go forward 0.5m'. "
+                "The goal is published in the robot base_link frame; do NOT "
+                "invent map coordinates. distance_m is in metres, direction "
+                "is forward/backward/left/right. Use summon_user only when "
+                "the user asks the robot to come to them."
+            ),
+            "properties": {
+                "direction": {
+                    "type": "string",
+                    "enum": ["forward", "backward", "left", "right"],
+                    "description": "Direction relative to the robot heading"
+                },
+                "distance_m": {
+                    "type": "number",
+                    "description": "Distance in metres (0.1 to 5.0)"
+                },
+                "yaw_deg": {
+                    "type": "number",
+                    "description": "Optional relative heading change in degrees"
+                }
+            },
+            "required": ["direction", "distance_m"]
+        }
+
+    @property
+    def output_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "status_message": {"type": "string"},
+                "goal": {"type": "object"}
+            }
+        }
+
+    def execute(self, tool_input: ToolInput) -> ToolOutput:
+        try:
+            result = self.tools_manager.move_relative(tool_input.arguments)
+            if result and isinstance(result, dict) and result.get("ok"):
+                return ToolOutput(
+                    tool_name=self.tool_name,
+                    success=True,
+                    data=result.get("status_message"),
+                    metadata={"goal": result.get("goal")}
+                )
+            return ToolOutput(
+                tool_name=self.tool_name,
+                success=False,
+                data=None,
+                metadata={},
+                error_message=(result or {}).get("error", "move_relative failed")
+            )
+        except Exception as e:  # noqa: BLE001
+            return ToolOutput(
+                tool_name=self.tool_name,
+                success=False,
+                data=None,
+                metadata={},
+                error_message=str(e)
+            )
+
+
 class SeeWhatToolAdapter(ToolInterface):
     """seewhat tool adapter. / seewhat工具适配器。"""
     

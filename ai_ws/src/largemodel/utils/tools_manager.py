@@ -5,12 +5,13 @@ import re
 import threading
 from urllib.request import urlretrieve
 from datetime import datetime
+from geometry_msgs.msg import PoseStamped
 from utils import person_locator
 from utils.tool_chain_manager import ToolChainManager
 from utils.tool_adapters import (
-    SummonUserToolAdapter, SeeWhatToolAdapter, AnalyzeVideoToolAdapter,
-    WriteDocumentToolAdapter, GenerateImageToolAdapter, ScanTableToolAdapter,
-    VisualPositioningToolAdapter
+    SummonUserToolAdapter, MoveRelativeToolAdapter, SeeWhatToolAdapter,
+    AnalyzeVideoToolAdapter, WriteDocumentToolAdapter, GenerateImageToolAdapter,
+    ScanTableToolAdapter, VisualPositioningToolAdapter
 )
 # Data passing is now handled by a generic mechanism. / 数据传递现已由通用机制处理。
 
@@ -45,6 +46,7 @@ class ToolsManager:
         """
         # Register tool adapters. / 注册工具适配器。
         self.tool_chain_manager.register_tool(SummonUserToolAdapter(self))
+        self.tool_chain_manager.register_tool(MoveRelativeToolAdapter(self))
         self.tool_chain_manager.register_tool(SeeWhatToolAdapter(self))
         self.tool_chain_manager.register_tool(AnalyzeVideoToolAdapter(self))
         self.tool_chain_manager.register_tool(WriteDocumentToolAdapter(self))
@@ -52,6 +54,57 @@ class ToolsManager:
         self.tool_chain_manager.register_tool(ScanTableToolAdapter(self))
         self.tool_chain_manager.register_tool(VisualPositioningToolAdapter(self))
 
+
+    def move_relative(self, args):
+        """Publish a goal relative to the robot's current pose.
+
+        The goal is expressed in ``base_link`` (x forward, y left), so the
+        AI container does not need the map/TF.  The host-side ingress and
+        goal_sanitizer convert it to ``map`` using the live TF.
+        """
+        try:
+            direction = str(args.get('direction', 'forward')).lower().strip()
+            distance = float(args.get('distance_m', args.get('distance', 1.0)))
+            yaw_deg = float(args.get('yaw_deg', 0.0) or 0.0)
+            if not math.isfinite(distance) or not math.isfinite(yaw_deg):
+                return {'ok': False, 'error': 'distance/yaw is not finite'}
+            if not (0.1 <= distance <= 5.0):
+                return {'ok': False,
+                        'error': 'distance_m must be in [0.1, 5.0]'}
+            table = {
+                'forward': (1.0, 0.0, '前方'),
+                'backward': (-1.0, 0.0, '后方'),
+                'left': (0.0, 1.0, '左侧'),
+                'right': (0.0, -1.0, '右侧'),
+            }
+            if direction not in table:
+                return {'ok': False,
+                        'error': 'direction must be forward/backward/left/right'}
+            sign_x, sign_y, label = table[direction]
+            x = sign_x * distance
+            y = sign_y * distance
+            yaw = math.radians(yaw_deg)
+
+            pose = PoseStamped()
+            pose.header.frame_id = 'base_link'
+            pose.header.stamp = self.node.get_clock().now().to_msg()
+            pose.pose.position.x = x
+            pose.pose.position.y = y
+            pose.pose.position.z = 0.0
+            pose.pose.orientation.z = math.sin(yaw * 0.5)
+            pose.pose.orientation.w = math.cos(yaw * 0.5)
+            self.node.nav_goal_pub.publish(pose)
+            self.node.get_logger().info(
+                f'move_relative: base_link ({x:+.2f},{y:+.2f}) '
+                f'yaw={yaw_deg:+.1f} deg')
+            return {
+                'ok': True,
+                'status_message': f'好的，向{label}移动{distance:.2f}米',
+                'goal': {'frame_id': 'base_link', 'x': x, 'y': y,
+                         'yaw_deg': yaw_deg},
+            }
+        except Exception as exc:  # noqa: BLE001
+            return {'ok': False, 'error': str(exc)}
 
     def execute_tool_chain(self, tool_calls):
         """

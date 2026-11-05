@@ -60,7 +60,7 @@ deepseek_model: "deepseek-flash"
 # ----------------语音识别设置 (Speech Recognition Settings)-------------------
 # -----------------------------------------------------------------------------
 ## 在线语音识别 (Online ASR)
-oline_asr_model: 'paraformer-realtime-8k-v2'  # Options: 'paraformer-realtime-v2', 'paraformer-realtime-v1', etc. Uses the Tongyi platform API. / 可选：'paraformer-realtime-v2'、'paraformer-realtime-v1'等，使用的是通义千问平台的API。
+oline_asr_model: 'paraformer-realtime-v2'  # 16 kHz 模型，与 sample_rate 一致
 oline_asr_sample_rate: 16000      # ASR audio sample rate / ASR音频采样率
 
 ## 离线语音识别 (Offline ASR)
@@ -72,7 +72,7 @@ local_asr_model: "/root/yahboom_ws/src/largemodel/MODELS/asr/SenseVoiceSmall"  #
 # ----------------语音合成设置 (Text-to-Speech Settings)-------------
 # -----------------------------------------------------------------------------
 ## 通用TTS设置`
-tts_supplier: "tongyi"  # TTS provider, options: "aliyun" or "baidu" / TTS供应商，可选："aliyun"或"baidu"
+tts_supplier: "aliyun"  # 代码只识别 aliyun/baidu；aliyun = CosyVoice v2
 
 ## 在线语音合成 (Online TTS)
 # 阿里云通义千问语音合成配置

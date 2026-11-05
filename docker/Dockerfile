@@ -12,6 +12,9 @@ ENV ROS_DISTRO=humble
 ENV LANG=C.UTF-8
 ENV MODELS_DIR=/root/yahboom_ws/src/largemodel/MODELS
 
+# AI 容器内的 MQTT 导航 egress 需要 paho-mqtt（host 与容器跨版本 DDS 不互通）。
+RUN pip3 install --no-cache-dir paho-mqtt==1.6.1
+
 COPY entrypoint-ai.sh /usr/local/bin/entrypoint-ai.sh
 RUN chmod 0755 /usr/local/bin/entrypoint-ai.sh
 

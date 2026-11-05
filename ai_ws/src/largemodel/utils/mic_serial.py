@@ -18,10 +18,10 @@ class kws_mic:
                 timeout=self.timeout
             )
             if self.ser.is_open:
-                print(f"serial {self.port} open")
+                print(f"serial {self.port} open", flush=True)
                 self.running = True
         except Exception as e:
-            print(f"open serial fail: {e}")
+            print(f"open serial fail: {e}", flush=True)
 
     def close(self):
         if self.ser and self.ser.is_open:
@@ -53,7 +53,7 @@ class kws_mic:
                         elif dealdata == 0x00 and step ==4:
                             step = 5
                         elif dealdata == 0xFB and step ==5:
-                            # print("kws detected")
+                            print("kws detected", flush=True)
                             self.kws_queue.put("resonse_1")
                             step = 1
 
