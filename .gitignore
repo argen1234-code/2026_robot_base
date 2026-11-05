@@ -44,6 +44,8 @@ frames_*.pdf
 project.private.config.json
 
 # 运行产物
+# 运行时日志目录（OrbbecSDK.log.txt 等，体积大且每台机器不同）
+/Log/
 /ai_ws/src/largemodel/resources_file/tts_output.*
 /ai_ws/src/largemodel/resources_file/XUNFEI_TTS.mp3
 /ai_ws/src/largemodel/resources_file/user_speech.wav

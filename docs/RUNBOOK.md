@@ -130,6 +130,60 @@ ros2 launch robot_base_bringup bringup.launch.py \
   ```
   `map_saver` 的 YAML/PGM 不能用于 slam_toolbox localization。
 
+## 主机一键启动与手部检测（2026-11-05）
+
+主机原生栈（不经过 Docker/MQTT），导航与语音同 `ROS_DOMAIN_ID=1`：
+
+```bash
+cd ~/2026_robot_base
+bash scripts/start_host_stack.sh                # 干跑（不 ARM 电机）
+bash scripts/start_host_stack.sh --motor        # 允许电机
+bash scripts/start_host_stack.sh --no-hand      # 关闭手部检测
+```
+
+- 日志：`~/rosbags/host_stack_logs/<时间戳>/`（`nav.log` / `ai.log` /
+  `hand_det.log` / `hand_bridge.log`）
+- Ctrl-C 统一停止导航、AI、手部检测；导航退出时自动 DISARM
+- 手部检测在 `/dev/video2` 与 `/home/pi/mediapipe_plain` 都存在时默认启用
+
+手部链路（检测器不导入 ROS，走本机 UDP）：
+
+```text
+/dev/video2 → MediaPipe 独立 venv (/home/pi/mediapipe_plain)
+            → UDP 127.0.0.1:5005
+            → tools/hand_pose_bridge.py (ai_host, domain 1)
+            → /perception/hand_pose   geometry_msgs/PoseStamped
+            → /perception/hand_debug  std_msgs/String (JSON)
+```
+
+验证：
+
+```bash
+ROS_DOMAIN_ID=1 ros2 topic echo /perception/hand_debug
+ROS_DOMAIN_ID=1 ros2 topic echo /perception/hand_pose
+```
+
+`hand_debug` 字段：`valid`、`message`、`bbox_px`、`center_px`、`cartesian_m`、
+`bearing_rad`、`distance_m`、`fps`。检测器日志的 `hand detected/lost`
+可用来确认相机和模型是否工作。
+
+重建隔离 venv（主机 Jazzy 的 numpy 2.x / OpenCV 5 与 MediaPipe 不兼容）：
+
+```bash
+python3 -m venv /home/pi/mediapipe_plain
+/home/pi/mediapipe_plain/bin/pip install -U pip
+/home/pi/mediapipe_plain/bin/pip install mediapipe opencv-python "numpy<2" \
+  packaging setuptools "protobuf<5" pyparsing python-dateutil
+```
+
+Orbbec Astra Pro 深度（主机 Jazzy 驱动，color 仍走 `/dev/video0` 原始 UVC）：
+
+```bash
+ros2 launch orbbec_camera astra.launch.py enable_color:=false \
+  enable_depth:=true enable_point_cloud:=true depth_format:=Y11 depth_fps:=30
+ROS_DOMAIN_ID=1 ros2 topic echo /camera/depth/camera_info
+```
+
 ## 底层入口（调试用）
 
 `navigation.launch.py` 现在也是 slam_toolbox localization + Nav2；
@@ -566,19 +620,22 @@ bag：`/home/pi/rosbags/live_allparams_20261105_071722`
 
 ## 启动顺序
 
-1. 主机：进入 `ros_jazzy` 环境
-2. 导航：`ros2 launch robot_base_bringup robot_base.launch.py`
-3. AI 容器：`docker/run-ai.sh`
-4. 容器内：`ros2 launch largemodel largemodel_control.launch.py`
+主机原生栈（推荐）：
+
+1. `bash scripts/start_host_stack.sh [--motor]`
+2. 该脚本依次启动导航（`ros_jazzy`）、AI 语音（`ai_host`）、手部检测
+
+旧的 Docker + MQTT 栈（`scripts/start_stack.sh`）仅作回退，不再用于语音。
 
 ## DDS 隔离
 
 | 栈 | ROS_DOMAIN_ID |
 |---|---|
-| 导航（主机） | 1 |
-| AI（容器） | 2 |
+| 导航（主机 ros_jazzy） | 1 |
+| AI 语音（主机 ai_host） | 1 |
+| 旧 AI 容器（Humble） | 2 |
 
-脚本已默认设置，避免两个栈话题串台。
+主机栈同域直发 `/goal_pose`；只有旧的容器栈需要 MQTT 桥接。
 
 ## 常见问题
 

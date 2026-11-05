@@ -200,7 +200,9 @@ class LargeModelService(Node):
         # VLM, but nav_task owns the Nav2 action client.
         self.stop_pub = self.create_publisher(Bool, 'stop_request', 1)
         self.summon_pub = self.create_publisher(String, 'summon_request', 1)
-        self.nav_goal_pub = self.create_publisher(PoseStamped, 'nav_goal', 1)
+        # 主机原生语音栈：AI 与导航同域（domain 1），直接发 /goal_pose；
+        # 不再经过 nav_goal/MQTT/容器。
+        self.nav_goal_pub = self.create_publisher(PoseStamped, '/goal_pose', 1)
         self.nav_status_sub = self.create_subscription(
             String, 'nav_status', self.nav_status_callback, 5)
 
