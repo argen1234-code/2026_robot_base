@@ -1,0 +1,15 @@
+# CH340 USB 串口（本地语音唤醒模块 KWS）固定别名。
+#
+# 本机实测拓扑（2026-11-05）：
+#   1a86:7522 CH340 总线 1 -> hub 1-1 -> hub 1-1.2 -> 物理口 1-1.2.3
+#   -> /dev/ttyUSB1；雷达 CP2102 是 ttyUSB0，两者必须分开。
+#
+# 安装：
+#   sudo install -m 0644 deploy/udev/99-mic-kws.rules \
+#        /etc/udev/rules.d/99-mic-kws.rules
+#   sudo udevadm control --reload-rules
+#   sudo udevadm trigger --subsystem-match=tty
+#   ls -l /dev/mic-kws
+SUBSYSTEM=="tty", KERNEL=="ttyUSB*", KERNELS=="1-1.2.3", \
+  ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7522", \
+  GROUP="dialout", MODE="0660", SYMLINK+="mic-kws"
