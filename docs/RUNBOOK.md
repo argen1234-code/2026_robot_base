@@ -139,17 +139,27 @@ cd ~/2026_robot_base
 bash scripts/start_host_stack.sh                # 干跑（不 ARM 电机）
 bash scripts/start_host_stack.sh --motor        # 允许电机
 bash scripts/start_host_stack.sh --no-hand      # 关闭手部检测
+bash scripts/start_host_stack.sh --viz foxglove # 开 Foxglove（8765）与压缩图
 ```
 
 - 日志：`~/rosbags/host_stack_logs/<时间戳>/`（`nav.log` / `ai.log` /
   `hand_det.log` / `hand_bridge.log`）
 - Ctrl-C 统一停止导航、AI、手部检测；导航退出时自动 DISARM
-- 手部检测在 `/dev/video2` 与 `/home/pi/mediapipe_plain` 都存在时默认启用
+- 手部检测在 `/dev/hand-cam` 与 `/home/pi/mediapipe_plain` 都存在时默认启用
+- 相机稳定别名（USB 枚举顺序会变，不要用 `/dev/videoN`）：
+  `/dev/hand-cam`（icSpring）、`/dev/astra-color`（Astra 彩色）。
+  安装规则：
+  ```bash
+  sudo install -m 0644 deploy/udev/99-cameras.rules /etc/udev/rules.d/
+  sudo udevadm control --reload-rules
+  sudo udevadm trigger --subsystem-match=video4linux
+  ls -l /dev/hand-cam /dev/astra-color
+  ```
 
 手部链路（检测器不导入 ROS，走本机 UDP）：
 
 ```text
-/dev/video2 → MediaPipe 独立 venv (/home/pi/mediapipe_plain)
+/dev/hand-cam → MediaPipe 独立 venv (/home/pi/mediapipe_plain)
             → UDP 127.0.0.1:5005
             → tools/hand_pose_bridge.py (ai_host, domain 1)
             → /perception/hand_pose   geometry_msgs/PoseStamped
@@ -167,6 +177,27 @@ ROS_DOMAIN_ID=1 ros2 topic echo /perception/hand_pose
 `bearing_rad`、`distance_m`、`fps`。检测器日志的 `hand detected/lost`
 可用来确认相机和模型是否工作。
 
+### Foxglove 查看两路相机（压缩图，10 Hz）
+
+```bash
+bash scripts/start_host_stack.sh --viz foxglove
+# Foxglove Studio 连接 ws://<树莓派IP>:8765
+```
+
+Image 面板订阅（均为 `sensor_msgs/CompressedImage`，jpeg）：
+
+| 话题 | 来源 | 实测 |
+|---|---|---|
+| `/camera/color/image_raw/compressed` | model_service（Astra 彩色 `/dev/astra-color`） | 640×480，约 18 KB/帧 |
+| `/perception/hand_image/compressed` | 手部桥接（icSpring `/dev/hand-cam`） | 640×480，约 45 KB/帧 |
+
+- 两路合计约 5 Mbps，WiFi 可承载；**不要订阅 raw `Image` 或
+  `PointCloud2`**，10 Hz 下会打满链路
+- 彩色图由 `publish_compressed_image`（`yahboom.yaml`）控制，且只在有订阅者
+  时抓帧编码；无人观看时零开销
+- `--no-cam-images` 关闭手部图转发；`--cam-images` 在 `--viz none` 时也强制开启
+- 手部 JPEG 走本机 UDP 5006，检测器侧可用 `--image-fps` / `--jpeg-quality` 调节
+
 重建隔离 venv（主机 Jazzy 的 numpy 2.x / OpenCV 5 与 MediaPipe 不兼容）：
 
 ```bash
@@ -176,13 +207,132 @@ python3 -m venv /home/pi/mediapipe_plain
   packaging setuptools "protobuf<5" pyparsing python-dateutil
 ```
 
-Orbbec Astra Pro 深度（主机 Jazzy 驱动，color 仍走 `/dev/video0` 原始 UVC）：
+Orbbec Astra Pro 深度（主机 Jazzy 驱动，color 走 `/dev/astra-color` 原始 UVC）：
 
 ```bash
 ros2 launch orbbec_camera astra.launch.py enable_color:=false \
-  enable_depth:=true enable_point_cloud:=true depth_format:=Y11 depth_fps:=30
+  enable_depth:=true enable_point_cloud:=false depth_format:=Y11 depth_fps:=30 \
+  depth_width:=320 depth_height:=240
 ROS_DOMAIN_ID=1 ros2 topic echo /camera/depth/camera_info
 ```
+
+> 人像检测只需要深度图，默认关点云。**Astra Pro 在 USB2.0 上 640×480 Y11@30
+> 实测只有 18–24 fps、单帧间隔可达 180 ms（画面明显卡顿）；320×240@30 实测
+> 稳定 29.7 fps，驱动 CPU 约减半。** `start_host_stack.sh` 已默认 320×240，
+> 需要高分辨率时用 `DEPTH_WIDTH=640 DEPTH_HEIGHT=480` 启动，但要接受掉帧。
+> 需要 3D 点云时再 `enable_point_cloud:=true depth_fps:=30`。
+> 注意：彩色、深度、手部相机都在 Bus 01（480 Mbps）上，与 color UVC 同时开时会
+> 进一步挤占带宽。
+
+## YOLO 人像检测（深度相机，2026-11-05）
+
+模型（一次性，约 13 MB，仓库不提交）：
+
+```bash
+bash scripts/fetch-yolo.sh        # -> ~/models/yolov8n.onnx（SHA1 校验）
+```
+
+启动（`--person` 会自动拉起 Orbbec 深度）：
+
+```bash
+bash scripts/start_host_stack.sh --viz foxglove --person
+# 只起深度：--depth
+# 人像仅 2D：--person --no-depth
+```
+
+话题：
+
+| 话题 | 类型 | 说明 |
+|---|---|---|
+| `/perception/person_detections` | `String` JSON | bbox、conf、`depth_m`、`bearing_deg`、`xyz`、`infer_ms` |
+| `/perception/person_pose` | `PoseStamped` | 最近的人，`camera_depth_optical_frame` |
+| `/perception/person_image/compressed` | `CompressedImage` | 标注图（Foxglove Image 面板） |
+| `/camera/color/image_raw/compressed` | `CompressedImage` | 彩色源（model_service） |
+| `/camera/depth/image_raw` | `Image` 16UC1 | 深度源（Orbbec） |
+
+说明：
+
+- YOLOv8n ONNX 640×640，OpenCV DNN；只取 person 类，`conf>0.35`、NMS 0.45。
+- Pi 5 实测：空闲约 0.28 s/帧；整栈满载约 0.7–1.0 s/帧（节点上限 3 FPS）。
+- 彩色/深度未严格标定：在 bbox 内缩 20% 取有效深度（>300 mm）的 30% 分位数；
+  偏差时用 `--depth-offset-x/y` 微调。
+- Orbbec 的 `camera_info` 在本机 K 为 NaN，节点默认 `fx=fy=570`、
+  `cx=319.5`、`cy=239.5`。
+- 深度镜头被挡/贴得太近时会限频告警
+  `person bbox has no valid depth`；把相机移到无遮挡、0.5–3 m 视野即可。
+- 模型下载失败时检查网络；脚本会依次尝试 ghfast 代理和 GitHub 直连。
+
+## 语音唤醒与识别验证（2026-11-05）
+
+唤醒词由 KWS 串口模块识别（`/dev/mic-kws`，CH340，115200）。流程：
+
+```text
+说“你好小亚”
+→ KWS 串口帧 → /wakeup (Bool) + 中文提示音（longwan-women-1.mp3）
+→ 蜂鸣提示后开始录音（arecord plughw:2,0 → 16 kHz，VAD 断句）
+→ 云端 Paraformer → /asr (String) + 日志打印识别文本
+→ model_service：DeepSeek/工具 → /text_response + 云端 TTS 播报
+```
+
+验证命令（domain 1）：
+
+```bash
+ROS_DOMAIN_ID=1 ros2 topic echo /wakeup
+ROS_DOMAIN_ID=1 ros2 topic echo /asr            # 最终识别文本
+ROS_DOMAIN_ID=1 ros2 topic echo /text_response
+tail -f ~/rosbags/host_stack_logs/<时间戳>/ai.log
+```
+
+日志关键字：`kws detected` → `I'm here` → `okay😀` → 识别文本。
+
+KWS 不触发时，绕过唤醒词直接验证录音/识别：
+
+```bash
+ROS_DOMAIN_ID=1 ros2 topic pub --once /wakeup_trigger \
+  std_msgs/msg/Bool "{data: true}"
+```
+
+然后说一句话，观察 `/asr` 与日志中的 VAD 帧（`1`/`-`）。
+
+设备与实现说明：
+
+- 麦克风是 USB Audio（card 2），只支持 44.1 kHz；代码用
+  `arecord -D plughw:2,0 -r 16000` 采集（plug 插件重采样），
+  参数为 `mic_alsa_device`。不要改回 PyAudio：ai_host 的
+  PortAudio/ALSA 插件不全会失败或段错误。
+- 提示音用 pygame 播放；`playsound` 在主机上会调用系统 Python 并缺
+  GStreamer 依赖。
+- 在线 TTS 输出写到 `/tmp/robot_tts_output.mp3`，不再写仓库目录
+  （避免容器以 root 创建文件后主机 pi 无法覆盖）。
+- “我还不理解你的意思”是 **ASR 空结果/过短** 的预录提示音，不是大模型
+  拒答。先用 `ros2 topic echo /asr` 看实际识别文本；说完整短句
+  （如“后退一米”）比长句更稳。
+- 本机 KWS 模块的唤醒词是**“你好小亚”**（固件决定）。若说唤醒词
+  日志没有 `kws detected`，需要重烧模块；可先用 `/wakeup_trigger`
+  验证后半段链路。
+
+业务空间专属域名（新版 `sk-ws-` Key 必须使用，`.env` 已配置）：
+
+```bash
+DASHSCOPE_BASE_URL=https://ws-xbgkdi9pjur8a9b6.cn-beijing.maas.aliyuncs.com/api/v1
+DASHSCOPE_WS_URL=wss://ws-xbgkdi9pjur8a9b6.cn-beijing.maas.aliyuncs.com/api-ws/v1/inference
+DASHSCOPE_OPENAI_BASE_URL=https://ws-xbgkdi9pjur8a9b6.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+```
+
+- `sk-ws-` 是**业务空间 Key**，配旧共享域名 `dashscope.aliyuncs.com`
+  会返回 `AccessDenied.Unpurchased`；必须配上面的专属域名。
+- 旧 `sk-` Key + 旧共享域名仍可用，两套 Key/域名**不能混用**。
+- 业务空间 ID：`ws-xbgkdi9pjur8a9b6`（默认业务空间，华北2·北京）。
+
+常见错误：
+
+| 现象 | 原因 |
+|---|---|
+| `/wakeup` 有、但 ASR 报 `Access to model denied` / TTS 报 `Arrearage` | DashScope 账户欠费或未开通 paraformer / cosyvoice，检查阿里云费用中心与模型服务 |
+| `AccessDenied.Unpurchased` | Key 与 Base URL 的业务空间/套餐不匹配：`sk-ws-` Key 必须配 `DASHSCOPE_*` 专属域名，不能用旧共享域名 |
+| `Failed to open KWS serial port` | `/dev/mic-kws` 不存在；安装 `deploy/udev/99-mic-kws.rules` |
+| 有 `I'm here` 但 `/asr` 无输出 | 看 `ai.log` 的 `Microphone capture` / `ASR Error`；确认 `plughw:2,0` 可被 arecord 打开 |
+| 说了唤醒词毫无反应 | 模块唤醒词不匹配，或 `/dev/mic-kws` 未接；用 `/wakeup_trigger` 区分 |
 
 ## 底层入口（调试用）
 
@@ -649,6 +799,26 @@ bag：`/home/pi/rosbags/live_allparams_20261105_071722`
 
 ## 内存看门狗
 
-- earlyoom 常驻：可用内存 ≤10% / swap ≤20% 先 SIGTERM，≤5% 时 SIGKILL
+- `robot-mem-watchdog.service` 常驻（systemd，开机自启）：
+  - 每 2 秒读 `/proc/meminfo` 的 `MemAvailable`；
+  - 连续 3 次（约 6 秒）低于 **800 MB** 时，终止整个机器人栈
+    （导航 / AI / 深度 / 人像 / 手部）；
+  - 先 SIGINT 让栈走正常清理（含 DISARM），5 秒后 SIGTERM，再 3 秒后 SIGKILL；
+  - 触发后冷却 120 秒，避免重启瞬间重复触发；
+  - **不杀** 桌面、SSH、VSCode、systemd，保留远程恢复能力。
+- 查看状态：`systemctl status robot-mem-watchdog`、`journalctl -u robot-mem-watchdog -f`
+- 临时调整阈值：改 `/etc/systemd/system/robot-mem-watchdog.service` 里的
+  `MEM_THRESHOLD_MB`，再 `sudo systemctl daemon-reload && sudo systemctl restart robot-mem-watchdog`
+- 测试（不发信号）：`MEM_DRY_RUN=1 MEM_THRESHOLD_MB=999999 MEM_CONFIRM_SAMPLES=1 bash scripts/mem_watchdog.sh`
+- earlyoom 仍是最后兜底：已下调为可用内存 ≤5% / swap ≤20% 时动作，避免与看门狗抢跑
 - 编译/重活：`ulimit -v 4194304` + `--parallel-workers 2`
 - cgroup 恢复后：`docker info` 不再出现 `No memory limit support`，运行脚本会自动加内存上限
+
+
+## 电脑低负载预览（2026-11-05）
+
+Foxglove 图像由独立预览副本提供；本地原始深度仍为 320x240@30，人像识别输入和频率保留。
+现有面板话题名不变：桥接节点内部将图像订阅重映射到 `/foxglove_preview/`。
+默认彩色/标注图 240x180、JPEG 质量 40、最多 3 Hz；深度预览 160x120、16UC1、最多 3 Hz。
+`FOXGLOVE_PREVIEW_WIDTH`、`FOXGLOVE_PREVIEW_FPS`、`FOXGLOVE_PREVIEW_QUALITY` 只调整电脑预览，
+不调整相机硬件、模型输入或识别调度。详见 [FOXGLOVE_PREVIEW.md](FOXGLOVE_PREVIEW.md)。

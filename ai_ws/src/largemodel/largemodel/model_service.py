@@ -1,12 +1,14 @@
 import os
 import re
 import math
+import tempfile
 import cv2
 import json
 import rclpy
 from rclpy.node import Node
 from rclpy.duration import Duration
-from sensor_msgs.msg import Image, LaserScan
+from rclpy.qos import qos_profile_sensor_data
+from sensor_msgs.msg import CompressedImage, Image, LaserScan
 from std_msgs.msg import String,Bool
 from geometry_msgs.msg import PoseStamped
 from tf2_ros import Buffer, TransformListener
@@ -23,7 +25,10 @@ from interfaces.srv import TextToImage
 
 # Fast, deterministic command patterns.  Movement commands must not depend on
 # a large model's JSON output: "stop" has to work even when the model is busy.
-WAKE_WORDS = ("你好小鑫", "小鑫你好", "你好，小鑫", "你好,小鑫")
+WAKE_WORDS = (
+    "你好小亚", "小亚你好", "你好，小亚", "你好,小亚",
+    "你好小鑫", "小鑫你好", "你好，小鑫", "你好,小鑫",
+)
 
 STOP_PATTERN = re.compile(
     r"(?:请|麻烦|马上|立刻|现在|赶紧|快)*"
@@ -90,6 +95,7 @@ class LargeModelService(Node):
         
         self.init_camera()
         self._ensure_camera_is_ready()
+        self._setup_compressed_image_publisher()
 
     def _gui_update_callback(self):
         """GUI update callback function to handle OpenCV window events. / GUI更新回调函数，处理OpenCV窗口事件。"""
@@ -97,6 +103,45 @@ class LargeModelService(Node):
             cv2.waitKey(1)
         except Exception as e:
             pass
+
+    def _setup_compressed_image_publisher(self):
+        """可选：把模型服务持有的 USB 相机画面以 JPEG 压缩图发布。
+
+        只有存在订阅者（例如 Foxglove Image 面板）时才抓帧编码，避免
+        无人观看时占用 CPU 和带宽。
+        """
+        self.compressed_image_pub = None
+        if not self.publish_compressed_image:
+            return
+        self.compressed_image_pub = self.create_publisher(
+            CompressedImage, self.compressed_image_topic, 1)
+        period = 1.0 / max(0.1, float(self.compressed_image_fps))
+        self.create_timer(period, self._publish_compressed_image)
+        self.get_logger().info(
+            f'Compressed image publisher: {self.compressed_image_topic} '
+            f'({self.compressed_image_fps:.0f} Hz, q={self.compressed_image_quality})')
+
+    def _publish_compressed_image(self):
+        pub = self.compressed_image_pub
+        if pub is None or not self.camera_initialized or self.cap is None:
+            return
+        # 没有订阅者时不抓帧、不编码。
+        if pub.get_subscription_count() == 0:
+            return
+        ret, frame = self.cap.read()
+        if not ret or frame is None:
+            return
+        ok, buf = cv2.imencode(
+            '.jpg', frame,
+            [int(cv2.IMWRITE_JPEG_QUALITY), int(self.compressed_image_quality)])
+        if not ok:
+            return
+        msg = CompressedImage()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = self.camera_frame
+        msg.format = 'jpeg'
+        msg.data = buf.tobytes()
+        pub.publish(msg)
 
     def init_param_config(self):
         """Initializes ROS parameters and file paths. / 初始化ROS参数和文件路径。"""
@@ -209,8 +254,10 @@ class LargeModelService(Node):
         # TF and LiDAR are needed to turn a pixel bearing into a map goal.
         self.tf_buffer = Buffer(cache_time=Duration(seconds=30.0))
         self.tf_listener = TransformListener(self.tf_buffer, self)
+        # 雷达驱动以 best-effort 发布；用默认 reliable QoS 会收不到 /scan。
         self.scan_sub = self.create_subscription(
-            LaserScan, self.lidar_topic, self.scan_callback, 5)
+            LaserScan, self.lidar_topic, self.scan_callback,
+            qos_profile_sensor_data)
 
         # Initialize the TTS system. / 初始化TTS系统。
         self.system_sound_init()
@@ -350,12 +397,29 @@ class LargeModelService(Node):
         self.declare_parameter('camera_width', 640)
         self.declare_parameter('camera_height', 480)
         self.declare_parameter('camera_type', 'usb')  # 添加摄像头类型参数: 'csi', 'usb'
+        self.declare_parameter('camera_device', '/dev/astra-color')  # 稳定别名，避免 videoN 编号漂移
         self.declare_parameter('mjpeg_stream_url', 'http://172.17.0.1:8080/camera.mjpg')
-        
+
+        # 压缩图转发（供 Foxglove Image 面板查看，避免 raw Image 占带宽）。
+        self.declare_parameter('publish_compressed_image', True)
+        self.declare_parameter('compressed_image_topic',
+                               '/camera/color/image_raw/compressed')
+        self.declare_parameter('compressed_image_fps', 10.0)
+        self.declare_parameter('compressed_image_quality', 80)
+
         self.camera_width = self.get_parameter('camera_width').get_parameter_value().integer_value
         self.camera_height = self.get_parameter('camera_height').get_parameter_value().integer_value
         self.camera_type_param = self.get_parameter('camera_type').get_parameter_value().string_value.lower()
+        self.camera_device = self.get_parameter('camera_device').get_parameter_value().string_value
         self.mjpeg_stream_url = self.get_parameter('mjpeg_stream_url').get_parameter_value().string_value
+        self.publish_compressed_image = self.get_parameter(
+            'publish_compressed_image').get_parameter_value().bool_value
+        self.compressed_image_topic = self.get_parameter(
+            'compressed_image_topic').get_parameter_value().string_value
+        self.compressed_image_fps = self.get_parameter(
+            'compressed_image_fps').get_parameter_value().double_value
+        self.compressed_image_quality = self.get_parameter(
+            'compressed_image_quality').get_parameter_value().integer_value
         
         # Initialize camera variables. / 初始化摄像头变量。
         self.cap = None
@@ -531,13 +595,18 @@ class LargeModelService(Node):
         try:
             self.get_logger().info("Attempting to initialize USB camera with auto-detected device")
             
-            # 自动检测USB摄像头设备ID/Automatically detect USB camera device ID
-            usb_device_id = self._detect_usb_camera_device()
-            if usb_device_id is None:
-                self.get_logger().warn("Failed to detect USB camera device, using default device 0")
-                usb_device_id = 0
+            # 优先使用稳定别名；否则自动检测 USB 摄像头。
+            if self.camera_device and os.path.exists(self.camera_device):
+                usb_device_id = self.camera_device
+                self.get_logger().info(
+                    f"Using configured camera device: {usb_device_id}")
             else:
-                self.get_logger().info(f"Using detected USB camera device ID: {usb_device_id}")
+                usb_device_id = self._detect_usb_camera_device()
+                if usb_device_id is None:
+                    self.get_logger().warn("Failed to detect USB camera device, using default device 0")
+                    usb_device_id = 0
+                else:
+                    self.get_logger().info(f"Using detected USB camera device ID: {usb_device_id}")
             
             # 使用检测到的设备ID初始化USB摄像头/Initialize the USB camera using the detected device ID
             cap = cv2.VideoCapture(usb_device_id)
@@ -588,13 +657,16 @@ class LargeModelService(Node):
         if self.regional_setting == "China":  # 如果是中国地区
             if self.useolinetts:
                 model_type = "oline"
-                self.tts_out_path = os.path.join(self.pkg_path, "resources_file", "tts_output.mp3")
+                self.tts_out_path = os.path.join(
+                    tempfile.gettempdir(), "robot_tts_output.mp3")
             else:
                 model_type = "local"
-                self.tts_out_path = os.path.join(self.pkg_path, "resources_file", "tts_output.wav")
+                self.tts_out_path = os.path.join(
+                    tempfile.gettempdir(), "robot_tts_output.wav")
         elif self.regional_setting == "international":  # 如果是国际地区
             model_type = "XUNFEI_FOR_INTERNATIONAL"
-            self.tts_out_path = os.path.join(self.pkg_path, "resources_file", "XUNFEI_TTS.mp3")
+            self.tts_out_path = os.path.join(
+                tempfile.gettempdir(), "robot_xunfei_tts.mp3")
         else:
             while True:
                 self.get_logger().info()(

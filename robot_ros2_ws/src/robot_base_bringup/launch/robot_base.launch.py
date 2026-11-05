@@ -363,6 +363,19 @@ def generate_launch_description():
 
     # Foxglove Studio 通过 WebSocket 连接，不依赖本机 OpenGL/Ogre；
     # 本机 RoboStack aarch64 的 RViz2 会在 Ogre 初始化时段错误，故默认用它。
+    foxglove_preview = Node(
+        package='robot_base_bringup',
+        executable='foxglove_preview.py',
+        name='foxglove_preview',
+        arguments=[
+            '--width', os.environ.get('FOXGLOVE_PREVIEW_WIDTH', '240'),
+            '--fps', os.environ.get('FOXGLOVE_PREVIEW_FPS', '3'),
+            '--quality', os.environ.get('FOXGLOVE_PREVIEW_QUALITY', '40'),
+        ],
+        prefix='nice -n 10',
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration('visualization'), 'foxglove')),
+        output='screen',
+    )
     foxglove = Node(
         package='foxglove_bridge',
         executable='foxglove_bridge',
@@ -370,7 +383,24 @@ def generate_launch_description():
         parameters=[{
             'address': LaunchConfiguration('foxglove_address'),
             'port': LaunchConfiguration('foxglove_port'),
+            # Bound stale image queues so maps/TF keep reaching live clients.
+            'use_compression': True,
+            'send_buffer_limit': 2000000,
+            'message_backlog_size': 64,
+            'max_qos_depth': 2,
+            # Only this bridge sees the small viewer copies. ROS algorithms
+            # continue subscribing to the original sensor/detection topics.
+            'topic_whitelist': ['^(?!/foxglove_preview/).*'],
+            'best_effort_qos_topic_whitelist': [
+                '/camera/.*image.*', '/perception/.*image.*'],
         }],
+        remappings=[
+            ('/camera/color/image_raw/compressed', '/foxglove_preview/color/compressed'),
+            ('/camera/depth/image_raw', '/foxglove_preview/depth/image_raw'),
+            ('/camera/depth/camera_info', '/foxglove_preview/depth/camera_info'),
+            ('/perception/person_image/compressed', '/foxglove_preview/person/compressed'),
+            ('/perception/hand_image/compressed', '/foxglove_preview/hand/compressed'),
+        ],
         condition=IfCondition(EqualsSubstitution(LaunchConfiguration('visualization'), 'foxglove')),
         output='screen',
     )
@@ -418,5 +448,6 @@ def generate_launch_description():
         slam_configure,
         slam_activate,
         rviz,
+        foxglove_preview,
         foxglove,
     ])

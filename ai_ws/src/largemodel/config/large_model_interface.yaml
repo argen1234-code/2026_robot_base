@@ -12,6 +12,13 @@ ollama_host: "http://localhost:11434"  # Ollama server address / Ollama服务器
 ollama_model: "qwen2.5:1.5b"            # Default Ollama text model / 默认Ollama文本模型
 
 # -----------------------------------------------------------------------------
+# 人设 (Persona)
+# 只影响 response 字段的语气和自我介绍，不改变 JSON 格式与工具调用规则。
+# -----------------------------------------------------------------------------
+persona_zh: "你的人设：你是用户的智能垃圾桶管家，名字叫“小亚”。你负责响应召唤、移动到用户身边、接收垃圾并完成导航任务。回答要简洁、亲切、可靠；被问到身份时，回答“我是你的智能垃圾桶管家小亚”。"
+persona_en: "Persona: You are the user's smart trash-bin butler, named Xiaoya. You respond to summons, move to the user, receive trash, and handle navigation tasks. Keep replies concise, friendly, and reliable. If asked who you are, say: 'I am your smart trash-bin butler, Xiaoya.'"
+
+# -----------------------------------------------------------------------------
 # 独立视觉模型 (Separate vision model)
 # vision_platform 留空则视觉沿用 llm_platform；填 "ollama" 时视觉单独走本地
 # Ollama，文本 LLM 仍可使用 DeepSeek 等在线平台。

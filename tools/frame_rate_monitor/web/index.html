@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>树莓派本地实时帧率</title>
+  <style>
+    :root { color-scheme:dark; font-family: "Segoe UI","Microsoft YaHei",sans-serif; color:#edf3f8; background:#101419; }
+    * { box-sizing:border-box; }
+    body { margin:0; }
+    main { max-width:1080px; margin:0 auto; padding:48px 28px; }
+    .eyebrow { color:#77b6ea; font-size:13px; letter-spacing:.1em; }
+    h1 { font-size:30px; margin:10px 0 12px; font-weight:650; }
+    p { color:#a0afbd; line-height:1.7; }
+    .status { display:flex; align-items:center; gap:9px; font-size:13px; color:#a9bac8; margin:24px 0; }
+    .dot { width:8px; height:8px; border-radius:50%; background:#7b8894; }
+    .status.live .dot { background:#59d6aa; box-shadow:0 0 14px #59d6aa55; }
+    .status.stale .dot { background:#eeb75e; }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    article { background:#181f27; border:1px solid #2a3642; border-radius:14px; padding:22px; }
+    .label { font-size:14px; color:#b7c7d5; }
+    .number { font-size:48px; font-variant-numeric:tabular-nums; font-weight:650; margin:13px 0 8px; color:#b1dcff; }
+    .unit { font-size:13px; color:#8da1b3; }
+    .preview { border-top:1px solid #303b46; padding-top:15px; margin-top:20px; display:flex; justify-content:space-between; gap:10px; font-size:13px; color:#97aabb; }
+    .preview strong { font-variant-numeric:tabular-nums; color:#d2dfeb; white-space:nowrap; }
+    .small-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:16px; }
+    .small { padding:18px 22px; }
+    .small strong { font-size:25px; display:block; margin-top:10px; font-variant-numeric:tabular-nums; }
+    .note { margin-top:24px; font-size:13px; color:#91a4b5; }
+    details { margin-top:28px; border-top:1px solid #2b3742; padding-top:20px; color:#b9cad8; font-size:13px; }
+    summary { cursor:pointer; }
+    code { color:#b2d9f8; overflow-wrap:anywhere; }
+    li { line-height:1.9; margin-bottom:7px; }
+    .sub { font-size:12px; margin-top:9px; color:#7e94a6; line-height:1.6; }
+    @media(max-width:760px) { main{padding:28px 18px} .grid,.small-grid{grid-template-columns:1fr} h1{font-size:25px} .number{font-size:42px} }
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">RASPBERRY PI · LIVE METRICS</div>
+  <h1>树莓派本地实时帧率</h1>
+  <p>大数字来自树莓派内部原始话题的统计。下面的小数字是降帧后的电脑预览输出，可直接对照。</p>
+  <div class="status" id="status"><span class="dot"></span><span id="statusText">正在连接树莓派…</span></div>
+  <section class="grid">
+    <article>
+      <div class="label">本地彩色图像输出</div>
+      <div class="number" id="local_color">—</div><div class="unit">帧 / 秒</div>
+      <div class="preview"><span>电脑预览输出</span><strong><span id="preview_color">—</span> 帧/秒</strong></div>
+    </article>
+    <article>
+      <div class="label">本地深度图像输出</div>
+      <div class="number" id="local_depth">—</div><div class="unit">帧 / 秒</div>
+      <div class="preview"><span>电脑预览输出</span><strong><span id="preview_depth">—</span> 帧/秒</strong></div>
+    </article>
+    <article>
+      <div class="label">人体识别完成频率</div>
+      <div class="number" id="person_detection">—</div><div class="unit">次 / 秒</div>
+      <div class="preview"><span>电脑标注图输出</span><strong><span id="preview_person">—</span> 帧/秒</strong></div>
+    </article>
+  </section>
+  <section class="small-grid">
+    <article class="small"><div class="label">最近一次推理耗时</div><strong id="person_infer_ms">—</strong><div class="sub">每次识别计算用了多久</div></article>
+    <article class="small"><div class="label">识别开始时输入年龄</div><strong id="person_input_age_ms">—</strong><div class="sub">输入图像发布后等待了多久</div></article>
+    <article class="small"><div class="label">识别结果年龄</div><strong id="person_result_age_ms">—</strong><div class="sub">从输入图像发布到结果完成</div></article>
+  </section>
+  <p class="note">采用最近 5 秒的滑动窗口，每秒更新。刚连接时需要几秒形成稳定读数。彩色与深度统计的是本地图像消息频率；人体识别统计每次完成的结果，画面中没有人也计数。</p>
+  <p class="note">“电脑预览输出”是树莓派发送预览副本的频率，浏览器实际渲染还可能受网络和电脑性能影响。它不会替代本地帧率。</p>
+  <details>
+    <summary>在 Foxglove 里查看同一组数字</summary>
+    <ol>
+      <li>添加“数值 / Gauge”或“绘图 / Plot”面板。</li>
+      <li>本地彩色：<code>/performance/fps/local_color.data</code></li>
+      <li>本地深度：<code>/performance/fps/local_depth.data</code></li>
+      <li>人体识别：<code>/performance/fps/person_detection.data</code></li>
+    </ol>
+    <p>以上话题每秒发一次统计数值；应读取 <code>data</code> 字段，不要把统计话题自身的 1 Hz 当作相机帧率。</p>
+  </details>
+</main>
+<script>
+const rateNames=['local_color','local_depth','person_detection','preview_color','preview_depth','preview_person'];
+const timeNames=['person_infer_ms','person_input_age_ms','person_result_age_ms'];
+async function refresh(){
+  try{
+    const response=await fetch('/api/frame-rates',{cache:'no-store'});
+    if(!response.ok)throw Error('HTTP '+response.status);
+    const state=await response.json();
+    const live=state.connected && state.age_seconds!==null && state.age_seconds<4;
+    document.getElementById('status').className='status '+(live?'live':'stale');
+    document.getElementById('statusText').textContent=live
+      ?'已连接树莓派 · 数据每秒更新 · '+new Date().toLocaleTimeString('zh-CN',{hour12:false})
+      :(state.connected?'已连接，正在收集本地统计…':'树莓派未连接或任务未运行，正在重连…');
+    for(const name of rateNames){
+      const value=state.metrics['/performance/fps/'+name];
+      document.getElementById(name).textContent=live&&Number.isFinite(value)?value.toFixed(2):'—';
+    }
+    for(const name of timeNames){
+      const value=state.metrics['/performance/'+name];
+      document.getElementById(name).textContent=live&&Number.isFinite(value)?Math.round(value)+' ms':'—';
+    }
+  }catch(error){
+    document.getElementById('status').className='status stale';
+    document.getElementById('statusText').textContent='本地监测服务未连接';
+    for(const name of [...rateNames,...timeNames])document.getElementById(name).textContent='—';
+  }finally{setTimeout(refresh,1000)}
+}
+refresh();
+</script>
+</body>
+</html>

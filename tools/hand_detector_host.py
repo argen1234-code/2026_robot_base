@@ -29,11 +29,16 @@ MAX_D = 3.0
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--device', type=int, default=2)
+    ap.add_argument('--device', default='/dev/hand-cam',
+                    help='相机设备（稳定别名 /dev/hand-cam，或 /dev/videoN）')
     ap.add_argument('--width', type=int, default=640)
     ap.add_argument('--height', type=int, default=480)
     ap.add_argument('--fps', type=float, default=10.0)
     ap.add_argument('--udp', default='127.0.0.1:5005')
+    ap.add_argument('--image-udp', default='',
+                    help='JPEG 帧转发目标 host:port（空=关闭，供 Foxglove 查看）')
+    ap.add_argument('--image-fps', type=float, default=10.0)
+    ap.add_argument('--jpeg-quality', type=int, default=80)
     ap.add_argument('--max-hands', type=int, default=1)
     ap.add_argument('--show', action='store_true')
     args = ap.parse_args()
@@ -42,14 +47,23 @@ def main():
     port = int(port)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
+    image_sock = None
+    image_host = image_port = None
+    if args.image_udp:
+        image_host, image_port = args.image_udp.rsplit(':', 1)
+        image_port = int(image_port)
+        image_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        print(f'hand JPEG -> udp {image_host}:{image_port} '
+              f'@ {args.image_fps:.0f} fps q={args.jpeg_quality}', flush=True)
+
     cap = cv2.VideoCapture(args.device, cv2.CAP_V4L2)
     cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     if not cap.isOpened():
-        raise SystemExit(f'cannot open /dev/video{args.device}')
-    print(f'hand camera /dev/video{args.device} opened', flush=True)
+        raise SystemExit(f'cannot open {args.device}')
+    print(f'hand camera {args.device} opened', flush=True)
 
     hands = mp.solutions.hands.Hands(
         static_image_mode=False,
@@ -63,7 +77,9 @@ def main():
 
     last_t = time.time()
     last_send = 0.0
+    last_image = 0.0
     last_valid = None
+    oversized_logged = False
     try:
         while True:
             ok, frame = cap.read()
@@ -114,6 +130,20 @@ def main():
                 print(f"hand {'detected' if last_valid else 'lost'} "
                       f"{msg.get('cartesian_m', '')} "
                       f"fps={msg.get('fps', '-')}", flush=True)
+            if (image_sock is not None and
+                    now - last_image >= 1.0 / max(0.1, args.image_fps)):
+                ok_jpg, buf = cv2.imencode(
+                    '.jpg', out,
+                    [int(cv2.IMWRITE_JPEG_QUALITY), args.jpeg_quality])
+                if ok_jpg:
+                    if len(buf) <= 60000:
+                        image_sock.sendto(
+                            buf.tobytes(), (image_host, image_port))
+                    elif not oversized_logged:
+                        oversized_logged = True
+                        print(f'hand JPEG too large ({len(buf)} B), '
+                              'frame dropped', flush=True)
+                last_image = now
             if now - last_send >= 0.05:
                 sock.sendto(json.dumps(msg).encode('utf-8'), (host, port))
                 last_send = now

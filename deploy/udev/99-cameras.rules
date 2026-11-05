@@ -1,0 +1,21 @@
+# 摄像头固定别名（USB 枚举顺序会变，不能依赖 /dev/videoN）。
+#
+# 本机实测（2026-11-05）：
+#   icSpring 手部相机 2993:0858 -> /dev/video0（metadata 是 video1）
+#   Astra Pro 彩色    2bc5:0501 -> /dev/video2（metadata 是 video3）
+# 每个 UVC 相机会生成采集节点 + metadata 节点；只匹配 ATTR{index}=="0"
+# 的采集节点。
+#
+# 安装：
+#   sudo install -m 0644 deploy/udev/99-cameras.rules \
+#        /etc/udev/rules.d/99-cameras.rules
+#   sudo udevadm control --reload-rules
+#   sudo udevadm trigger --subsystem-match=video4linux
+#   ls -l /dev/hand-cam /dev/astra-color
+SUBSYSTEM=="video4linux", KERNEL=="video*", ATTR{index}=="0", \
+  ATTRS{idVendor}=="2993", ATTRS{idProduct}=="0858", \
+  GROUP="video", MODE="0660", SYMLINK+="hand-cam"
+
+SUBSYSTEM=="video4linux", KERNEL=="video*", ATTR{index}=="0", \
+  ATTRS{idVendor}=="2bc5", ATTRS{idProduct}=="0501", \
+  GROUP="video", MODE="0660", SYMLINK+="astra-color"

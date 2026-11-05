@@ -67,3 +67,7 @@ project.private.config.json
 
 # YDLidar SDK 源码（第三方，用 scripts/build-nav.sh 自动克隆）
 /third_party/ydlidar_sdk/
+
+# 运行时会话及电脑帧率监视环境
+/ai_ws/src/largemodel/resources_file/conversation_message.json
+/tools/frame_rate_monitor/.venv/

@@ -1,0 +1,23 @@
+[Unit]
+Description=Robot memory watchdog (kill robot stack when MemAvailable < 800MB)
+Documentation=file:///home/pi/2026_robot_base/docs/RUNBOOK.md
+After=multi-user.target
+
+[Service]
+Type=simple
+User=root
+Environment=HOME=/home/pi
+Environment=MEM_THRESHOLD_MB=800
+Environment=MEM_CHECK_INTERVAL=2
+Environment=MEM_CONFIRM_SAMPLES=3
+Environment=MEM_KILL_GRACE=5
+Environment=MEM_COOLDOWN=120
+ExecStart=/home/pi/2026_robot_base/scripts/mem_watchdog.sh
+Restart=always
+RestartSec=5
+Nice=-5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

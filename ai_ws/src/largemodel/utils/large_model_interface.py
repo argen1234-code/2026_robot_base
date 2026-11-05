@@ -319,6 +319,10 @@ class model_interface:
         self.mcp_server = mcp_server  # Save mcp_server instance / 保存mcp_server实例
         self.init_config_param()
         dashscope.api_key = self.tongyi_api_key
+        if self.dashscope_base_url:
+            dashscope.base_http_api_url = self.dashscope_base_url
+        if self.dashscope_ws_url:
+            dashscope.base_websocket_api_url = self.dashscope_ws_url
 
     def init_config_param(self):
         self.pkg_path=get_package_share_directory('largemodel')      
@@ -333,10 +337,18 @@ class model_interface:
         self.ANYTHINGLLM_BASE_URL = config_param.get("ANYTHINGLLM_BASE_URL")
         self.API_KEY = _env("ANYTHINGLLM_API_KEY", "API_KEY")
 
+        # 人设：只影响自然语言回复，不改变 JSON/工具规则。
+        self.persona_zh = str(config_param.get('persona_zh') or '').strip()
+        self.persona_en = str(config_param.get('persona_en') or '').strip()
+
 
         # Tongyi Qianwen configuration / 通义千问配置
         self.tongyi_api_key = _env("TONGYI_API_KEY", 'tongyi_api_key')
-        self.tongyi_base_url=config_param.get('tongyi_base_url')
+        # 业务空间专属域名：新版 sk-ws- Key 必须配套使用，留空则沿用旧共享域名。
+        self.dashscope_base_url = os.environ.get('DASHSCOPE_BASE_URL') or ''
+        self.dashscope_ws_url = os.environ.get('DASHSCOPE_WS_URL') or ''
+        self.tongyi_base_url = (os.environ.get('DASHSCOPE_OPENAI_BASE_URL')
+                                or config_param.get('tongyi_base_url'))
         self.tongyi_model = config_param.get('tongyi_model')
         self.tongyi_media_model = config_param.get('tongyi_media_model', 'wanx-v1')
 
@@ -509,7 +521,9 @@ class model_interface:
         动态生成系统级指令 (System Prompt)。
         """
         if getattr(self, 'minimal_prompt', False):
-            return '你是机器人助手。请用简洁的中文回答用户。只输出JSON：{"response":"回答内容","tools":[]}'
+            persona = (getattr(self, 'persona_zh', '') or '').strip()
+            base = '你是机器人助手。请用简洁的中文回答用户。只输出JSON：{"response":"回答内容","tools":[]}'
+            return f'{persona}\n{base}' if persona else base
         if not mcp_server:
             # Return a minimal system prompt without any tool descriptions.
             # /
@@ -534,8 +548,10 @@ class model_interface:
             # English version of the system prompt
             # 英文版本的系统提示
             # Generate tool definitions separately to avoid f-string nesting issues
-            
-            return f'''You are the control hub for a robot, an AI capable of accurately converting natural language commands into JSON format, or engaging in natural conversation when no tools are available.
+            persona = (getattr(self, 'persona_en', '') or '').strip()
+            prefix = f'{persona}\n\n' if persona else ''
+
+            return prefix + f'''You are the control hub for a robot, an AI capable of accurately converting natural language commands into JSON format, or engaging in natural conversation when no tools are available.
 
 # Primary Rule
 Your sole output must be a well-formed JSON object. Absolutely no text, explanations, or Markdown tags are allowed outside of the JSON.
@@ -649,7 +665,9 @@ Based on the user's intent, choose the most appropriate of the following three J
         else:
             # Chinese version of the system prompt (original)
             # 中文版本的系统提示（原始版本）
-            return f'''你是机器人的控制中枢，一个能将自然语言指令精确转换为JSON格式，或在无工具可用时进行自然对话的AI。
+            persona = (getattr(self, 'persona_zh', '') or '').strip()
+            prefix = f'{persona}\n\n' if persona else ''
+            return prefix + f'''你是机器人的控制中枢，一个能将自然语言指令精确转换为JSON格式，或在无工具可用时进行自然对话的AI。
 
 # 首要规则
 你的唯一输出必须是一个结构完整的JSON对象。绝对禁止输出任何JSON之外的文本、解释或Markdown标记。
