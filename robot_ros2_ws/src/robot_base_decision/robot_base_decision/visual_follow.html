@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>纯视觉找人跟随</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0d1117;color:#edf2f9;font:16px system-ui,"Microsoft YaHei",sans-serif}main{max-width:960px;margin:auto;padding:24px}h1{font-size:25px}p{color:#a8b5c7;line-height:1.65}.panel{padding:18px;border:1px solid #303b4c;border-radius:12px;margin:16px 0;background:#151c26}canvas{width:100%;background:#080c12;aspect-ratio:4/3;border-radius:8px}.stats{display:flex;gap:24px;flex-wrap:wrap}.stats b{display:block;font-size:24px;margin-top:8px}small{color:#a8b5c7}button,input{font:inherit;border:0;border-radius:6px;padding:12px;margin:6px 8px 6px 0}button{cursor:pointer;background:#8bb5ff;color:#101823;font-weight:600}button.stop{background:#ff9a9a}input{width:110px;background:#263143;color:white}#mode{color:#ffce82}#feedback{color:#a8b5c7}.hint{font-size:14px}
+</style><main>
+<h1>纯视觉找人跟随</h1><p>人框控制居中与前进，有效深度控制距离与到达停车。</p>
+<div id="mode">连接中</div>
+<div class="panel stats"><div><small>当前状态</small><b id="state">等待数据</b></div><div><small>人体深度</small><b id="distance">—</b></div><div><small>左右偏差</small><b id="offset">—</b></div><div><small>前进 / 转向</small><b id="speed">—</b></div></div>
+<canvas id="camera" width="640" height="480"></canvas>
+<div class="panel"><label>停车深度 <input id="target" type="number" min="0.02" max="7.9" step="0.01" value="0.05">m</label><br>
+<button id="start">靠近一次</button><button id="follow">保持距离跟随</button><button id="stop" class="stop">停止</button><p id="feedback"></p>
+<p class="hint" id="arrivalHint">靠近一次：停车深度加 0.02 为到达死区，首次进入就停止并结束任务；深度回跳也不会再走。</p>
+<p class="hint">距离以深度镜头为起点。持续跟随时，人靠得过近会停车，拉开 5 cm 后继续前进。目标偏离明显时先转向居中；人框丢失或数据过期时停车。</p>
+<p class="hint">人框有效时，没有人体深度或深度中断都继续居中、缓慢前进；有效深度达到阈值才触发到达停车。保持距离已停车后，等待有效深度确认人拉开再继续。停车深度是当前相机读数阈值，尚未完成实际距离校准。</p></div></main>
+<script>
+const $=id=>document.getElementById(id),c=$('camera'),ctx=c.getContext('2d'),img=new Image();let state={},lastStatus=0,targetInitialized=false;
+const labels={idle:'等待开始',waiting_for_detection:'等待人框',no_person:'未检测到人，停车',target_lost:'目标丢失，停车',ambiguous_person_choice:'多人目标不明确，停车',stale_detection:'检测过期，停车',invalid_detection:'等待有效检测',approaching_without_depth:'视觉接近中，等待有效深度',centering:'转向居中',approaching:'靠近中',following:'跟随中',holding_distance:'已到距离，保持停车',holding_without_depth:'已到距离，等待有效深度再跟随',arrived:'已到距离，单次任务结束',stopped:'已停止',manual_override:'手动目标接管，已停止',mode_changed:'控制模式切换，已停止'};
+function paint(){ctx.clearRect(0,0,c.width,c.height);if(img.naturalWidth)ctx.drawImage(img,0,0,c.width,c.height);ctx.strokeStyle='#7fc7ff';ctx.setLineDash([7,7]);ctx.beginPath();ctx.moveTo(320,0);ctx.lineTo(320,480);ctx.stroke();ctx.setLineDash([]);if(Date.now()-lastStatus>1200)return;const [w,h]=state.image_size||[640,480];for(const p of state.persons||[]){if(!p.bbox)continue;const[x,y,bw,bh]=p.bbox;ctx.strokeStyle='#ffb457';ctx.lineWidth=2;ctx.strokeRect(x*640/w,y*480/h,bw*640/w,bh*480/h)}if(state.target_bbox){const[x,y,bw,bh]=state.target_bbox;ctx.strokeStyle='#72e0ad';ctx.lineWidth=4;ctx.strokeRect(x*640/w,y*480/h,bw*640/w,bh*480/h)}}
+async function poll(){try{const r=await fetch('/status');if(!r.ok)throw Error();state=await r.json();if(!targetInitialized&&state.target_distance_m!=null){$('target').value=state.target_distance_m.toFixed(2);targetInitialized=true}lastStatus=Date.now();$('mode').textContent=state.execute?'电机控制已启用':'预览模式 · 电机输出关闭';$('state').textContent=labels[state.state]||state.state;$('distance').textContent=state.distance_m==null?'无有效值':state.distance_m.toFixed(2)+' m';$('offset').textContent=state.target_offset_px==null?'—':state.target_offset_px+' px';$('arrivalHint').textContent='靠近一次：设置值 + '+(state.approach_deadband_m??0.02).toFixed(2)+' 为到达死区，当前读数 ≤ '+(Number($('target').value)+(state.approach_deadband_m??0.02)).toFixed(2)+' 就立即停车并结束；深度回跳也不再走。';$('speed').textContent=(state.output_linear_mps||0).toFixed(2)+' m/s · '+(state.output_angular_rps||0).toFixed(2)+' rad/s';$('start').disabled=$('follow').disabled=!!state.active;paint()}catch(e){$('mode').textContent='连接中断';$('state').textContent='未连接';$('start').disabled=$('follow').disabled=true;state={};paint()}setTimeout(poll,250)}
+async function command(action){try{const r=await fetch('/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(action==='stop'?{}:{target_distance_m:Number($('target').value)})});const result=await r.json();$('feedback').textContent=r.ok?'请求已发送':result.error}catch(e){$('feedback').textContent='连接失败'}}
+for(const a of ['start','follow','stop'])$(a).onclick=()=>command(a);
+function image(){img.onload=()=>{paint();setTimeout(image,330)};img.onerror=()=>setTimeout(image,600);img.src='/image.jpg?t='+Date.now()}poll();image();
+</script></html>

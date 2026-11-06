@@ -21,13 +21,25 @@ from robot_base_msgs.srv import SetTask
 from .priority import MANUAL_GOAL, STOP
 
 
+def vision_task_for(task):
+    """Map a user-facing task to the vision layer's mode.
+
+    'approach_user' must be a tracking task ('follow'): the person may move
+    while the robot is on its way, and freezing the first standoff point makes
+    the robot stop short of the person.
+    """
+    return 'follow' if task == 'approach_user' else task
+
+
 class TaskCoordinator(Node):
     def __init__(self):
         super().__init__('task_coordinator')
         self.declare_parameter('initial_task', 'none')
         self.declare_parameter('execute', False)
         self.declare_parameter('preview', False)
-        self.declare_parameter('initial_delay_s', 3.0)
+        # DDS service discovery on the Pi can lag node startup.  Wait longer
+        # before dispatching the initial task, and let call() wait as well.
+        self.declare_parameter('initial_delay_s', 10.0)
         self.initial_task = str(
             self.get_parameter('initial_task').value).strip().lower()
         self.execute = bool(self.get_parameter('execute').value)
@@ -86,11 +98,16 @@ class TaskCoordinator(Node):
         self.status_pub.publish(msg)
 
     def call(self, client, task, params=None, request_id='', execute=None,
-             preview=None):
+             preview=None, wait_s=5.0):
         if not client.service_is_ready():
-            self.set_state(self.owner, task, 'failed',
-                           f'{client.srv_name} unavailable')
-            return
+            # Service discovery can take a few seconds on the Pi, especially
+            # for the initial task right after all decision nodes start.
+            self.get_logger().info(
+                f'Waiting up to {wait_s:g}s for {client.srv_name}')
+            if wait_s <= 0 or not client.wait_for_service(timeout_sec=wait_s):
+                self.set_state(self.owner, task, 'failed',
+                               f'{client.srv_name} unavailable')
+                return
         req = SetTask.Request()
         req.task = task
         req.params_json = json.dumps(params or {}, ensure_ascii=False)
@@ -117,15 +134,18 @@ class TaskCoordinator(Node):
             self.request_id = request_id
             self.set_state('coordinator', 'stop', 'stopping', 'stop', request_id)
             self.call(self.vision_client, 'stop', request_id=request_id,
-                      execute=False, preview=False)
+                      execute=False, preview=False, wait_s=0.5)
             self.call(self.nav_client, 'stop', request_id=request_id,
-                      execute=False, preview=False)
+                      execute=False, preview=False, wait_s=0.5)
             return
         if intent.intent == 'approach_user':
             self.request_id = request_id
-            task = 'approach_user'
+            # Voice approach is a tracking task: the vision layer keeps the
+            # person locked and re-plans as they move, instead of freezing the
+            # first standoff point.
+            task = vision_task_for('approach_user')
             self.set_state('coordinator', task, 'dispatching',
-                           'approach_user', request_id)
+                           'approach_user -> follow', request_id)
             self.call(self.vision_client, task, {}, request_id,
                       execute=self.execute, preview=self.preview)
             return
@@ -153,13 +173,16 @@ class TaskCoordinator(Node):
         self.set_state('manual', 'manual_goal', 'manual_override',
                        'Foxglove/manual goal owns navigation')
         # Release a person task; bt_navigator receives the manual goal itself.
-        self.call(self.vision_client, 'stop', execute=False, preview=False)
+        self.call(self.vision_client, 'stop', execute=False, preview=False,
+                      wait_s=0.5)
 
     def on_stop(self, msg):
         if msg.data:
             self.set_state('coordinator', 'stop', 'stopping', 'stop_request')
-            self.call(self.vision_client, 'stop', execute=False, preview=False)
-            self.call(self.nav_client, 'stop', execute=False, preview=False)
+            self.call(self.vision_client, 'stop', execute=False, preview=False,
+                      wait_s=0.5)
+            self.call(self.nav_client, 'stop', execute=False, preview=False,
+                      wait_s=0.5)
 
     def on_vision_status(self, msg):
         if msg.state in ('failed', 'arrived', 'stopped',
@@ -208,8 +231,10 @@ class TaskCoordinator(Node):
             response.success, response.message = False, 'bad params_json'
             return response
         if task in ('follow', 'preview', 'approach_user'):
-            self.set_state('coordinator', task, 'dispatching', 'set_task')
-            self.call(self.vision_client, task, params,
+            vision_task = vision_task_for(task)
+            self.set_state('coordinator', task, 'dispatching',
+                           f'set_task -> {vision_task}')
+            self.call(self.vision_client, vision_task, params,
                       execute=request.execute, preview=request.preview)
             response.success, response.message = True, 'vision task queued'
         elif task in ('move_relative', 'approach_pose'):
@@ -218,8 +243,10 @@ class TaskCoordinator(Node):
             response.success, response.message = True, 'nav task queued'
         elif task in ('stop', 'none', 'cancel'):
             self.set_state('coordinator', 'stop', 'stopping', 'set_task')
-            self.call(self.vision_client, 'stop', execute=False, preview=False)
-            self.call(self.nav_client, 'stop', execute=False, preview=False)
+            self.call(self.vision_client, 'stop', execute=False, preview=False,
+                      wait_s=0.5)
+            self.call(self.nav_client, 'stop', execute=False, preview=False,
+                      wait_s=0.5)
             response.success, response.message = True, 'stopping'
         else:
             response.success, response.message = False, f'unknown task {task!r}'

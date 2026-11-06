@@ -38,6 +38,7 @@ from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import CameraInfo, CompressedImage, Image
+from person_depth import bbox_depth
 from std_msgs.msg import String
 from person_inference import ConfidenceGate, PersonInference
 
@@ -224,6 +225,7 @@ class PersonDetector(Node):
         data = {
             'stamp': round(time.time(), 3),
             'source_stamp': round(source_seconds, 6),
+            'depth_source_stamp': round(depth_seconds, 6) if depth is not None else None,
             'count': len(persons),
             'image_size': [w, h],
             'frame_id': color_msg.header.frame_id,
@@ -265,6 +267,7 @@ class PersonDetector(Node):
     # ---------------- depth / geometry ----------------
     def attach_depth(self, p, color_w, color_h, depth):
         p['depth_m'] = None
+        p['depth_valid_pixels'] = 0
         p['bearing_deg'] = None
         p['xyz'] = None
         if depth is None:
@@ -278,27 +281,18 @@ class PersonDetector(Node):
         if not (0 <= dx < dw and 0 <= dy < dh):
             return
 
-        x, y, bw, bh = p['bbox']
-        # 在框内缩 20% 的区域取有效深度，用 30% 分位数避开背景墙。
-        sx, sy = dw / float(color_w), dh / float(color_h)
-        offset_x, offset_y = self.args.depth_offset_x*dw, self.args.depth_offset_y*dh
-        dx0 = max(0, int((x + 0.2 * bw) * sx + offset_x))
-        dx1 = min(dw, int((x + 0.8 * bw) * sx + offset_x))
-        dy0 = max(0, int((y + 0.2 * bh) * sy + offset_y))
-        dy1 = min(dh, int((y + 0.8 * bh) * sy + offset_y))
-        if dx1 <= dx0 or dy1 <= dy0:
-            return
-        roi = depth[dy0:dy1, dx0:dx1].astype(np.float32)
-        valid = roi[(roi > 300.0) & (roi < 8000.0)]
-        if valid.size < 10:
+        z, count = bbox_depth(depth, p['bbox'], (color_w, color_h),
+                              (self.args.depth_offset_x, self.args.depth_offset_y),
+                              self.args.depth_min_m, self.args.depth_max_m)
+        p['depth_valid_pixels'] = count
+        if z is None:
             now = time.time()
             if now - self._last_depth_warn > 5.0:
                 self._last_depth_warn = now
                 self.get_logger().warn(
-                    'person bbox has no valid depth (>300mm): '
+                    f'person bbox has no valid depth (>{self.args.depth_min_m*1000:.0f}mm): '
                     'depth lens may be blocked or too close')
             return
-        z = float(np.percentile(valid, 30.0)) / 1000.0
         p['depth_m'] = round(z, 3)
 
         fx, fy, cx, cy = self.fx, self.fy, self.cx, self.cy
@@ -396,6 +390,9 @@ def main():
                     default='/perception/person_image/compressed')
     ap.add_argument('--depth-offset-x', type=float, default=0.0)
     ap.add_argument('--depth-offset-y', type=float, default=0.0)
+    ap.add_argument('--depth-min-m', type=float, default=0.30,
+                    help='Minimum accepted depth; visual mode uses 0.10 for a 0.20m target')
+    ap.add_argument('--depth-max-m', type=float, default=8.0)
     ap.add_argument('--fx', type=float, default=570.0)
     ap.add_argument('--fy', type=float, default=570.0)
     ap.add_argument('--cx', type=float, default=319.5)
@@ -403,6 +400,8 @@ def main():
     args, _ = ap.parse_known_args()
     if args.cv_threads < 1:
         ap.error('--cv-threads must be at least 1')
+    if not 0 < args.depth_min_m < args.depth_max_m:
+        ap.error('depth range must satisfy 0 < min < max')
     if args.annotation_fps <= 0 or args.max_fps <= 0 or args.max_depth_skew_ms <= 0:
         ap.error('frame rates and depth matching limit must be positive')
     if args.input_size < 32 or (args.input_height is not None and args.input_height < 32):

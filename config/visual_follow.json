@@ -1,0 +1,21 @@
+{
+  "target_distance_m": 0.05,
+  "approach_deadband_m": 0.02,
+  "resume_margin_m": 0.05,
+  "max_linear_mps": 0.24,
+  "invalid_depth_speed_mps": 0.07,
+  "distance_gain": 1.8,
+  "max_angular_rps": 0.55,
+  "centering_gain": 2.8,
+  "image_yaw_sign": 1.0,
+  "center_deadband_fraction": 0.025,
+  "center_slow_fraction": 0.06,
+  "center_stop_fraction": 0.18,
+  "max_result_age_s": 0.8,
+  "max_depth_age_s": 0.5,
+  "max_depth_skew_s": 0.15,
+  "min_confidence": 0.20,
+  "multi_person_center_margin_px": 32.0,
+  "depth_min_m": 0.01,
+  "depth_max_m": 8.0
+}

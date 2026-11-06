@@ -7,6 +7,8 @@
 #
 # 默认全栈：导航重定位（最新地图）+ AI 语音 + 视觉 Astra+手部，
 # 决策层全部启动，电机不 ARM，Foxglove 关闭。
+# 独立视觉：start --task visual-approach|visual-follow [--motor] [--distance 0.05]
+# 不加 --motor 预览；加 --motor 启动即运行。网页 http://<pi>:8879。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -53,6 +55,10 @@ TASK="none"
 RESTART=0
 LOG_DIR=""
 NO_DEPTH=0
+VISUAL_ONLY=0
+VISUAL_DISTANCE=""
+PERSON_DEPTH_MIN_M=0.30
+PERSON_DEPTH_MAX_M=8.0
 
 COMMAND="${1:-start}"
 STOP_FORCE=0
@@ -83,6 +89,7 @@ while [[ $# -gt 0 ]]; do
     --no-voice-decision) VOICE_DEC=0; shift ;;
     --no-vision-decision) VISION_DEC=0; shift ;;
     --task) TASK="${2:?}"; shift 2 ;;
+    --distance) VISUAL_DISTANCE="${2:?}"; shift 2 ;;
     --restart) RESTART=1; shift ;;
     --log-dir) LOG_DIR="${2:?}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
@@ -92,13 +99,33 @@ done
 
 case "$NAV" in mapping|localize|none) ;; *) die "--nav must be mapping|localize|none" ;; esac
 case "$VISION" in astra|hand|both|none) ;; *) die "--vision must be astra|hand|both|none" ;; esac
-case "$TASK" in none|follow|preview) ;; *) die "--task must be none|follow|preview" ;; esac
+case "$TASK" in none|follow|preview|visual-approach|visual-follow) ;; *) die "--task must be none|follow|preview|visual-approach|visual-follow" ;; esac
+if [[ "$TASK" == visual-* ]]; then
+  [[ "$NAV_SET" == 0 || "$NAV" == none ]] || die "visual tasks require --nav none"
+  [[ "$MAP_SET" == 0 && "$FOXGLOVE" == 0 ]] || die "visual tasks do not use maps or Foxglove navigation"
+  [[ "$NO_DEPTH" == 0 ]] || die "visual tasks require the depth camera (remove --no-depth)"
+  VISUAL_ONLY=1; NAV=none; AI=0; VISION=astra; DECISION=0
+  read -r PERSON_DEPTH_MIN_M PERSON_DEPTH_MAX_M VISUAL_MAX_LINEAR VISUAL_MAX_ANGULAR < <(python3 -c \
+    'import json,sys; c=json.load(open(sys.argv[1])); print(c["depth_min_m"], c["depth_max_m"], c["max_linear_mps"], c["max_angular_rps"])' \
+    "$ROOT/config/visual_follow.json")
+  python3 - "$ROOT/robot_ros2_ws/src/robot_base_decision" "$ROOT/config/visual_follow.json" "$VISUAL_DISTANCE" <<'PY'
+import json, sys
+sys.path.insert(0, sys.argv[1])
+from robot_base_decision.visual_follow import validate_config
+cfg = json.load(open(sys.argv[2]))
+if sys.argv[3]:
+    cfg['target_distance_m'] = float(sys.argv[3])
+validate_config(cfg)
+PY
+elif [[ -n "$VISUAL_DISTANCE" ]]; then
+  die "--distance is only available with --task visual-approach|visual-follow"
+fi
 [[ "$FOXGLOVE" == "1" && "$NAV" == "none" ]] && die "--foxglove requires --nav"
-[[ "$MOTOR" == "1" && "$NAV" == "none" ]] && die "--motor requires --nav"
+[[ "$MOTOR" == "1" && "$NAV" == "none" && "$VISUAL_ONLY" == 0 ]] && die "--motor requires --nav or a visual task"
 [[ "$NAV" == "mapping" && "$DECISION_SET" == "1" && "$DECISION" == "1" ]] && \
   die "mapping mode does not support --decision (Foxglove goals only)"
 [[ "$NAV" == "mapping" && "$TASK" != "none" ]] && die "mapping mode does not support --task"
-[[ "$TASK" != "none" && "$DECISION" == "0" ]] && die "--task requires --decision"
+[[ "$TASK" != "none" && "$DECISION" == "0" && "$VISUAL_ONLY" == 0 ]] && die "--task requires --decision"
 
 VISION_ASTRA=0; VISION_HAND=0
 case "$VISION" in
@@ -192,6 +219,9 @@ fi
 if [[ "$VISION_ASTRA" == "1" ]]; then
   [[ -e "$ASTRA_COLOR_DEVICE" ]] || die "/dev/astra-color missing (vision astra)"
 fi
+if [[ "$VISUAL_ONLY" == 1 ]]; then
+  [[ -f "$DEPTH_WS/install/setup.bash" ]] || die "visual task requires Orbbec depth workspace"
+fi
 if [[ "$AI" == "1" && "$VISION_ASTRA" == "0" ]]; then
   [[ -e "$ASTRA_COLOR_DEVICE" ]] || log "WARN: /dev/astra-color missing; AI camera tools degraded"
 fi
@@ -266,7 +296,7 @@ status_stack() {
     kill -0 -- "-$pgid" 2>/dev/null && state="running"
     printf '%-16s %-8s %-8s %s\n' "$name" "$pgid" "$pid" "$state"
   done <"$MANIFEST"
-  ss -ltn 2>/dev/null | grep -E ':(8765|8878)\b' || true
+  ss -ltn 2>/dev/null | grep -E ':(8765|8878|8879)\b' || true
 }
 
 case "$COMMAND" in
@@ -399,7 +429,13 @@ exec ros2 launch orbbec_camera astra.launch.py \\
   depth_format:=Y11 depth_fps:=$DEPTH_FPS depth_width:=$DEPTH_WIDTH depth_height:=$DEPTH_HEIGHT
 EOF
   launch_cmd depth "$MAMBA" run -n ros_jazzy bash "$LOG_DIR/depth.sh"
-  wait_log depth 'Start device' 45 || log "WARN: 深度未确认启动，见 $LOG_DIR/depth.log"
+  if ! wait_log depth 'Start device' 45; then
+    if [[ "$VISUAL_ONLY" == 1 ]]; then
+      stop_stack 0
+      die "纯视觉模式深度启动失败，见 $LOG_DIR/depth.log"
+    fi
+    log "WARN: 深度未确认启动，见 $LOG_DIR/depth.log"
+  fi
   log "深度 READY"
   fi
 
@@ -433,11 +469,17 @@ export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 OMP_WAIT_POLICY=PASSIVE
 exec python3 "$ROOT/tools/person_detector_node.py" \\
   --model "$PERSON_MODEL" --backend "$PERSON_BACKEND" \\
   --input-size "$PERSON_INPUT_SIZE" --input-height "$PERSON_INPUT_SIZE" \\
-  --runtime-dir "$PERSON_RUNTIME_DIR" --max-fps "$PERSON_MAX_FPS" --cv-threads "$PERSON_CV_THREADS"
+  --runtime-dir "$PERSON_RUNTIME_DIR" --max-fps "$PERSON_MAX_FPS" --cv-threads "$PERSON_CV_THREADS" \\
+  --depth-min-m "$PERSON_DEPTH_MIN_M" --depth-max-m "$PERSON_DEPTH_MAX_M"
 EOF
   launch_cmd person "$MAMBA" run -n ai_host bash "$LOG_DIR/person.sh"
-  wait_log person 'person detector ready' 45 || \
+  if ! wait_log person 'person detector ready' 45; then
+    if [[ "$VISUAL_ONLY" == 1 ]]; then
+      stop_stack 0
+      die "纯视觉模式人像检测启动失败，见 $LOG_DIR/person.log"
+    fi
     log "WARN: 人像检测未确认启动，见 $LOG_DIR/person.log"
+  fi
   log "人像检测 READY"
 fi
 
@@ -461,6 +503,44 @@ EOF
   launch_cmd hand_bridge "$MAMBA" run -n ai_host bash "$LOG_DIR/hand_bridge.sh"
   wait_log hand_det 'opened' 20 || log "WARN: 手部相机未确认打开，见 $LOG_DIR/hand_det.log"
   log "手部检测 READY"
+fi
+
+# ---- standalone visual path: no laser / SLAM / Nav2 / decision coordinator ----
+if [[ "$VISUAL_ONLY" == 1 ]]; then
+  if [[ "$MOTOR" == 1 ]]; then
+    cat >"$LOG_DIR/chassis.sh" <<EOF
+#!/usr/bin/env bash
+set -e
+source "\$CONDA_PREFIX/setup.bash"
+source "$ROOT/robot_ros2_ws/install/setup.bash"
+export ROS_DOMAIN_ID=1
+exec ros2 run robot_base_bringup chassis_bridge.py --ros-args \\
+  --params-file "$ROOT/robot_ros2_ws/src/robot_base_bringup/config/imu_calibration.yaml" \\
+  -p enabled:=true -p max_linear:=$VISUAL_MAX_LINEAR -p max_angular:=$VISUAL_MAX_ANGULAR \\
+  -r cmd_vel_smoothed:=/visual_follow/unused_nav_velocity \\
+  -r /person_nav/status:=/visual_follow/unused_nav_status \\
+  -r /person_nav/centering_target:=/visual_follow/unused_nav_centering
+EOF
+    launch_cmd chassis "$MAMBA" run -n ros_jazzy bash "$LOG_DIR/chassis.sh"
+  fi
+  cat >"$LOG_DIR/visual.sh" <<EOF
+#!/usr/bin/env bash
+set -e
+source "\$CONDA_PREFIX/setup.bash"
+source "$ROOT/robot_ros2_ws/install/setup.bash"
+export ROS_DOMAIN_ID=1
+exec ros2 run robot_base_decision visual_follow \\
+  --config "$ROOT/config/visual_follow.json" --auto \\
+  $([[ "$TASK" == visual-follow ]] && echo --follow) \\
+  $([[ "$MOTOR" == 1 ]] && echo --execute) \\
+  ${VISUAL_DISTANCE:+--distance $VISUAL_DISTANCE}
+EOF
+  launch_cmd visual "$MAMBA" run -n ros_jazzy bash "$LOG_DIR/visual.sh"
+  if ! wait_log visual 'visual follow ready' 30; then
+    stop_stack 0
+    die "纯视觉控制启动失败，见 $LOG_DIR/visual.log"
+  fi
+  log "纯视觉 READY: $TASK，镜头停车深度=${VISUAL_DISTANCE:-config/visual_follow.json} m"
 fi
 
 # ---- decision layers ----
@@ -496,7 +576,7 @@ cat <<EOF
   视觉       ${VISION}（Astra=$([[ $VISION_ASTRA == 1 ]] && echo on || echo off)，手部=$([[ $VISION_HAND == 1 ]] && echo on || echo off)）
   决策层     $([[ $DECISION == 1 ]] && echo "nav=$START_NAV_DEC voice=$START_VOICE_DEC vision=$START_VISION_DEC execute=$DECISION_EXECUTE" || echo off)
   Foxglove   $([[ $FOXGLOVE == 1 ]] && echo "ws://${IP:-<pi>}:8765" || echo off)
-  找人网页   $([[ $START_VISION_DEC == 1 ]] && echo "http://${IP:-<pi>}:8878" || echo off)
+  找人网页   $(if [[ $VISUAL_ONLY == 1 ]]; then echo "http://${IP:-<pi>}:8879"; elif [[ $START_VISION_DEC == 1 ]]; then echo "http://${IP:-<pi>}:8878"; else echo off; fi)
   日志       $LOG_DIR
   停止       scripts/robot.sh stop
 EOF

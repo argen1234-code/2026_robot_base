@@ -3,8 +3,8 @@ import math
 from pathlib import Path
 import unittest
 from robot_base_decision.person_approach import (
-    StableTarget, TargetMemory, associate_person, grid_cost, moving_away,
-    project_base_point, relative_transform, scan_clusters,
+    StableTarget, TargetMemory, associate_person, grid_cost, is_near_person,
+    moving_away, project_base_point, relative_transform, scan_clusters,
     select_centered_person, standoff_goal, transform)
 
 
@@ -163,6 +163,27 @@ class GeometryTests(unittest.TestCase):
         last_seen = memory.last_seen
         self.assertIsNone(memory.observe(2.4, 2.4, box, point, strong=False)[0])
         self.assertEqual(memory.last_seen, last_seen)
+
+    def test_near_person_predicate_covers_clipped_feet(self):
+        # Arrived at standoff: wide box whose bottom is clipped by the frame.
+        self.assertTrue(is_near_person([0., 100., 400., 380.], [640, 480]))
+        # A distant person must not be mistaken for the near end condition.
+        self.assertFalse(is_near_person([250., 0., 140., 440.], [640, 480]))
+        # The width threshold is configurable and still respected.
+        self.assertFalse(is_near_person([0., 0., 640., 480.], [640, 480],
+                                        width_fraction=1.1))
+
+    def test_presence_only_observation_keeps_continuity(self):
+        memory = TargetMemory(grace_s=.2, retention_s=1.)
+        box, point = [200., 0., 150., 400.], (2., 0., .1)
+        memory.observe(1., 1., box, point)
+        memory.mark_present(10.)
+        # Ranging age keeps growing; presence age is refreshed by the bbox.
+        self.assertEqual(memory.present_age(10.), 0.)
+        self.assertEqual(memory.age(10.), 9.)
+        memory.clear()
+        memory.mark_present(11.)
+        self.assertEqual(memory.present_age(11.), float('inf'))
 
 
 if __name__ == '__main__':

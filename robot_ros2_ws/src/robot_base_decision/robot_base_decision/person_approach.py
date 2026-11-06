@@ -69,6 +69,24 @@ def select_centered_person(persons, image_size, center_margin_px=32.):
     return ranked[0][1], 'centered_person'
 
 
+def is_near_person(box, image_size, bottom_fraction=.98, width_fraction=.42):
+    """True when the person fills the lower part of the frame.
+
+    At the standoff distance the feet leave the image and RGB/LiDAR ranging is
+    intentionally unreliable, but the person is still there.  Keeping this a
+    pure predicate makes the near-person end condition testable.
+    """
+    try:
+        x, y, w, h = [float(v) for v in box]
+        width, height = [float(v) for v in image_size]
+    except (TypeError, ValueError):
+        return False
+    if not all(math.isfinite(v) for v in (x, y, w, h, width, height)):
+        return False
+    return (w > 0 and h > 0 and y+h >= bottom_fraction*height and
+            w >= width_fraction*width)
+
+
 def project_base_point(point, config, width, height):
     """Project a base-frame LiDAR endpoint into the color camera.
 
@@ -228,12 +246,30 @@ class TargetMemory:
     def clear(self):
         self.point = self.raw_point = self.box = None
         self.last_seen = None
+        self.last_present = None
         self.last_source = None
         self.pending = deque(maxlen=max(8, self.resume_samples))
         self.reacquired = False
 
     def age(self, now):
+        """Age of the last ranged measurement (used for occlusion grace)."""
         return float('inf') if self.last_seen is None else max(0., now-self.last_seen)
+
+    def present_age(self, now):
+        """Age of the last sign that the person is still in front of us.
+
+        This is refreshed by both a ranged observation and a presence-only
+        observation (large near-person box whose feet left the frame).  The
+        reacquire timeout must use this, otherwise a correctly arrived robot
+        would time out because the close-range LiDAR association is unavailable.
+        """
+        return (float('inf') if self.last_present is None
+                else max(0., now-self.last_present))
+
+    def mark_present(self, now):
+        """Presence-only observation: keep continuity, never invent a point."""
+        if self.point is not None:
+            self.last_present = now
 
     def observe(self, now, source_stamp, box, point, strong=True):
         self.reacquired = False
@@ -266,6 +302,7 @@ class TargetMemory:
             self.point = tuple(a+alpha*(b-a) for a, b in zip(self.point, point))
         self.raw_point, self.box = tuple(point), box
         self.last_seen = now
+        self.last_present = now
         self.pending.clear()
         return self.point, 'reacquired' if self.reacquired else 'observed'
 

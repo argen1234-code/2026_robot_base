@@ -217,8 +217,19 @@ class ChassisBridge(Node):
             self.last_remote = None
             self.get_logger().warn('Invalid remote velocity; stopping')
             return
+        previous = self.remote_command
         self.remote_command = (msg.linear.x, msg.angular.z)
         self.last_remote = time.monotonic()
+        # Stop the direct-control path in this callback, without waiting for
+        # the next 50ms USB tick. Ordinary navigation keeps its own path.
+        if (self.mode == 2 and self.remote_command == (0.0, 0.0)
+                and previous != (0.0, 0.0) and self.device is not None):
+            try:
+                self.device.write(speed_frame(0.0, 0.0, self.max_linear,
+                                              self.max_angular, mode=2))
+            except (serial.SerialException, OSError) as exc:
+                self.get_logger().error(f'MCU immediate stop failed: {exc}')
+                self._close()
 
     # ------------------------------------------------------------- 遥测解析
     def on_telemetry(self, msg):

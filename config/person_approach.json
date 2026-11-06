@@ -51,12 +51,16 @@
   "target_move_cancel_m": 0.65,
   "search_delay_s": 1.0,
   "search_timeout_s": 120.0,
+  "search_spin_time_allowance_s": 30.0,
+  "search_spin_target_yaw_rad": 6.283185307179586,
   "follow_replan_m": 0.6,
   "follow_max_s": 300.0,
   "moving_away_m": 0.45,
   "moving_away_window_s": 2.5,
   "moving_away_robot_m": 0.15,
   "multi_person_center_margin_px": 32.0,
+  "near_person_bottom_fraction": 0.98,
+  "near_person_width_fraction": 0.42,
   "max_navigation_s": 40.0,
   "planner_id": "GridBased"
 }

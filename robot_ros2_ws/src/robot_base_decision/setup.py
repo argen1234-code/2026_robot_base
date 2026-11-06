@@ -12,7 +12,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', ['launch/decision.launch.py']),
     ],
-    package_data={package_name: ['person_approach.html']},
+    package_data={package_name: ['person_approach.html', 'visual_follow.html']},
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='argen',
@@ -22,6 +22,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'visual_follow = robot_base_decision.visual_follow_node:main',
             'task_coordinator = robot_base_decision.task_coordinator:main',
             'nav_decision = robot_base_decision.nav_decision:main',
             'voice_decision = robot_base_decision.voice_decision:main',

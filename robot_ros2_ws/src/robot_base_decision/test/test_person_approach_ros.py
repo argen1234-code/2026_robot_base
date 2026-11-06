@@ -14,7 +14,7 @@ import unittest
 import rclpy
 from geometry_msgs.msg import PoseStamped, TransformStamped
 from nav_msgs.msg import OccupancyGrid
-from nav2_msgs.action import ComputePathToPose, NavigateToPose
+from nav2_msgs.action import ComputePathToPose, NavigateToPose, Spin
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.duration import Duration
@@ -28,6 +28,8 @@ from tf2_ros import TransformBroadcaster
 from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
 
 from robot_base_decision.vision_decision import PersonApproach
+from robot_base_decision.task_coordinator import vision_task_for
+from robot_base_msgs.srv import SetTask
 
 
 class FakeEnvironment(Node):
@@ -38,6 +40,8 @@ class FakeEnvironment(Node):
         self.persons = None
         self.delay_accept = delay_accept
         self.nav_requests = self.nav_calls = self.path_calls = self.cancel_calls = 0
+        self.spin_requests = 0
+        self.spin_goal = None
         self.force_finish = False
         self.target_range = 2.
         self.robot_x = 0.
@@ -72,6 +76,8 @@ class FakeEnvironment(Node):
                                        self.plan, callback_group=self.group)
         self.nav_server = ActionServer(self, NavigateToPose, '/navigate_to_pose', self.navigate,
             goal_callback=self.accept, cancel_callback=self.cancel, callback_group=self.group)
+        self.spin_server = ActionServer(self, Spin, '/spin', self.spin,
+            callback_group=self.group)
         self.create_timer(.1, self.publish)
 
     def accept(self, request):
@@ -108,6 +114,17 @@ class FakeEnvironment(Node):
         else:
             handle.abort()
         return NavigateToPose.Result()
+
+    def spin(self, handle):
+        self.spin_requests += 1
+        self.spin_goal = handle.request
+        while not (self.force_finish or handle.is_cancel_requested):
+            time.sleep(.02)
+        if handle.is_cancel_requested:
+            handle.canceled()
+        else:
+            handle.succeed()
+        return Spin.Result()
 
     def publish_tf(self):
         tf = TransformStamped()
@@ -152,7 +169,8 @@ class FakeEnvironment(Node):
 
 
 class RosIntegrationTests(unittest.TestCase):
-    def start(self, execute=False, delay_accept=False, follow=False, persons=None):
+    def start(self, execute=False, delay_accept=False, follow=False, persons=None,
+              people=True):
         rclpy.init(domain_id=79, signal_handler_options=SignalHandlerOptions.NO)
         self.temp = tempfile.TemporaryDirectory()
         config_path = Path(__file__).with_name('person_approach.json')
@@ -165,6 +183,7 @@ class RosIntegrationTests(unittest.TestCase):
         self.config = Path(self.temp.name)/'config.json'
         self.config.write_text(json.dumps(config))
         self.env = FakeEnvironment(delay_accept=delay_accept)
+        self.env.people = people
         if persons is not None:
             self.env.persons = persons
         self.node = PersonApproach(argparse.Namespace(config=str(self.config), execute=execute,
@@ -193,6 +212,7 @@ class RosIntegrationTests(unittest.TestCase):
         self.node.destroy_node()
         self.env.plan_server.destroy()
         self.env.nav_server.destroy()
+        self.env.spin_server.destroy()
         self.env.destroy_node()
         rclpy.shutdown()
         self.temp.cleanup()
@@ -349,6 +369,54 @@ class RosIntegrationTests(unittest.TestCase):
         self.until(lambda: self.env.cancel_calls >= 1 and self.node.nav_handle is None)
         self.assertEqual(self.node.snapshot['state'], 'stopped')
         self.assertEqual(self.env.nav_requests, 1)
+
+    def test_search_spins_360_with_configured_allowance(self):
+        self.start(execute=True, follow=True, people=False)
+        # The coordinator dispatches the task; --auto alone only arms motion,
+        # it does not start the search state machine.
+        req = SetTask.Request()
+        req.task = 'follow'
+        req.execute = True
+        req.preview = False
+        self.node.on_decision_task(req, SetTask.Response())
+        self.until(lambda: self.env.spin_requests >= 1, seconds=12)
+        goal = self.env.spin_goal
+        self.assertAlmostEqual(goal.target_yaw, 2.*math.pi, places=3)
+        # 0.55 rad/s plus acceleration needs > 15 s; 30 s is the safe budget.
+        self.assertGreaterEqual(goal.time_allowance.sec, 25)
+        self.env.people = True
+        self.until(lambda: self.env.nav_calls == 1, seconds=12)
+        self.assertFalse(self.node.search_active)
+
+    def test_approach_user_maps_to_tracking(self):
+        self.assertEqual(vision_task_for('approach_user'), 'follow')
+        self.assertEqual(vision_task_for('follow'), 'follow')
+        self.assertEqual(vision_task_for('preview'), 'preview')
+
+    def test_vision_service_approach_user_arms_tracking(self):
+        self.start(execute=True)
+        self.until(lambda: self.env.nav_calls == 1)
+        req = SetTask.Request()
+        req.task = 'approach_user'
+        req.execute = True
+        req.preview = False
+        resp = SetTask.Response()
+        self.node.on_decision_task(req, resp)
+        self.assertTrue(resp.success)
+        self.assertTrue(self.node.follow)
+        self.assertIn('follow', resp.message)
+
+    def test_follow_retargets_when_person_moves_during_navigation(self):
+        self.start(execute=True, follow=True)
+        self.until(lambda: self.env.nav_calls == 1)
+        initial_cancels = self.env.cancel_calls
+        # Move gradually so TargetMemory keeps the same identity.
+        for distance in (2.2, 2.5, 2.8):
+            self.env.target_range = distance
+            time.sleep(.35)
+        self.until(lambda: (self.env.cancel_calls > initial_cancels and
+                            self.env.nav_calls == 2))
+        self.assertFalse(self.node.follow_wait)
 
 
 if __name__ == '__main__':

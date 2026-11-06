@@ -40,9 +40,10 @@ from visualization_msgs.msg import Marker, MarkerArray
 from robot_base_msgs.msg import TaskStatus
 from robot_base_msgs.srv import SetTask
 
-from .person_approach import (StableTarget, TargetMemory, associate_person, iou, moving_away,
-                              relative_transform, scan_clusters, select_centered_person,
-                              standoff_goal, transform)
+from .person_approach import (StableTarget, TargetMemory, associate_person,
+                              is_near_person, iou, moving_away,
+                              relative_transform, scan_clusters,
+                              select_centered_person, standoff_goal, transform)
 
 
 class PersonApproach(Node):
@@ -135,9 +136,6 @@ class PersonApproach(Node):
         self.search_cooldown_until = 0.0
         self.search_delay = float(self.cfg.get('search_delay_s', 1.0))
         self.search_timeout = float(self.cfg.get('search_timeout_s', 120.0))
-        self.latched = False
-        self.latched_person = None
-        self.latched_goal = None
         self.status_pub = self.create_publisher(String, '/person_nav/status', 1)
         self.centering_pub = self.create_publisher(String, '/person_nav/centering_target', 1)
         self.marker_pub = self.create_publisher(MarkerArray, '/person_nav/markers', 1)
@@ -233,12 +231,15 @@ class PersonApproach(Node):
                 response.success = False
                 response.message = 'vision decision is preview-only; no motion'
                 return response
-            if task == 'follow':
+            if task in ('follow', 'approach_user'):
+                # Voice 'approach_user' is a tracking task: keep re-planning
+                # while the person moves and stay armed at the standoff point.
                 self.follow = True
                 self.commands.put(('start', True))
                 response.success, response.message = True, 'follow queued'
             else:
-                # Voice 'approach_user' is a one-shot latched approach.
+                # Legacy one-shot start: track during the leg, then finish at
+                # arrival without waiting for the person to move again.
                 self.follow = False
                 self.commands.put(('start', False))
                 response.success, response.message = True, 'approach queued'
@@ -293,9 +294,6 @@ class PersonApproach(Node):
         self.follow_started_at = None
         self.search_active = False
         self.stop_search_spin()
-        self.latched = False
-        self.latched_person = None
-        self.latched_goal = None
         self.guard_history.clear()
         self.task_result = reason
         if self.nav_handle is not None:
@@ -323,6 +321,8 @@ class PersonApproach(Node):
         """Follow mode: end this leg and wait for the same person to move on."""
         self.epoch += 1
         self.pending_cancel = True
+        self.paused_for_target = False
+        self.resume_after_cancel = False
         self.consumed = False
         self.follow_wait = True
         self.follow_anchor = tuple(person)
@@ -334,15 +334,17 @@ class PersonApproach(Node):
             self.nav_handle.cancel_goal_async()
 
     def start_search_spin(self):
-        """Rotate in place until the camera/LiDAR acquires a person."""
+        """Rotate slowly in place until the camera/LiDAR acquires a person."""
         if not self.spin_client.server_is_ready():
             self.state('waiting_for_spin')
             return
         self.spin_pending = True
         goal = Spin.Goal()
-        goal.target_yaw = 2.0 * math.pi
-        goal.time_allowance.sec = 15
-        goal.time_allowance.nanosec = 0
+        goal.target_yaw = float(self.cfg.get('search_spin_target_yaw_rad',
+                                             2.0 * math.pi))
+        allowance = float(self.cfg.get('search_spin_time_allowance_s', 30.0))
+        goal.time_allowance.sec = int(allowance)
+        goal.time_allowance.nanosec = int((allowance - int(allowance)) * 1e9)
         self.state('searching_person')
         self.spin_client.send_goal_async(goal).add_done_callback(
             self.on_spin_accepted)
@@ -359,7 +361,7 @@ class PersonApproach(Node):
             self.search_cooldown_until = time.monotonic() + 1.0
             return
         self.spin_handle = handle
-        if not self.search_active or self.stopped or self.latched:
+        if not self.search_active or self.stopped:
             handle.cancel_goal_async()
         handle.get_result_async().add_done_callback(self.on_spin_result)
 
@@ -369,7 +371,7 @@ class PersonApproach(Node):
             future.result()
         except Exception:  # noqa: BLE001
             pass
-        if self.search_active and not self.stopped and not self.latched:
+        if self.search_active and not self.stopped:
             self.search_cooldown_until = time.monotonic() + 0.5
 
     def stop_search_spin(self):
@@ -390,6 +392,56 @@ class PersonApproach(Node):
         self.state('target_temporarily_lost' if age <= self.cfg['occlusion_grace_s']
                    else 'reacquiring_target')
         return True
+
+    def handle_near_person(self, box, active, now):
+        """Person fills the frame: presence is good, range is not.
+
+        At the standoff distance the feet leave the image, so the RGB/LiDAR
+        association can fail exactly when the approach succeeded.  Keep the
+        continuity timer alive and finish/hold the current leg instead of
+        treating this as target loss.
+        """
+        self.target.mark_present(now)
+        self.last_seen = now
+        self.last_box = box
+        self.last_invalid_reason = None
+        width = self.snapshot['image_size'][0]
+        target_px = box[0] + box[2]/2
+        self.snapshot.update(target_px=round(target_px),
+                             target_offset_px=round(target_px-width/2),
+                             target_held=False,
+                             missing_reason='near_person_distance_unreliable',
+                             near_person=True)
+        anchor = self.target.point or self.last_person
+        # Also covers the case where the person walked into the near zone
+        # while the previous leg was canceled awaiting reacquisition, or was
+        # already at the standoff when the task started.
+        task_active = (active or self.paused_for_target or
+                       (not self.consumed and not self.follow_wait and
+                        (self.manual_requested or self.auto_armed)))
+        if task_active and not self.stopped and anchor is not None:
+            self.paused_for_target = False
+            self.search_active = False
+            self.stop_search_spin()
+            if self.follow:
+                self.hold_at_standoff(anchor)
+            else:
+                # The one-shot task is complete once the person fills the
+                # frame; do not keep driving toward an unmeasurable target.
+                self.epoch += 1
+                self.consumed = True
+                self.task_result = 'arrived'
+                self.state('arrived')
+                if self.nav_handle is not None:
+                    self.nav_handle.cancel_goal_async()
+            self.publish_markers(anchor, None)
+            return True
+        if self.follow_wait:
+            self.publish_markers(anchor, None)
+            self.state('arrived_waiting_for_target_move', near_person=True)
+            return True
+        self.publish_markers(anchor, None)
+        return False
 
     def invalid(self, reason):
         self.last_invalid_reason = reason
@@ -453,9 +505,6 @@ class PersonApproach(Node):
                 self.search_active = True
                 self.search_since = time.monotonic()
                 self.search_cooldown_until = 0.0
-                self.latched = False
-                self.latched_person = None
-                self.latched_goal = None
                 self.stop_search_spin()
                 self.guard_history.clear()
                 self.task_result = None
@@ -470,7 +519,7 @@ class PersonApproach(Node):
                 self.last_processed = None
                 self.state('acquiring')
         active = self.nav_pending or self.nav_handle is not None
-        if (self.search_active and not self.stopped and not self.latched and
+        if (self.search_active and not self.stopped and
                 self.nav_handle is None and not self.nav_pending and
                 self.spin_handle is None and not self.spin_pending and
                 now >= self.search_cooldown_until):
@@ -483,8 +532,7 @@ class PersonApproach(Node):
         if active and not self.pending_cancel:
             if now-self.grid_received > 3.:
                 self.cancel('costmap_stale_cancelled')
-            elif (not self.latched and
-                  self.target.age(now) > self.cfg['occlusion_grace_s']):
+            elif self.target.age(now) > self.cfg['occlusion_grace_s']:
                 self.pause_for_target()
         if (self.task_started_at is not None and not self.stopped and
                 (active or self.paused_for_target) and
@@ -494,8 +542,8 @@ class PersonApproach(Node):
         if (follow_limit and self.follow_started_at is not None and not self.stopped and
                 now-self.follow_started_at > follow_limit):
             self.cancel('follow_timeout')
-        if (not self.latched and self.target.point is not None and
-                self.target.age(now) > self.cfg['reacquire_timeout_s']):
+        if (self.target.point is not None and
+                self.target.present_age(now) > self.cfg['reacquire_timeout_s']):
             if self.paused_for_target or self.follow_wait or (active and not self.stopped):
                 self.cancel('target_reacquire_timeout')
                 self.reacquire_expired = True
@@ -520,7 +568,8 @@ class PersonApproach(Node):
                              image_size=data.get('image_size', [640, 480]),
                              detection_age_ms=round(age*1000), source_stamp=stamp)
         prior_active = (self.target.box is not None and
-                        self.target.age(now) <= self.cfg['reacquire_timeout_s'])
+                        self.target.present_age(now) <=
+                        self.cfg['reacquire_timeout_s'])
         if prior_active:
             matches = sorted([p for p in persons if iou(p['bbox'], self.target.box) >= .15],
                 key=lambda p: iou(p['bbox'], self.target.box), reverse=True)
@@ -591,12 +640,12 @@ class PersonApproach(Node):
             candidates=diagnostics, reason=reason)
         self.snapshot.update(scan_skew_ms=round(skew*1000), clusters=len(clusters))
         if match is None:
-            image_width, image_height = self.snapshot['image_size']
-            x, y, width, height = p['bbox']
-            if y+height > .98*image_height and width > .42*image_width:
+            if is_near_person(p['bbox'], self.snapshot['image_size'],
+                              self.cfg.get('near_person_bottom_fraction', .98),
+                              self.cfg.get('near_person_width_fraction', .42)):
+                if self.handle_near_person(p['bbox'], active, now):
+                    return
                 self.invalid('near_person_distance_unreliable')
-                if active:
-                    self.cancel('near_person_distance_unreliable')
                 return
             self.invalid(reason)
             return
@@ -644,7 +693,7 @@ class PersonApproach(Node):
         self.centering_observation = dict(
             source_stamp=stamp, center_x=p['bbox'][0]+p['bbox'][2]/2,
             width=image_width, fx=self.cfg['fx']*image_width/self.cfg['image_width'])
-        if (active and not self.latched and self.last_person is not None and
+        if (active and self.last_person is not None and
                 math.dist(person, self.last_person) > self.cfg['target_move_cancel_m']):
             self.pause_for_target()
         self.last_box = p['bbox']
@@ -655,13 +704,10 @@ class PersonApproach(Node):
                              cluster=match, stable=stable is not None,
                              target_held=False, target_age_ms=0, missing_reason=None,
                              target_px=round(target_px),
-                             target_offset_px=round(target_px-image_width/2))
+                             target_offset_px=round(target_px-image_width/2),
+                             near_person=False)
         if active:
-            marker_person = (self.latched_person if self.latched and
-                             self.latched_person is not None else person)
-            marker_goal = (self.latched_goal if self.latched and
-                           self.latched_goal is not None else self.path_goal)
-            self.publish_markers(marker_person, marker_goal)
+            self.publish_markers(person, self.path_goal)
             if not self.paused_for_target and not self.stopped:
                 self.state('navigating')
             return
@@ -800,12 +846,6 @@ class PersonApproach(Node):
         self.consumed = True
         self.search_active = False
         self.stop_search_spin()
-        if not self.follow:
-            # One-shot voice approach: freeze the first standoff goal.  Later
-            # person motion must not move the target or cancel the nav goal.
-            self.latched = True
-            self.latched_person = person
-            self.latched_goal = dict(self.path_goal)
         if self.follow and self.follow_started_at is None:
             # --auto starts without a start command; begin the follow budget
             # on the first actual navigation leg.
@@ -887,7 +927,6 @@ class PersonApproach(Node):
         packet.update(enabled=self.cfg.get('center_person', False),
                       active=bool(self.execute and not self.stopped and
                                   not self.paused_for_target and
-                                  not self.latched and
                                   (self.nav_pending or self.nav_handle is not None)),
                       task_epoch=self.epoch)
         self.centering_pub.publish(String(data=json.dumps(packet)))
@@ -908,6 +947,9 @@ class PersonApproach(Node):
                                                if self.follow_started_at is not None else None),
                              paused=self.paused_for_target,
                              target_age_ms=round(self.target.age(time.monotonic())*1000)
+                                 if self.target.point is not None else None,
+                             target_present_age_ms=round(
+                                 self.target.present_age(time.monotonic())*1000)
                                  if self.target.point is not None else None,
                              continuity=dict(grace_s=self.cfg['occlusion_grace_s'],
                                              retention_s=self.cfg['reacquire_timeout_s']),

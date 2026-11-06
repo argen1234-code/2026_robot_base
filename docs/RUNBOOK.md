@@ -273,6 +273,11 @@ bash scripts/robot.sh start --motor                  # 网页点「连续跟随�
 bash scripts/robot.sh start --motor --task follow    # 启动后直接派发连续跟随
 ```
 
+语音 `approach_user` 现在映射为 `follow`：唤醒并确认后，视觉层先通过
+Nav2 `/spin` 缓慢旋转 360° 找人，找到后连续追踪并在目标移动时重规划。
+测距只使用 2D 雷达 `/scan_filtered`，深度相机不参与停车判定。
+启动即测试可直接用 `--task follow`（见下文）。
+
 网页 `http://<树莓派IP>:8878`；目标选择、状态机、参数和测试见
 [PERSON_APPROACH.md](PERSON_APPROACH.md)，分层决策与二次确认见
 [DECISION_TREE.md](DECISION_TREE.md)。

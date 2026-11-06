@@ -77,6 +77,10 @@ ASR 文本
 - 决策模式启动时 AI 的 `SummonUserToolAdapter` / `MoveRelativeToolAdapter`
   不注册，避免绕过二次确认。
 - 视觉任务需要 `--motor`、`calibration_confirmed=true`；否则只能预览。
+- `approach_user` 在协调层映射为 `follow`（连续追踪）：视觉层启动后先
+  缓慢旋转 360° 找人；找到人后用 bbox + 2D 雷达聚类锁定，导航中目标移动
+  超过 `target_move_cancel_m` 会取消并重规划，到达停车距离后继续保持任务。
+  测距只使用 `/scan_filtered`，深度相机不参与决策。
 
 ### 3.2 “向<方向>走<距离>米”
 
