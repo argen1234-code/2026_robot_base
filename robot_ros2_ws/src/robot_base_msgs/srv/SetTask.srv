@@ -1,0 +1,7 @@
+string task
+string params_json
+bool execute
+bool preview
+---
+bool success
+string message

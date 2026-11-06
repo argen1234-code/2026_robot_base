@@ -23,6 +23,7 @@
 
   <exec_depend>robot_base_description</exec_depend>
   <exec_depend>robot_base_driver</exec_depend>
+  <exec_depend>robot_base_msgs</exec_depend>
   <exec_depend>ydlidar_ros2_driver</exec_depend>
   <exec_depend>laser_filters</exec_depend>
   <exec_depend>slam_toolbox</exec_depend>

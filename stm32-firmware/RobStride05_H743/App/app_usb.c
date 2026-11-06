@@ -173,17 +173,31 @@ static void imu_reset(void)
 /* ============================================================================
  * ARM / DISARM
  * ==========================================================================*/
-static void arm_abort(uint32_t result)
+/* Clear only the USB bridge's own authorization and pending command. No motor
+ * stop call: a Bluetooth takeover may keep the enabled pair and simply drive
+ * it to zero through the normal ramp. */
+static void usb_clear_state(void)
 {
-  AppMotor_StopAll();
   armed = 0U;
   arm_phase = 0U;
   arm_waiting = 0U;
   authorizing = 0U;
-  cmd_tick = 0U;               /* 下次 ARM 后必须收到新帧才允许出力 */
+  cmd_tick = 0U;               /* next ARM must receive a fresh velocity frame */
   g_usb_debug.armed = 0U;
   g_usb_debug.arm_phase = 0U;
   g_usb_debug.cmd_timeout = 0U;
+}
+
+void AppUsb_Cancel(void)
+{
+  usb_clear_state();
+  AppMotor_PairTargets(0.0f, 0.0f);
+}
+
+static void arm_abort(uint32_t result)
+{
+  AppMotor_StopAll();          /* stop_all also clears USB ownership */
+  usb_clear_state();
   g_usb_debug.last_result = result;
 }
 
@@ -197,7 +211,8 @@ static uint32_t arm_start(uint32_t now)
   if (arm_phase) {
     return RESULT_PENDING;
   }
-  if (g_debug.drive.active || AppChassis_Active() || AppBluetooth_OwnsMotors()) {
+  if (g_debug.drive.active || AppChassis_Active() || AppBluetooth_BlocksUsb()) {
+    g_usb_debug.last_result = RESULT_BUSY;
     return RESULT_BUSY;
   }
 
@@ -231,6 +246,13 @@ static void arm_service(uint32_t now)
 {
   uint32_t slot, result;
 
+  /* A takeover may cancel USB while its transaction is mid-flight. Drop only
+   * our own authorization; the new owner decides what happens to motors. */
+  if (AppBluetooth_BlocksUsb()) {
+    usb_clear_state();
+    return;
+  }
+
   if (!arm_phase) {
     return;
   }
@@ -239,9 +261,11 @@ static void arm_service(uint32_t now)
     result = AppMotor_AuthorizePair();
     if (result == RESULT_OK) {
       authorizing = 0U;
-    } else if (result != RESULT_OFFLINE || now - arm_tick >= APP_USB_ARM_TIMEOUT_MS) {
-      arm_abort(result);
-      return;
+    } else {
+      if (result != RESULT_OFFLINE || now - arm_tick >= APP_USB_ARM_TIMEOUT_MS) {
+        arm_abort(result);
+      }
+      return; /* never start PREPARE while identity authorization is pending */
     }
   }
 
@@ -288,15 +312,8 @@ static void arm_service(uint32_t now)
 
 static void disarm(void)
 {
-  AppMotor_StopAll();
-  armed = 0U;
-  arm_phase = 0U;
-  arm_waiting = 0U;
-  authorizing = 0U;
-  cmd_tick = 0U;
-  g_usb_debug.armed = 0U;
-  g_usb_debug.arm_phase = 0U;
-  g_usb_debug.cmd_timeout = 0U;
+  AppMotor_StopAll();          /* stop_all also clears USB ownership */
+  usb_clear_state();
   g_usb_debug.last_result = RESULT_OK;
 }
 
@@ -322,7 +339,10 @@ static void apply_drive(uint32_t now)
   float left, right;
   uint32_t result;
 
-  if (!armed) {
+  /* Bluetooth priority: while Bluetooth owns the motors or latches a manual
+   * hold, USB velocity frames must not touch targets or state. Telemetry keeps
+   * running independently in send_telemetry(). */
+  if (AppBluetooth_BlocksUsb() || !armed) {
     return;
   }
 
@@ -396,9 +416,16 @@ static void down_complete(uint32_t now)
   }
   g_usb_debug.service_frames++;
   if (down[2] == APP_USB_CMD_ARM) {
-    (void)arm_start(now);
+    uint32_t result = arm_start(now);
+    /* Report BUSY verbatim when Bluetooth owns the motors or holds them. */
+    g_usb_debug.last_result = result;
   } else if (down[2] == APP_USB_CMD_DISARM) {
-    disarm();
+    /* Never let USB DISARM cancel a Bluetooth-held/owned motors. */
+    if (AppBluetooth_BlocksUsb()) {
+      g_usb_debug.last_result = RESULT_BUSY;
+    } else {
+      disarm();
+    }
   } else {
     g_usb_debug.last_result = RESULT_BAD_COMMAND;
   }

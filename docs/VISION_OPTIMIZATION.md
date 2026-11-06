@@ -49,7 +49,7 @@
 ```bash
 PERSON_BACKEND=opencv PERSON_MODEL=$HOME/models/yolov8n_320.onnx \
 PERSON_INPUT_SIZE=320 PERSON_CV_THREADS=2 PERSON_MAX_FPS=3 \
-bash scripts/start_host_stack.sh --map /home/pi/maps/robot_map_20261105_054354 --motor --viz foxglove --person
+bash scripts/robot.sh start --nav localize --map /home/pi/maps/robot_map_20261105_054354 --motor --foxglove --vision both
 ```
 
 所有实验数据在 `/home/pi/rosbags/codex_vision_20261105/`；修改前备份在 `/home/pi/backup/codex_vision_ncnn_20261105/`。用户要求先保留这一版，后续优化暂停。

@@ -3,9 +3,26 @@
 #include <assert.h>
 #include <stdio.h>
 #include "app_motor.c"
+#include "app_usb.h"
+#include "usbd_cdc_if.h"
 
 volatile AppDebug g_debug;
 MockSCB mock_scb;
+
+/* ---- USB CDC hardware mock: the real App/app_usb.c is linked and exercised. */
+USBD_HandleTypeDef hUsbDeviceFS;
+static uint8_t cdc_ring[8192];static uint32_t cdc_head,cdc_tail,cdc_overflow;
+static uint32_t cdc_tx_frames;
+uint8_t CDC_Transmit_FS(uint8_t *buf,uint16_t len)
+{(void)buf;(void)len;cdc_tx_frames++;return USBD_OK;}
+uint16_t CDC_ReadRxData(uint8_t *buf,uint16_t max)
+{
+ uint16_t n=0;
+ while(n<max && cdc_tail!=cdc_head)buf[n++]=cdc_ring[cdc_tail++%sizeof(cdc_ring)];
+ return n;
+}
+uint32_t CDC_GetRxOverflowCount(void){return cdc_overflow;}
+
 static uint8_t bt_ring[4096];static uint32_t bt_head,bt_tail,bt_errors;
 static char bt_output[65536];static size_t bt_output_len;
 void BspBluetooth_Init(void){bt_head=bt_tail=bt_errors=0;bt_output_len=0;bt_output[0]='\0';}
@@ -309,23 +326,32 @@ static void bluetooth_checks(void)
  bt_send("@B\r\n");assert(g_debug.motor.target_rad_s==-1 && g_debug.motor2.target_rad_s==1);
  command(0,CMD_RUN,2);run_ms(40);assert(g_debug.motor.result==RESULT_STATE);
  drive_command(1,0,0);run_ms(40);assert(g_debug.drive.result==RESULT_BUSY && g_bt_debug.moving);
- /* Queries and garbage cannot renew the 600 ms movement lease. */
+ /* Queries/garbage cannot renew the 600 ms lease. Expiry stops at zero but
+  * keeps the armed session, so the next direction needs no ARM. */
  for(i=0;i<5;i++){bt_send("@STATUS\r\n");run_ms(100);}
- assert(!g_bt_debug.armed && g_bt_debug.timeouts==1);
- assert(g_debug.motor.target_rad_s==0 && g_debug.motor2.target_rad_s==0);
- bt_send("@H\r\n");assert(!g_bt_debug.armed);
- bt_send("@ARM\r\n");assert(g_bt_debug.armed);
- bt_send("@F\r\n");bt_errors++;run_ms(40);
+ assert(g_bt_debug.armed && g_bt_debug.timeouts==1);
+ assert(!g_bt_debug.moving &&
+        g_debug.motor.target_rad_s==0 && g_debug.motor2.target_rad_s==0);
+ bt_send("@H\r\n");
+ assert(g_bt_debug.armed && !g_bt_debug.moving &&
+        g_debug.motor.target_rad_s==0 && g_debug.motor2.target_rad_s==0);
+ bt_send("@F\r\n"); /* direct resume, no ARM */
+ assert(g_bt_debug.moving && g_debug.motor.target_rad_s==1 &&
+        g_debug.motor2.target_rad_s==-1);
+ bt_errors++;run_ms(40); /* UART fault still revokes */
  assert(!g_bt_debug.armed && !g_debug.motor.target_rad_s && !g_debug.motor2.target_rad_s);
  bt_send("@ARM\r\n");assert(g_bt_debug.armed);
  bt_send("@F\r\n");command(0,CMD_STOP,0);run_ms(40);
  assert(!AppBluetooth_OwnsMotors() && !g_debug.motor2.target_rad_s);
- /* Framing: partial CRLF, invalid line ending, overlong frame, resync. */
- frames=g_bt_debug.frames;bt_send("@F\n");assert(g_bt_debug.frames==frames);
- bt_send("@PING\r");assert(g_bt_debug.frames==frames);
- bt_send("\n");assert(g_bt_debug.frames==frames+1);
+ /* Framing: LF and CR are both valid; CRLF is exactly one command. */
+ frames=g_bt_debug.frames;
+ bt_send("@PING\n");assert(g_bt_debug.frames==frames+1);
+ bt_send("@PING\r");assert(g_bt_debug.frames==frames+2);
+ bt_send("\n");assert(g_bt_debug.frames==frames+2); /* stray LF: ignored */
+ bt_feed("@PING\r");run_ms(10);bt_feed("\n");run_ms(10);
+ assert(g_bt_debug.frames==frames+3); /* split CRLF: no duplicate */
  bt_feed("@");for(i=0;i<100;i++)bt_feed("A");bt_send("\r\n@PING\r\n");
- assert(g_bt_debug.frames==frames+2);
+ assert(g_bt_debug.frames==frames+4); /* overlong rejected, then resync */
  bt_send("@AR");run_ms(300);bt_send("M\r\n");assert(!g_bt_debug.armed);
  bt_send("@!\r\n");run_ms(100);
  assert(!peer[0].state && !peer[1].state);
@@ -343,6 +369,293 @@ static void bluetooth_checks(void)
  bt_send("@!\r\n");run_ms(100);
  assert(!collisions);
  printf("PASS bluetooth: CRLF streaming/resync, async zero-speed ARM, full +/-33, directions, repeat renewal, SWD exclusion/stop, 600ms expiry, UART loss, per-motor cap, cancel ARM, peer fault, DISARM\n");
+}
+static uint32_t bt_text_count(const char *needle)
+{
+ uint32_t n=0;const char *p=bt_output;
+ while((p=strstr(p,needle))!=NULL){n++;p++;}
+ return n;
+}
+static void bluetooth_framing_checks(void)
+{
+ uint32_t frames,rejected,pongs,index,accepted;
+ /* Every physical/LF/CR/literal terminator and space trimming. */
+ frames=g_bt_debug.frames;pongs=bt_text_count("PONG RS05-BT/1");
+ bt_send("@PING\r\n");
+ assert(g_bt_debug.frames==frames+1 && bt_text_count("PONG RS05-BT/1")==pongs+1);
+ index=g_bt_debug.rx_recent_index;assert(index>=7U);
+ assert(g_bt_debug.rx_recent[(index-7U)&15U]=='@');
+ assert(g_bt_debug.rx_recent[(index-6U)&15U]=='P');
+ assert(g_bt_debug.rx_recent[(index-1U)&15U]=='\n');
+ bt_send("@PING\n");assert(g_bt_debug.frames==frames+2);
+ bt_send("@PING\r");assert(g_bt_debug.frames==frames+3);
+ bt_send("@PING\\r\\n");assert(g_bt_debug.frames==frames+4);
+ bt_send("@ PING \r\n");assert(g_bt_debug.frames==frames+5);
+ bt_feed("@PI");run_ms(10);bt_feed("NG\r");run_ms(10);bt_feed("\n");run_ms(40);
+ assert(g_bt_debug.frames==frames+6); /* fragmented CRLF, exactly one */
+ assert(bt_text_count("PONG RS05-BT/1")==pongs+6);
+
+ /* Unterminated PING/STATUS: once after ~60 ms idle, never repeated. */
+ frames=g_bt_debug.frames;bt_feed("@PING");run_ms(20);
+ assert(g_bt_debug.frames==frames);
+ run_ms(100);assert(g_bt_debug.frames==frames+1);
+ run_ms(100);assert(g_bt_debug.frames==frames+1);
+ frames=g_bt_debug.frames;bt_feed("@STATUS");run_ms(100);
+ assert(g_bt_debug.frames==frames+1);
+ run_ms(100);assert(g_bt_debug.frames==frames+1);
+
+ /* Unknown/malformed/literal input is still rejected, never weakened. */
+ frames=g_bt_debug.frames;rejected=g_bt_debug.rejected;
+ bt_send("@NOPE\r\n");
+ assert(g_bt_debug.frames==frames+1 && g_bt_debug.rejected==rejected+1);
+ assert(g_bt_debug.result==RESULT_BAD_COMMAND);
+ frames=g_bt_debug.frames;rejected=g_bt_debug.rejected;
+ bt_feed("@PING\x01\r\n");run_ms(40);
+ assert(g_bt_debug.frames==frames && g_bt_debug.rejected==rejected+1);
+ frames=g_bt_debug.frames;rejected=g_bt_debug.rejected;
+ bt_send("@NOPE\\r\\n");
+ assert(g_bt_debug.frames==frames+1 && g_bt_debug.rejected==rejected+1);
+
+ /* Motion/ARM/configuration require a terminator: a lone @F is inert. */
+ bt_send("@ARM\r\n");run_ms(2000);assert(g_bt_debug.armed);
+ bt_send("@SPEED=2\r\n");assert(g_bt_debug.result==RESULT_OK);
+ assert(!g_debug.motor.target_rad_s && !g_debug.motor2.target_rad_s);
+ frames=g_bt_debug.frames;bt_feed("@F");run_ms(300); /* expired incomplete motion frame */
+ assert(g_bt_debug.frames==frames && !g_bt_debug.moving);
+ assert(!g_debug.motor.target_rad_s && !g_debug.motor2.target_rad_s);
+ bt_send("L\r\n"); /* no '@' after the discarded fragment: ignored */
+ assert(!g_bt_debug.moving && !g_debug.motor.target_rad_s &&
+        !g_debug.motor2.target_rad_s);
+ bt_feed("@F");run_ms(100);
+ assert(!g_bt_debug.moving);
+ bt_send("L\r\n"); /* preserve fragmented FL inside the original 250ms window */
+ assert(g_debug.motor.target_rad_s==2.0f && g_debug.motor2.target_rad_s==0.0f &&
+        g_bt_debug.moving);
+ accepted=g_bt_debug.accepted;
+ bt_send("@F\r\n"); /* CRLF must execute exactly once */
+ assert(g_bt_debug.accepted==accepted+1 &&
+        g_debug.motor.target_rad_s==2.0f && g_debug.motor2.target_rad_s==-2.0f);
+ bt_send("@S\r\n");run_ms(40);bt_send("@!\r\n");run_ms(100);
+ printf("PASS bluetooth framing: CRLF/LF/CR/literal, split CRLF once, trim, idle PING/STATUS once, no-tail motion inert, malformed/unknown rejected, raw-byte diagnostics\n");
+}
+/* ============================================================================
+ * Bluetooth priority over the ROS/USB bridge.
+ * Real app_bluetooth.c + app_usb.c + app_motor.c; only CDC and CAN are mocked.
+ * ==========================================================================*/
+static void cdc_feed(const void *data,uint32_t length)
+{
+ uint32_t i;const uint8_t *p=(const uint8_t *)data;
+ for(i=0;i<length;i++) {
+  assert(cdc_head-cdc_tail<sizeof(cdc_ring));
+  cdc_ring[cdc_head++%sizeof(cdc_ring)]=p[i];
+ }
+}
+static void usb_velocity(float vx,float wz)
+{
+ uint8_t f[12];uint32_t i;uint8_t checksum=0;
+ f[0]=APP_USB_DOWN_CMD_VEL;f[1]=APP_USB_MAGIC;f[2]=2U;
+ memcpy(f+3,&vx,sizeof(vx));memcpy(f+7,&wz,sizeof(wz));
+ for(i=2U;i<11U;i++)checksum^=f[i];
+ f[11]=checksum;cdc_feed(f,sizeof(f));run_ms(40);
+}
+static void usb_service_cmd(uint8_t command)
+{
+ uint8_t f[4]={APP_USB_DOWN_SERVICE,APP_USB_MAGIC,command,command};
+ cdc_feed(f,sizeof(f));run_ms(20);
+}
+static void usb_arm(void){usb_service_cmd(APP_USB_CMD_ARM);}
+static void usb_disarm(void){usb_service_cmd(APP_USB_CMD_DISARM);}
+static void usb_priority_checks(void)
+{
+ uint32_t before;
+ hUsbDeviceFS.dev_state=USBD_STATE_CONFIGURED;
+ hUsbDeviceFS.pClassData=(void *)1;
+ cdc_head=cdc_tail=cdc_overflow=0;
+
+ /* Recover from the prior Bluetooth fault test and establish Bluetooth. */
+ bt_send("@ARM\r\n");run_ms(1800);
+ assert(g_bt_debug.armed && AppBluetooth_OwnsMotors());
+ bt_send("@RELEASE\r\n");run_ms(100);
+ assert(!AppBluetooth_BlocksUsb() && !AppBluetooth_OwnsMotors());
+ assert(!AppUsb_OwnsMotors());
+
+ /* ROS/USB connects, arms and moves. */
+ usb_arm();run_ms(1800);
+ if(!(AppUsb_OwnsMotors() && g_usb_debug.armed &&
+      g_usb_debug.last_result==RESULT_OK))
+  fprintf(stderr,"USB ARM failed: own=%lu armed=%lu phase=%lu result=%lu btblocks=%lu btarmed=%lu drive=%lu chassis=%lu motors=%lu/%lu jobs=%lu/%lu\n",
+   (unsigned long)AppUsb_OwnsMotors(),(unsigned long)g_usb_debug.armed,
+   (unsigned long)g_usb_debug.arm_phase,(unsigned long)g_usb_debug.last_result,
+   (unsigned long)AppBluetooth_BlocksUsb(),(unsigned long)g_bt_debug.armed,
+   (unsigned long)g_debug.drive.active,(unsigned long)AppChassis_Active(),
+   (unsigned long)g_debug.motor.state,(unsigned long)g_debug.motor2.state,
+   (unsigned long)g_debug.motor.job_command,(unsigned long)g_debug.motor2.job_command);
+ assert(AppUsb_OwnsMotors() && g_usb_debug.armed &&
+        g_usb_debug.last_result==RESULT_OK);
+ usb_velocity(-0.1f,0.0f);
+ assert(g_debug.motor.target_rad_s>2.0f && g_debug.motor2.target_rad_s<-2.0f);
+
+ /* Bluetooth ARM takes over an already-armed/moving USB session at zero. */
+ bt_send("@ARM\r\n");run_ms(1400);
+ assert(g_bt_debug.armed && !AppUsb_OwnsMotors());
+ assert(!g_debug.motor.target_rad_s && !g_debug.motor2.target_rad_s);
+ assert(g_usb_debug.armed==0U && g_usb_debug.arm_phase==0U);
+ before=cdc_tx_frames;
+ usb_velocity(-0.1f,0.0f);usb_velocity(0.0f,0.0f);
+ usb_arm();usb_disarm();run_ms(160);
+ assert(g_bt_debug.armed && !AppUsb_OwnsMotors());
+ assert(!g_debug.motor.target_rad_s && !g_debug.motor2.target_rad_s);
+ assert(g_usb_debug.last_result==RESULT_BUSY);
+ assert(cdc_tx_frames>before); /* telemetry keeps flowing while blocked */
+
+ /* Cancellation on the very first ARM (before STOP) retains manual hold. */
+ AppBluetooth_Cancel();
+ usb_arm();usb_velocity(-0.1f,0.0f);
+ assert(AppBluetooth_BlocksUsb() && !AppUsb_OwnsMotors());
+ assert(!g_debug.motor.target_rad_s && !g_debug.motor2.target_rad_s);
+ bt_send("@ARM\r\n");assert(g_bt_debug.armed);
+
+ /* Bluetooth STOP blocks the ROS bridge, even when Bluetooth later times out. */
+ bt_send("@SPEED=2\r\n");bt_send("@F\r\n");
+ assert(g_debug.motor.target_rad_s==2.0f && g_debug.motor2.target_rad_s==-2.0f);
+ usb_velocity(-0.1f,0.0f);usb_velocity(0.0f,0.0f);usb_arm();usb_disarm();
+ assert(g_bt_debug.armed && g_debug.motor.target_rad_s==2.0f &&
+        g_debug.motor2.target_rad_s==-2.0f);
+ bt_send("@S\r\n");run_ms(40);
+ assert(g_bt_debug.armed && g_debug.motor.target_rad_s==0.0f &&
+        g_debug.motor2.target_rad_s==0.0f);
+ usb_velocity(-0.1f,0.0f);usb_arm();usb_disarm();run_ms(80);
+ assert(g_bt_debug.armed && !g_debug.motor.target_rad_s &&
+        !g_debug.motor2.target_rad_s);
+
+ /* 600 ms moving lease expires -> zero target, still armed + held. */
+ bt_send("@F\r\n");assert(g_debug.motor.target_rad_s==2.0f);
+ run_ms(700);
+ assert(g_bt_debug.armed && !g_bt_debug.moving && g_bt_debug.timeouts>=1);
+ assert(!g_debug.motor.target_rad_s && !g_debug.motor2.target_rad_s);
+ usb_arm();usb_velocity(-0.1f,0.0f);run_ms(80);
+ assert(!AppUsb_OwnsMotors() && g_usb_debug.last_result==RESULT_BUSY);
+ assert(!g_debug.motor.target_rad_s && !g_debug.motor2.target_rad_s);
+
+ /* Explicit RELEASE clears the hold; USB needs a new ARM and a NEW velocity. */
+ bt_send("@RELEASE\r\n");run_ms(100);
+ assert(!AppBluetooth_BlocksUsb());
+ usb_velocity(-0.1f,0.0f); /* stale frame while disarmed: must not move */
+ assert(!g_debug.motor.target_rad_s && !g_debug.motor2.target_rad_s);
+ usb_arm();run_ms(1800);
+ assert(AppUsb_OwnsMotors() && g_usb_debug.last_result==RESULT_OK);
+ run_ms(100);
+ assert(!g_debug.motor.target_rad_s && !g_debug.motor2.target_rad_s);
+ usb_velocity(-0.1f,0.0f);
+ assert(g_debug.motor.target_rad_s>2.0f && g_debug.motor2.target_rad_s<-2.0f);
+
+ /* Global stop clears USB ownership but must not erase a Bluetooth hold. */
+ bt_send("@S\r\n");run_ms(40); /* Bluetooth not armed: latch hold + cancel USB */
+ assert(!AppUsb_OwnsMotors() && !AppBluetooth_OwnsMotors());
+ usb_velocity(-0.1f,0.0f);run_ms(100); /* ROS must not re-apply its old speed */
+ assert(!AppUsb_OwnsMotors() && !g_debug.motor.target_rad_s &&
+        !g_debug.motor2.target_rad_s);
+ g_debug.stop_all_seq+=2U;run_ms(100);
+ assert(!AppUsb_OwnsMotors() && !AppBluetooth_OwnsMotors());
+ usb_arm();run_ms(40);assert(g_usb_debug.last_result==RESULT_BUSY);
+ bt_send("@RELEASE\r\n");run_ms(100);
+
+ /* A motor/CAN fault during Bluetooth ownership stops and holds. */
+ bt_send("@ARM\r\n");run_ms(1800);assert(g_bt_debug.armed);
+ bt_send("@SPEED=2\r\n");bt_send("@F\r\n");
+ motors[1].fb.fault=1U;run_ms(100);
+ assert(!g_bt_debug.armed && !g_debug.motor.target_rad_s &&
+        !g_debug.motor2.target_rad_s);
+ usb_arm();run_ms(40);assert(g_usb_debug.last_result==RESULT_BUSY);
+ motors[1].fb.fault=0U;bt_send("@RELEASE\r\n");run_ms(100);
+
+ /* Bluetooth takeover while USB is still in its multi-step ARM transaction.
+  * Force stale identity so USB remains in arm_phase deterministically. */
+ motors[0].fb.identity_ms=tick-2000U;motors[1].fb.identity_ms=tick-2000U;
+ usb_arm();
+ assert(AppUsb_OwnsMotors() && g_usb_debug.arm_phase && !g_usb_debug.armed);
+ bt_send("@ARM\r\n");run_ms(2600);
+ assert(g_bt_debug.armed && !AppUsb_OwnsMotors());
+ assert(g_usb_debug.arm_phase==0U && g_usb_debug.armed==0U);
+ assert(!g_debug.motor.target_rad_s && !g_debug.motor2.target_rad_s);
+
+ /* DISARM keeps the manual hold (only RELEASE clears it). */
+ bt_send("@!\r\n");run_ms(100);
+ assert(!AppBluetooth_OwnsMotors() && !g_debug.motor.target_rad_s &&
+        !g_debug.motor2.target_rad_s);
+ usb_arm();usb_velocity(-0.1f,0.0f);run_ms(80);
+ assert(!AppUsb_OwnsMotors() && g_usb_debug.last_result==RESULT_BUSY);
+ assert(!g_debug.motor.target_rad_s && !g_debug.motor2.target_rad_s);
+ bt_send("@RELEASE\r\n");run_ms(100);
+ assert(!AppBluetooth_BlocksUsb());
+ bt_send("@ARM\r\n");run_ms(1800);assert(g_bt_debug.armed);
+
+ /* Global emergency stop is still the highest priority. */
+ bt_send("@F\r\n");assert(g_debug.motor.target_rad_s==2.0f);
+ g_debug.stop_all_seq+=2U;run_ms(100);
+ assert(!g_bt_debug.armed && !AppUsb_OwnsMotors());
+ assert(!g_debug.motor.target_rad_s && !g_debug.motor2.target_rad_s);
+ printf("PASS bluetooth priority: USB moving takeover at zero, blocked USB velocity/ARM/DISARM, STOP hold, 600ms timeout hold, explicit RELEASE, global stop preserving hold, motor fault\n");
+}
+static void bluetooth_switch_checks(void)
+{
+ uint32_t rejected,timeouts,accepted;size_t outlen;
+ bt_send("@ARM\r\n");run_ms(2000);assert(g_bt_debug.armed);
+ bt_send("@SPEED=2\r\n");
+ rejected=g_bt_debug.rejected;
+ /* Direct WASD-style switching while armed, including S then F. */
+ bt_send("@F\r\n");assert(g_debug.motor.target_rad_s==2.0f &&
+                          g_debug.motor2.target_rad_s==-2.0f);
+ bt_send("@L\r\n");assert(g_debug.motor.target_rad_s==2.0f &&
+                          g_debug.motor2.target_rad_s==2.0f);
+ bt_send("@R\r\n");assert(g_debug.motor.target_rad_s==-2.0f &&
+                          g_debug.motor2.target_rad_s==-2.0f);
+ bt_send("@S\r\n");assert(g_bt_debug.armed &&
+                          !g_debug.motor.target_rad_s && !g_debug.motor2.target_rad_s);
+ bt_send("@F\r\n");assert(g_debug.motor.target_rad_s==2.0f &&
+                          g_debug.motor2.target_rad_s==-2.0f);
+ assert(g_bt_debug.rejected==rejected);
+
+ /* Expiry stops at zero, keeps armed/hold, notifies once, and never ERR9. */
+ timeouts=g_bt_debug.timeouts;rejected=g_bt_debug.rejected;outlen=bt_output_len;
+ run_ms(700);
+ assert(g_bt_debug.armed && !g_bt_debug.moving);
+ assert(!g_debug.motor.target_rad_s && !g_debug.motor2.target_rad_s);
+ assert(g_bt_debug.timeouts==timeouts+1);
+ assert(g_bt_debug.result==RESULT_OK && g_bt_debug.rejected==rejected);
+ assert(strstr(bt_output+outlen,"OK TIMEOUT STOP\r\n")!=NULL);
+ assert(strstr(bt_output+outlen,"ERR 9\r\n")==NULL);
+ run_ms(200);assert(g_bt_debug.timeouts==timeouts+1);
+
+ /* H does not restore the old direction, and next L needs no ARM. */
+ bt_send("@H\r\n");
+ assert(g_bt_debug.armed && !g_bt_debug.moving &&
+        !g_debug.motor.target_rad_s && !g_debug.motor2.target_rad_s);
+ run_ms(700);assert(g_bt_debug.timeouts==timeouts+1 && g_bt_debug.armed);
+ accepted=g_bt_debug.accepted;rejected=g_bt_debug.rejected;
+ bt_send("@L\r\n");
+ assert(g_bt_debug.moving && g_debug.motor.target_rad_s==2.0f &&
+        g_debug.motor2.target_rad_s==2.0f);
+ assert(g_bt_debug.accepted==accepted+1 && g_bt_debug.rejected==rejected);
+
+ /* H extends the live lease; expiry still works after that. */
+ run_ms(400);bt_send("@H\r\n");run_ms(300);
+ assert(g_bt_debug.moving && g_bt_debug.armed &&
+        g_bt_debug.timeouts==timeouts+1);
+ run_ms(400);
+ assert(!g_bt_debug.moving && g_bt_debug.armed &&
+        g_bt_debug.timeouts==timeouts+2);
+
+ /* USB velocity/ARM/DISARM cannot steal a live Bluetooth direction. */
+ bt_send("@F\r\n");assert(g_debug.motor.target_rad_s==2.0f);
+ usb_velocity(-0.1f,0.0f);usb_arm();usb_disarm();run_ms(100);
+ assert(g_bt_debug.armed && g_debug.motor.target_rad_s==2.0f &&
+        g_debug.motor2.target_rad_s==-2.0f && !AppUsb_OwnsMotors());
+ assert(g_usb_debug.last_result==RESULT_BUSY);
+ bt_send("@!\r\n");run_ms(100);
+ assert(!g_bt_debug.armed && !g_debug.motor.target_rad_s &&
+        !g_debug.motor2.target_rad_s);
+ printf("PASS bluetooth switching: F/L/R/S/F direct, expiry keeps ARM, OK TIMEOUT STOP once, H no resume, H renews lease, L resumes without ARM, ROS blocked\n");
 }
 int main(void)
 {
@@ -383,6 +696,9 @@ int main(void)
  drive_checks();
  chassis_checks();
  bluetooth_checks();
+ bluetooth_framing_checks();
+ usb_priority_checks();
+ bluetooth_switch_checks();
  /* Shared bus failure revokes authorization and never restores motion. */
  bus_off=true;run_ms(1100);
  assert(!g_debug.setup.dual_ready && !peer[0].state && !peer[1].state);

@@ -93,5 +93,9 @@ void AppUsb_Init(void);
 void AppUsb_Service(uint32_t now);
 void AppUsb_ImuByte(uint8_t byte, uint32_t now);
 uint32_t AppUsb_OwnsMotors(void);
+/* Relinquish USB motion ownership and zero its effect. Clears only this
+ * module's state; never calls AppMotor_StopAll (avoids mutual recursion and
+ * lets a Bluetooth takeover keep motors enabled at zero). */
+void AppUsb_Cancel(void);
 
 #endif

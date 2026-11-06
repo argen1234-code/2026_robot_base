@@ -22,6 +22,7 @@ from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from rclpy.time import Time
+from robot_base_msgs.srv import SanitizeGoal
 from std_msgs.msg import String
 from tf2_ros import Buffer, TransformListener
 
@@ -84,6 +85,10 @@ class GoalSanitizer(Node):
             PoseStamped, self.get_parameter('goal_out_topic').value, 10)
         self.status_pub = self.create_publisher(
             String, '/goal_sanitizer_status', 10)
+        # Decision-layer goals go through Nav2 actions directly; this service
+        # keeps the same lethal-cell / unknown-cell checks as the topic path.
+        self.create_service(
+            SanitizeGoal, 'sanitize_goal', self.on_sanitize_goal)
 
         self.clear_local = self.create_client(
             ClearEntireCostmap,
@@ -189,6 +194,32 @@ class GoalSanitizer(Node):
                     best_d2 = d2
                     best = (x, y)
         return best
+
+    def on_sanitize_goal(self, request, response):
+        """Service entry for decision-layer Nav2 goals (fail closed)."""
+        goal = self.transform_goal(request.goal)
+        if goal is None:
+            response.success = False
+            response.goal = request.goal
+            response.message = 'goal transform to map failed'
+            return response
+        gx, gy = goal.pose.position.x, goal.pose.position.y
+        cost = self.cell_cost(gx, gy)
+        if cost is not None and cost >= self.lethal_threshold:
+            free = self.find_free_goal(gx, gy)
+            if free is None:
+                response.success = False
+                response.goal = goal
+                response.message = (
+                    f'goal cost={cost} in lethal cell; no free cell within '
+                    f'{self.max_adjust:.2f} m')
+                return response
+            goal.pose.position.x, goal.pose.position.y = free
+        goal.header.stamp = self.get_clock().now().to_msg()
+        response.success = True
+        response.goal = goal
+        response.message = 'ok'
+        return response
 
     def on_goal(self, goal):
         original = goal

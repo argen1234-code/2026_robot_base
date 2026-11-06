@@ -225,6 +225,8 @@ class PersonDetector(Node):
             'stamp': round(time.time(), 3),
             'source_stamp': round(source_seconds, 6),
             'count': len(persons),
+            'image_size': [w, h],
+            'frame_id': color_msg.header.frame_id,
             'infer_ms': round(infer_ms, 1),
             'decode_ms': round(decode_ms, 1),
             'backend': self.args.backend,

@@ -32,7 +32,7 @@ COOLDOWN="${MEM_COOLDOWN:-120}"
 DRY_RUN="${MEM_DRY_RUN:-0}"
 
 # 栈进程匹配规则；顺序无关。
-STACK_PATTERN='ros2 launch robot_base_bringup|ros2 launch largemodel|ros2 launch orbbec_camera|person_detector_node\.py|hand_detector_host\.py|hand_pose_bridge\.py|micromamba run -n (ros_jazzy|ai_host)|scripts/start_host_stack\.sh'
+STACK_PATTERN='ros2 launch robot_base_bringup|ros2 launch largemodel|ros2 launch orbbec_camera|ros2 launch robot_base_decision|person_detector_node\.py|hand_detector_host\.py|hand_pose_bridge\.py|astra_color_publisher\.py|forward_target_debug\.py|task_coordinator|nav_decision|voice_decision|vision_decision|micromamba run -n (ros_jazzy|ai_host)|scripts/(robot|start_host_stack)\.sh'
 
 log() {
   printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
@@ -58,7 +58,7 @@ is_stack_group() {
   local pgid="$1"
   ps -eo pgid=,args= 2>/dev/null \
     | awk -v g="$pgid" '$1 == g { $1=""; print }' \
-    | grep -qE 'robot_base_bringup|largemodel|orbbec_camera|person_detector|hand_detector|hand_pose_bridge|micromamba|start_host_stack'
+    | grep -qE 'robot_base_bringup|largemodel|orbbec_camera|robot_base_decision|person_detector|hand_detector|hand_pose_bridge|astra_color|forward_target_debug|micromamba|start_host_stack|scripts/robot\.sh'
 }
 
 signal_pid() {
@@ -83,7 +83,7 @@ kill_stack() {
   local avail_before="$1"
   local sups groups pgid
 
-  sups="$(pgrep -f 'scripts/start_host_stack\.sh' 2>/dev/null | sort -n | uniq || true)"
+  sups="$(pgrep -f 'scripts/(robot|start_host_stack)\.sh' 2>/dev/null | sort -n | uniq || true)"
   groups="$(stack_groups || true)"
 
   log "可用内存 ${avail_before}MB < ${THRESHOLD_MB}MB，终止机器人栈"

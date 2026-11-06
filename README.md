@@ -22,7 +22,7 @@
 
 ```bash
 cd ~/2026_robot_base
-bash scripts/start_host_stack.sh --map /home/pi/maps/robot_map_20261105_054354 --motor --viz foxglove --person
+bash scripts/robot.sh start --nav localize --map /home/pi/maps/robot_map_20261105_054354 --motor --foxglove --vision both
 ```
 
 地图路径按本机实际地图替换；`--motor` 启用电机。环境与设备准备见 [运行手册](docs/RUNBOOK.md)。

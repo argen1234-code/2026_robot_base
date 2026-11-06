@@ -54,6 +54,8 @@ class ASRNode(Node):
         self.declare_parameter('sample_rate', 16000)
         self.declare_parameter('mic_alsa_device', 'plughw:2,0')  # arecord 采集设备
         self.declare_parameter('frame_duration_ms', 30)
+        # Hard cap for one wake-word utterance; prevents endless recording.
+        self.declare_parameter('max_record_seconds', 6.0)
         self.declare_parameter('language', 'en')
         self.declare_parameter('use_oline_asr', False) 
         self.declare_parameter('mic_serial_port', "/dev/ttyUSB1")
@@ -65,7 +67,9 @@ class ASRNode(Node):
         self.sample_rate = self.get_parameter('sample_rate').get_parameter_value().integer_value
         self.mic_alsa_device = self.get_parameter('mic_alsa_device').get_parameter_value().string_value
         self.frame_duration_ms = self.get_parameter('frame_duration_ms').get_parameter_value().integer_value
-        self.language = self.get_parameter('language').get_parameter_value().string_value  
+        self.max_record_seconds = float(
+            self.get_parameter('max_record_seconds').get_parameter_value().double_value)
+        self.language = self.get_parameter('language').get_parameter_value().string_value
         self.use_oline_asr = self.get_parameter('use_oline_asr').get_parameter_value().bool_value
         self.mic_serial_port=self.get_parameter('mic_serial_port').get_parameter_value().string_value
         self.mic_index=self.get_parameter('mic_index').get_parameter_value().integer_value
@@ -250,6 +254,9 @@ class ASRNode(Node):
         MAX_SILENCE_FRAMES = 90  # 30帧*30ms=900ms静音后停止 / Stop after 900ms of silence (30 frames * 30ms)
         speaking = False  # Flag indicating speech activity. / 语音活动标志。
         frame_counter = 0  # Frame counter. / 计数器。
+        max_frames = max(1, int(self.max_record_seconds * 1000 /
+                                self.frame_duration_ms))
+        ended_by_silence = False
         frame_samples = int(self.sample_rate * self.frame_duration_ms / 1000)
         frame_bytes = frame_samples * 2
         device = self.mic_alsa_device or 'plughw:2,0'
@@ -303,8 +310,13 @@ class ASRNode(Node):
 
                         # End recording when silence duration meets the threshold. / 静音持续时间达标时结束录音。
                         if silence_counter >= MAX_SILENCE_FRAMES:
+                            ended_by_silence = True
                             break
                 frame_counter += 1
+                if frame_counter >= max_frames:
+                    self.get_logger().info(
+                        f'录音达到 {self.max_record_seconds:g} s 上限，停止')
+                    break
                 if frame_counter % 2 == 0:
                     self.get_logger().info('1' if is_speech else '-')
                     # Real-time status display.
@@ -321,8 +333,13 @@ class ASRNode(Node):
 
         # Save valid recording (remove trailing silence). / 保存有效录音（去除尾部静音）。
         if speaking and len(audio_buffer) > 0:
-            # Trim the last silent part. / 裁剪最后静音部分。
-            clean_buffer = audio_buffer[:-MAX_SILENCE_FRAMES] if len(audio_buffer) > MAX_SILENCE_FRAMES else audio_buffer
+            # Only trim when the silence detector ended the recording.  A
+            # 6-second cap may cut while the user is still speaking; trimming
+            # 900 ms there would drop real speech.
+            if ended_by_silence and len(audio_buffer) > MAX_SILENCE_FRAMES:
+                clean_buffer = audio_buffer[:-MAX_SILENCE_FRAMES]
+            else:
+                clean_buffer = audio_buffer
 
             with wave.open(self.user_speechdir, 'wb') as wf:
                 wf.setnchannels(1)

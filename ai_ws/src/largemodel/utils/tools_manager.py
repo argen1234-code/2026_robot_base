@@ -45,8 +45,11 @@ class ToolsManager:
         注册所有工具适配器到工具链管理器。
         """
         # Register tool adapters. / 注册工具适配器。
-        self.tool_chain_manager.register_tool(SummonUserToolAdapter(self))
-        self.tool_chain_manager.register_tool(MoveRelativeToolAdapter(self))
+        # In decision mode the hierarchical decision layer owns confirmation
+        # and motion dispatch; direct motion tools must not be exposed.
+        if not getattr(self.node, 'decision_mode', False):
+            self.tool_chain_manager.register_tool(SummonUserToolAdapter(self))
+            self.tool_chain_manager.register_tool(MoveRelativeToolAdapter(self))
         self.tool_chain_manager.register_tool(SeeWhatToolAdapter(self))
         self.tool_chain_manager.register_tool(AnalyzeVideoToolAdapter(self))
         self.tool_chain_manager.register_tool(WriteDocumentToolAdapter(self))

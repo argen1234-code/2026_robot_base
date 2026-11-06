@@ -522,6 +522,9 @@ static void stop_all(void)
 {
  uint32_t i;
  drive_cancel();
+ /* Revoke the USB bridge's ownership too, but never touch Bluetooth's manual
+  * hold: a global stop must not let ROS auto-recover past a Bluetooth STOP. */
+ AppUsb_Cancel();
  for(i=0;i<APP_MOTOR_COUNT;i++) {
   ctx=&motors[i];
   if(ctx->job){ctx->s.executed_seq=ctx->job_seq;ctx->s.result=ctx->s.reject_reason=RESULT_STATE;}

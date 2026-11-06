@@ -136,16 +136,17 @@ ros2 launch robot_base_bringup bringup.launch.py \
 
 ```bash
 cd ~/2026_robot_base
-bash scripts/start_host_stack.sh                # 干跑（不 ARM 电机）
-bash scripts/start_host_stack.sh --motor        # 允许电机
-bash scripts/start_host_stack.sh --no-hand      # 关闭手部检测
-bash scripts/start_host_stack.sh --viz foxglove # 开 Foxglove（8765）与压缩图
+bash scripts/robot.sh start                # 干跑（不 ARM 电机）
+bash scripts/robot.sh start --motor        # 允许电机
+bash scripts/robot.sh start --vision astra      # 关闭手部检测
+bash scripts/robot.sh start --foxglove # 开 Foxglove（8765）与压缩图
 ```
 
-- 日志：`~/rosbags/host_stack_logs/<时间戳>/`（`nav.log` / `ai.log` /
-  `hand_det.log` / `hand_bridge.log`）
-- Ctrl-C 统一停止导航、AI、手部检测；导航退出时自动 DISARM
-- 手部检测在 `/dev/hand-cam` 与 `/home/pi/mediapipe_plain` 都存在时默认启用
+- 日志：`~/rosbags/robot/<时间戳>/`（`nav.log` / `ai.log` / `color.log` /
+  `depth.log` / `person.log` / `hand_det.log` / `hand_bridge.log` /
+  `decision.log`），`latest` 指向最新目录
+- 停止：`scripts/robot.sh stop`（先 SIGINT 让导航 DISARM，再按需 TERM/KILL）
+- 手部检测默认随全栈启用；`--vision astra` 只启动 Astra，不启动手部
 - 相机稳定别名（USB 枚举顺序会变，不要用 `/dev/videoN`）：
   `/dev/hand-cam`（icSpring）、`/dev/astra-color`（Astra 彩色）。
   安装规则：
@@ -180,7 +181,7 @@ ROS_DOMAIN_ID=1 ros2 topic echo /perception/hand_pose
 ### Foxglove 查看两路相机（压缩图，10 Hz）
 
 ```bash
-bash scripts/start_host_stack.sh --viz foxglove
+bash scripts/robot.sh start --foxglove
 # Foxglove Studio 连接 ws://<树莓派IP>:8765
 ```
 
@@ -218,7 +219,7 @@ ROS_DOMAIN_ID=1 ros2 topic echo /camera/depth/camera_info
 
 > 人像检测只需要深度图，默认关点云。**Astra Pro 在 USB2.0 上 640×480 Y11@30
 > 实测只有 18–24 fps、单帧间隔可达 180 ms（画面明显卡顿）；320×240@30 实测
-> 稳定 29.7 fps，驱动 CPU 约减半。** `start_host_stack.sh` 已默认 320×240，
+> 稳定 29.7 fps，驱动 CPU 约减半。** `scripts/robot.sh` 已默认 320×240，
 > 需要高分辨率时用 `DEPTH_WIDTH=640 DEPTH_HEIGHT=480` 启动，但要接受掉帧。
 > 需要 3D 点云时再 `enable_point_cloud:=true depth_fps:=30`。
 > 注意：彩色、深度、手部相机都在 Bus 01（480 Mbps）上，与 color UVC 同时开时会
@@ -235,7 +236,7 @@ bash scripts/fetch-yolo.sh        # -> ~/models/yolov8n.onnx（SHA1 校验）
 启动（`--person` 会自动拉起 Orbbec 深度）：
 
 ```bash
-bash scripts/start_host_stack.sh --viz foxglove --person
+bash scripts/robot.sh start --foxglove --vision both
 # 只起深度：--depth
 # 人像仅 2D：--person --no-depth
 ```
@@ -262,6 +263,20 @@ bash scripts/start_host_stack.sh --viz foxglove --person
   `person bbox has no valid depth`；把相机移到无遮挡、0.5–3 m 视野即可。
 - 模型下载失败时检查网络；脚本会依次尝试 ghfast 代理和 GitHub 直连。
 
+## 识别人并靠近 / 连续跟随（2026-11-06）
+
+找人跟随已并入视觉决策层，由统一入口同时启动：
+
+```bash
+bash scripts/robot.sh start                          # 全栈预览，不 ARM
+bash scripts/robot.sh start --motor                  # 网页点「连续跟随」
+bash scripts/robot.sh start --motor --task follow    # 启动后直接派发连续跟随
+```
+
+网页 `http://<树莓派IP>:8878`；目标选择、状态机、参数和测试见
+[PERSON_APPROACH.md](PERSON_APPROACH.md)，分层决策与二次确认见
+[DECISION_TREE.md](DECISION_TREE.md)。
+
 ## 语音唤醒与识别验证（2026-11-05）
 
 唤醒词由 KWS 串口模块识别（`/dev/mic-kws`，CH340，115200）。流程：
@@ -280,7 +295,7 @@ bash scripts/start_host_stack.sh --viz foxglove --person
 ROS_DOMAIN_ID=1 ros2 topic echo /wakeup
 ROS_DOMAIN_ID=1 ros2 topic echo /asr            # 最终识别文本
 ROS_DOMAIN_ID=1 ros2 topic echo /text_response
-tail -f ~/rosbags/host_stack_logs/<时间戳>/ai.log
+tail -f ~/rosbags/robot/<时间戳>/ai.log
 ```
 
 日志关键字：`kws detected` → `I'm here` → `okay😀` → 识别文本。
@@ -770,12 +785,14 @@ bag：`/home/pi/rosbags/live_allparams_20261105_071722`
 
 ## 启动顺序
 
-主机原生栈（推荐）：
+主机原生栈（唯一入口）：
 
-1. `bash scripts/start_host_stack.sh [--motor]`
-2. 该脚本依次启动导航（`ros_jazzy`）、AI 语音（`ai_host`）、手部检测
+1. `bash scripts/robot.sh start [options]`
+2. 依次启动导航（`ros_jazzy`）、Astra 彩色、AI 语音（`ai_host`）、
+   深度/人像、手部检测、分层决策层
+3. 停止用 `scripts/robot.sh stop`
 
-旧的 Docker + MQTT 栈（`scripts/start_stack.sh`）仅作回退，不再用于语音。
+旧 Docker + MQTT 栈已移除；不再提供 `start_host_stack.sh` 等入口。
 
 ## DDS 隔离
 
@@ -783,7 +800,7 @@ bag：`/home/pi/rosbags/live_allparams_20261105_071722`
 |---|---|
 | 导航（主机 ros_jazzy） | 1 |
 | AI 语音（主机 ai_host） | 1 |
-| 旧 AI 容器（Humble） | 2 |
+| 决策层（主机 ros_jazzy） | 1 |
 
 主机栈同域直发 `/goal_pose`；只有旧的容器栈需要 MQTT 桥接。
 

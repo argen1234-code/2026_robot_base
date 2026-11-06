@@ -8,6 +8,10 @@ typedef struct {
  uint32_t left_slot;
  float left_sign,right_sign;
  char last_payload[80];
+ /* Tail-only receive diagnostics (does not change g_debug's ABI):
+  * last 16 raw bytes and the monotonic count of bytes recorded. */
+ uint8_t rx_recent[16];
+ uint32_t rx_recent_index;
 } BluetoothDebug;
 /* Observation only. Existing g_debug layout is unchanged. */
 extern volatile BluetoothDebug g_bt_debug;
@@ -15,4 +19,8 @@ void AppBluetooth_Init(void);
 void AppBluetooth_Service(uint32_t now);
 void AppBluetooth_Cancel(void);
 uint32_t AppBluetooth_OwnsMotors(void);
+/* Bluetooth priority over the ROS/USB bridge. True while Bluetooth owns the
+ * motors or a manual STOP/DISARM/timeout/fault hold is latched. The hold is
+ * cleared only by an explicit RELEASE frame. */
+uint32_t AppBluetooth_BlocksUsb(void);
 #endif

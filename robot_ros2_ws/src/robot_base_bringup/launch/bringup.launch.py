@@ -54,7 +54,9 @@ def _make_slam_params(base_yaml: str, mode: str, map_prefix,
     params['mode'] = mode
     if map_prefix:
         params['map_file_name'] = map_prefix
-        params['map_start_pose'] = map_start_pose
+        # slam_toolbox declares this as double_array; YAML [0,0,0] would be an
+        # integer array and is rejected during configure.
+        params['map_start_pose'] = [float(v) for v in map_start_pose]
         params['map_start_at_dock'] = map_start_at_dock
     out = os.path.join(
         tempfile.gettempdir(),
@@ -81,7 +83,9 @@ def _prepare(context):
             or len(map_start_pose) != 3):
         raise RuntimeError('map_start_pose 必须是 [x, y, yaw] 三项')
 
-    if map_arg:
+    if map_arg.lower() == 'latest':
+        map_prefix = _latest_posegraph(maps_dir)
+    elif map_arg:
         if map_arg.lower() in ('none', 'fresh'):
             if not slam:
                 raise RuntimeError('slam:=false 不能使用 map:=none')
@@ -98,10 +102,10 @@ def _prepare(context):
             map_prefix = prefix
     else:
         map_prefix = _latest_posegraph(maps_dir)
-        if not slam and map_prefix is None:
-            raise RuntimeError(
-                f'slam:=false 需要 posegraph，但 {maps_dir} 下没有 '
-                '*.posegraph；请先用 serialize_map 保存。')
+    if not slam and map_prefix is None:
+        raise RuntimeError(
+            f'slam:=false 需要 posegraph，但 {maps_dir} 下没有 '
+            '*.posegraph；请先用 serialize_map 保存。')
 
     mode = 'mapping' if slam else 'localization'
     base_params = os.path.join(

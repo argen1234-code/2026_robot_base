@@ -2,12 +2,13 @@ import os
 import re
 import math
 import tempfile
+import time
 import cv2
 import json
 import rclpy
 from rclpy.node import Node
 from rclpy.duration import Duration
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import DurabilityPolicy, QoSProfile, qos_profile_sensor_data
 from sensor_msgs.msg import CompressedImage, Image, LaserScan
 from std_msgs.msg import String,Bool
 from geometry_msgs.msg import PoseStamped
@@ -23,6 +24,46 @@ import atexit
 from interfaces.srv import TextToImage
 
 
+class CompressedCapture:
+    """Small ``cv2.VideoCapture``-like adapter backed by a ROS JPEG topic.
+
+    The AI tools call ``cap.read()`` directly; when another node owns the UVC
+    camera (the standalone Astra publisher), model_service subscribes to its
+    CompressedImage topic and feeds the latest decoded frame through this
+    adapter instead of opening the device twice.
+    """
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._jpeg = None
+
+    def update(self, jpeg_bytes):
+        # Keep the compressed payload; decode only when a tool asks for a
+        # frame. Decoding every 10 Hz message is pure idle CPU otherwise.
+        with self._lock:
+            self._jpeg = jpeg_bytes
+
+    def read(self):
+        with self._lock:
+            data = self._jpeg
+        if data is None:
+            return False, None
+        try:
+            frame = cv2.imdecode(
+                np.frombuffer(data, dtype=np.uint8), cv2.IMREAD_COLOR)
+        except Exception:
+            return False, None
+        if frame is None:
+            return False, None
+        return True, frame
+
+    def isOpened(self):
+        return True
+
+    def release(self):
+        pass
+
+
 # Fast, deterministic command patterns.  Movement commands must not depend on
 # a large model's JSON output: "stop" has to work even when the model is busy.
 WAKE_WORDS = (
@@ -35,6 +76,19 @@ STOP_PATTERN = re.compile(
     r"(?:停止导航|停止任务|停止|停下来|停下|停住|停一下|停|别动|不要动)"
     r"(?:吧|呀|啊|一下)?"
 )
+
+MOVE_PATTERN = re.compile(
+    r"(?:向前|向后|向左|向右|往前|往后|往左|往右|前|后|左|右)"
+    r".{0,10}?(?:[0-9]+(?:\.[0-9]+)?|[一二三四五六七八九十两]+)\s*米"
+)
+APPROACH_PATTERN = re.compile(
+    r"(?:丢垃圾|扔垃圾|来找我|到我身边|到我这里|来我这边|需要你|过来)"
+)
+CONFIRM_WORDS = {
+    '好', '好的', '好呀', '是', '是的', '对', '对的', '可以', '需要',
+    '确认', '行', '行吧', '嗯', '嗯嗯', '不用', '不要', '取消', '算了',
+    '停', '停下', '停止',
+}
 
 SUMMON_PATTERN = re.compile(
     r"(?:请|麻烦|快|你|垃圾桶|小垃圾桶)*"
@@ -159,6 +213,12 @@ class LargeModelService(Node):
         self.declare_parameter('useolinetts', False)
         self.declare_parameter("regional_setting", "China")
         self.declare_parameter('enable_tools', True)
+        # uvc: this node owns /dev/astra-color.
+        # ros_compressed: another node owns it; subscribe to its JPEG topic.
+        self.declare_parameter('camera_source', 'uvc')
+        # When true the motion tools are not registered; the hierarchical
+        # decision layer owns confirmation and motion dispatch.
+        self.declare_parameter('decision_mode', False)
 
         # Summon / navigation parameters.
         self.declare_parameter('enable_summon_fastpath', True)
@@ -185,6 +245,10 @@ class LargeModelService(Node):
         self.llm_platform = self.get_parameter('llm_platform').get_parameter_value().string_value
         self.regional_setting = (self.get_parameter("regional_setting").get_parameter_value().string_value)
         self.enable_tools = self.get_parameter('enable_tools').get_parameter_value().bool_value
+        self.camera_source = self.get_parameter(
+            'camera_source').get_parameter_value().string_value.lower()
+        self.decision_mode = self.get_parameter(
+            'decision_mode').get_parameter_value().bool_value
 
         self.enable_summon_fastpath = self.get_parameter(
             'enable_summon_fastpath').get_parameter_value().bool_value
@@ -240,6 +304,13 @@ class LargeModelService(Node):
         self.text_pub = self.create_publisher(String, "text_response", 1)
         # Create a TTS publisher. / 创建TTS发布者。
         self.TTS_publisher = self.create_publisher(String, "tts_topic", 5)
+        # Hierarchical decision layer: speak confirmation prompts and expose
+        # proposed intents without executing motion directly.
+        self.decision_speak_sub = self.create_subscription(
+            String, '/decision/speak', self.decision_speak_callback,
+            QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
+        self.decision_proposal_pub = self.create_publisher(
+            String, '/decision/proposal', 5)
 
         # Summon / navigation interface.  model_service owns the camera and the
         # VLM, but nav_task owns the Nav2 action client.
@@ -265,6 +336,21 @@ class LargeModelService(Node):
         self.wakeup_sub = self.create_subscription(Bool, 'wakeup', self.wakeup_callback, 5)
         # Create a text-to-image service. / 创建文生图服务。
         self.text_to_image_service = self.create_service(TextToImage, 'text_to_image', self.text_to_image_callback)
+
+    def decision_speak_callback(self, msg):
+        """Speak a confirmation prompt from the decision layer."""
+        text = (msg.data or '').strip()
+        if not text:
+            return
+        now = time.monotonic()
+        if (text == getattr(self, '_last_decision_speak', None) and
+                now - getattr(self, '_last_decision_speak_at', 0.0) < 2.0):
+            return
+        self._last_decision_speak = text
+        self._last_decision_speak_at = now
+        self.get_logger().info(f'Decision speak: {text}')
+        threading.Thread(target=self._safe_play_audio, args=(text,),
+                         daemon=True).start()
 
     def scan_callback(self, msg):
         """Keep the most recent LiDAR scan for range estimation."""
@@ -425,11 +511,39 @@ class LargeModelService(Node):
         self.cap = None
         self.camera_initialized = False
         self.last_frame = None
-        
-        self.get_logger().info(f'Camera system configured (will initialize on demand). Camera type: {self.camera_type_param}')
+        if self.camera_source == 'ros_compressed':
+            # Another node owns /dev/astra-color; consume its JPEG topic.
+            self.cap = CompressedCapture()
+            self.camera_type = 'ros_compressed'
+            self.publish_compressed_image = False
+            self.compressed_color_sub = self.create_subscription(
+                CompressedImage, self.compressed_image_topic,
+                self._compressed_color_callback, 1)
+            self.get_logger().info(
+                f'Camera source=ros_compressed, subscribing {self.compressed_image_topic}')
+        self.get_logger().info(
+            f'Camera system configured (will initialize on demand). '
+            f'Camera type: {self.camera_type_param}, source: {self.camera_source}')
+
+    def _compressed_color_callback(self, msg):
+        """Keep the latest JPEG; decode lazily when a tool needs a frame."""
+        if self.cap is not None and hasattr(self.cap, 'update'):
+            self.cap.update(bytes(msg.data))
+        if not self.camera_initialized:
+            self.camera_initialized = True
+            self.get_logger().info('External compressed color received')
 
     def _ensure_camera_is_ready(self) -> bool:
         """Ensures the camera is initialized before use, trying to initialize it if not. / 确保摄像头在使用前已初始化，如果未初始化则尝试初始化。"""
+        if self.camera_source == 'ros_compressed':
+            if self.camera_initialized:
+                return True
+            if not self.camera_warning_issued:
+                self.get_logger().info(
+                    f'Waiting for external compressed color on '
+                    f'{self.compressed_image_topic} ...')
+                self.camera_warning_issued = True
+            return False
         if self.camera_initialized:
             return True
 
@@ -798,6 +912,17 @@ class LargeModelService(Node):
         if intent == "stop":
             self.get_logger().info("Fast intent: stop")
             self._stop_fastpath()
+            return
+        # In decision mode the voice decision layer owns confirmation and
+        # dispatch.  Do not let the old summon fast path or the LLM tools
+        # execute the same task twice.
+        text = msg.data or ""
+        short = text.strip().strip('。！!，, ')
+        if self.decision_mode and (
+                intent == "summon" or APPROACH_PATTERN.search(text) or
+                MOVE_PATTERN.search(text) or short in CONFIRM_WORDS):
+            self.get_logger().info(
+                "Decision mode: task deferred to decision layer")
             return
         if intent == "summon":
             self.get_logger().info("Fast intent: summon")

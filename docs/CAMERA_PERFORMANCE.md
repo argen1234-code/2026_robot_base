@@ -4,7 +4,7 @@
 
 ```bash
 cd ~/2026_robot_base
-bash scripts/start_host_stack.sh --map /home/pi/maps/robot_map_20261105_054354 --motor --viz foxglove --person
+bash scripts/robot.sh start --nav localize --map /home/pi/maps/robot_map_20261105_054354 --motor --foxglove --vision both
 ```
 
 ## 本次修改
@@ -18,7 +18,7 @@ bash scripts/start_host_stack.sh --map /home/pi/maps/robot_map_20261105_054354 -
 例如恢复 2 次/秒上限：
 
 ```bash
-PERSON_MAX_FPS=2 bash scripts/start_host_stack.sh --viz foxglove --person
+PERSON_MAX_FPS=2 bash scripts/robot.sh start --foxglove --vision both
 ```
 
 ## 已完成验证及限制
@@ -41,7 +41,7 @@ PERSON_MAX_FPS=2 bash scripts/start_host_stack.sh --viz foxglove --person
 
 - 修改前备份：`/home/pi/backup/codex_camera_perf_20261105_184713/`
 - 测试数据与运行日志：`/home/pi/rosbags/codex_camera_perf_20261105_184713/`
-- 仅修改 `tools/person_detector_node.py`、`scripts/start_host_stack.sh`，新增本文档；原有尚未提交的其他修改保留。
+- 仅修改 `tools/person_detector_node.py`、`scripts/robot.sh`，新增本文档；原有尚未提交的其他修改保留。
 - 人体检测工具由启动脚本直接从源码运行，因此本阶段无需重建 host_ai_ws。
 
 回退时先停止运行中的栈，再将备份中上述两个文件恢复到工程对应路径。若此后继续修改过这些文件，应先比较差异，避免覆盖后续工作。

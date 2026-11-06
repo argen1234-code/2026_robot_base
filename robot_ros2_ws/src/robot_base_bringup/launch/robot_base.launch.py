@@ -41,10 +41,13 @@ TF 树（与 TF2 教程里的移动机器人树形图一致）：
 
 import os
 
+import yaml
+
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
-    DeclareLaunchArgument, EmitEvent, LogInfo, RegisterEventHandler)
+    DeclareLaunchArgument, EmitEvent, LogInfo, OpaqueFunction,
+    RegisterEventHandler, SetLaunchConfiguration)
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.events import matches_action
@@ -55,6 +58,25 @@ from launch_ros.events.lifecycle import ChangeState
 from launch_ros.parameter_descriptions import ParameterValue
 
 from lifecycle_msgs.msg import Transition
+
+
+def _select_slam_executable(context):
+    # The async executable always performs mapping; the YAML mode alone does
+    # not turn it into localization against a saved pose graph.
+    params_file = LaunchConfiguration('slam_params_file').perform(context)
+    with open(params_file, encoding='utf-8') as fh:
+        params = yaml.safe_load(fh)['slam_toolbox']['ros__parameters']
+    mode = params.get('mode', 'mapping')
+    executables = {
+        'mapping': 'async_slam_toolbox_node',
+        'localization': 'localization_slam_toolbox_node',
+    }
+    if mode not in executables:
+        raise RuntimeError(f'Unsupported slam_toolbox mode: {mode!r}')
+    return [
+        SetLaunchConfiguration('slam_executable', executables[mode]),
+        LogInfo(msg=f'[slam_toolbox] mode={mode}, executable={executables[mode]}'),
+    ]
 
 
 def generate_launch_description():
@@ -304,7 +326,7 @@ def generate_launch_description():
         output='screen',
     )
 
-    # 8) 2D SLAM 异步建图。
+    # 8) 2D SLAM：建图或先验地图定位，由参数 mode 选择对应程序。
     #    订阅 /scan_filtered，发布 /map 与 map->odom 的 TF。
     #
     #    ⚠️ slam_toolbox 是 LifecycleNode，不是普通节点：
@@ -316,8 +338,7 @@ def generate_launch_description():
     #       true，那会让节点一直等 /clock 而卡在未激活状态。
     slam_node = LifecycleNode(
         package='slam_toolbox',
-        # 标准异步建图，避免实验性 lifelong 节点频繁淘汰位姿图节点。
-        executable='async_slam_toolbox_node',
+        executable=LaunchConfiguration('slam_executable'),
         name='slam_toolbox',
         parameters=[
             LaunchConfiguration('slam_params_file'),
@@ -444,6 +465,8 @@ def generate_launch_description():
         odom_stabilizer_node,
         wheel_odom_node,
         ekf_node,
+        OpaqueFunction(function=_select_slam_executable,
+                       condition=IfCondition(use_slam)),
         slam_node,
         slam_configure,
         slam_activate,

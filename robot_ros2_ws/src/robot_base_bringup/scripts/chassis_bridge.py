@@ -6,17 +6,41 @@
                      /chassis/wheel_speed（Float32MultiArray，rad/s，左/右）
 """
 
+import json
 import math
 import os
+import sys
 import time
+from pathlib import Path
 
 import rclpy
 from geometry_msgs.msg import Twist
+from nav_msgs.msg import OccupancyGrid
+from rclpy.duration import Duration
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+from rclpy.time import Time
 from sensor_msgs.msg import Imu
-from std_msgs.msg import Float32MultiArray, Int8
+from std_msgs.msg import Float32MultiArray, Int8, String
 import serial
+from tf2_ros import Buffer, TransformListener
+
+# 与视觉决策层共用同一套居中/足迹安全逻辑。
+try:
+    from robot_base_decision.person_centering import FootprintGuard, centered_command
+    _HAS_CENTERING = True
+except Exception:  # noqa: BLE001 - centering is optional; raw Nav2 must still work
+    # 兼容迁移前的 tools/ 布局。
+    _TOOLS = Path(__file__).resolve().parents[4] / 'tools'
+    if _TOOLS.is_dir():
+        sys.path.insert(0, str(_TOOLS))
+    try:
+        from person_centering import FootprintGuard, centered_command
+        _HAS_CENTERING = True
+    except Exception:  # noqa: BLE001
+        FootprintGuard = centered_command = None
+        _HAS_CENTERING = False
 
 from chassis_protocol import (
     FLAG_ARMED,
@@ -99,6 +123,29 @@ class ChassisBridge(Node):
         self.last_telemetry = None
         self.telemetry_count = 0
 
+        # 找人任务的画面居中叠加：只在 /person_nav/status 表明正在靠近时生效。
+        self.centering_cfg = {}
+        self.center_enabled = False
+        if _HAS_CENTERING:
+            cfg_path = Path(__file__).resolve().parents[4] / 'config' / 'person_approach.json'
+            try:
+                self.centering_cfg = json.loads(cfg_path.read_text())
+                self.center_enabled = bool(self.centering_cfg.get('center_person', False))
+            except (OSError, ValueError) as exc:
+                self.get_logger().warn(f'Person centering config unavailable: {exc}')
+        self.person_status = {}
+        self.person_status_at = 0.0
+        self.centering_target = {}
+        self.centering_at = 0.0
+        self.local_guard = None
+        self.local_frame = None
+        self.local_grid_at = 0.0
+        self.last_centering_yaw = 0.0
+        self.last_centering_at = time.monotonic()
+        self.center_block = None
+        self.tf_buffer = Buffer(cache_time=Duration(seconds=2.0))
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+
         self.imu_pub = self.create_publisher(
             Imu, self.get_parameter('imu_topic').value, 10)
         self.wheel_pub = self.create_publisher(
@@ -119,12 +166,22 @@ class ChassisBridge(Node):
         self.create_subscription(Twist, 'cmd_vel_smoothed', self.on_command, 10)
         self.create_subscription(Twist, '/remote_cmd_vel', self.on_remote, 10)
         self.create_subscription(Int8, '/robot_mode', self.on_mode, 10)
+        self.create_subscription(String, '/person_nav/status', self.on_person_status, 1)
+        self.create_subscription(String, '/person_nav/centering_target', self.on_centering, 1)
+        self.create_subscription(
+            OccupancyGrid, '/local_costmap/costmap', self.on_local_grid,
+            QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE,
+                       durability=DurabilityPolicy.TRANSIENT_LOCAL))
         self.mode_pub = self.create_publisher(Int8, '/robot_mode', 10)
         self.mode_pub.publish(Int8(data=self.mode))
         self.create_timer(0.05, self.tick)
         if not self.enabled:
             self.get_logger().warn(
                 'Motor output disabled; telemetry stays on, set motor_enable:=true to ARM')
+        if not _HAS_CENTERING:
+            self.get_logger().warn('Person centering unavailable (person_centering import failed)')
+        elif not self.center_enabled:
+            self.get_logger().info('Person centering disabled by config')
 
     # ------------------------------------------------------------------ 输入
     def on_command(self, msg):
@@ -280,7 +337,83 @@ class ChassisBridge(Node):
             self.get_logger().error(f'MCU read failed: {exc}')
             self._close()
 
-    def _command(self):
+    # ------------------------------------------------------- 找人画面居中
+    def on_person_status(self, msg):
+        try:
+            self.person_status = json.loads(msg.data)
+            self.person_status_at = time.monotonic()
+        except (ValueError, TypeError):
+            pass
+
+    def on_centering(self, msg):
+        try:
+            self.centering_target = json.loads(msg.data)
+            self.centering_at = time.monotonic()
+        except (ValueError, TypeError):
+            self.centering_target = {}
+
+    def on_local_grid(self, msg):
+        if not _HAS_CENTERING or msg.info.resolution <= 0 or not msg.header.frame_id:
+            return
+        q = msg.info.origin.orientation
+        yaw = math.atan2(2*(q.w*q.z+q.x*q.y), 1-2*(q.y*q.y+q.z*q.z))
+        self.local_guard = FootprintGuard(
+            msg.data, msg.info.width, msg.info.height, msg.info.resolution,
+            (msg.info.origin.position.x, msg.info.origin.position.y), yaw)
+        self.local_frame = msg.header.frame_id
+        self.local_grid_at = time.monotonic()
+
+    def person_task_active(self, now):
+        status = self.person_status
+        return (self.center_enabled and now - self.person_status_at <= .75 and
+                bool(status.get('execute')) and bool(status.get('active')) and
+                not status.get('paused') and
+                status.get('state') in ('navigating', 'target_temporarily_lost'))
+
+    def centered_velocity(self, linear, angular, now):
+        target = self.centering_target
+        try:
+            age = time.time() - float(target.get('source_stamp', 0.))
+        except (TypeError, ValueError):
+            age = 0.
+        if (now - self.centering_at > .35 or not target.get('enabled') or
+                not target.get('active') or
+                not -.1 <= age <= self.centering_cfg.get('centering_max_result_age_s', .5)):
+            self.center_block = 'centering_waiting_for_target'
+            return None
+        if self.local_guard is None or now - self.local_grid_at > .45:
+            self.center_block = 'centering_waiting_for_costmap'
+            return None
+        try:
+            v, w, _ = centered_command(linear, angular, target, self.centering_cfg)
+            limit = (self.centering_cfg.get('centering_max_angular_accel', .6) *
+                     min(.1, max(.001, now - self.last_centering_at)))
+            w = min(self.last_centering_yaw + limit,
+                    max(self.last_centering_yaw - limit, w))
+            # A Nav2 zero command is never permission to turn on its own.
+            if abs(linear) < .001 and abs(angular) < .01:
+                v = w = 0.
+            tf = self.tf_buffer.lookup_transform(
+                self.local_frame, 'base_footprint', Time())
+            t, q = tf.transform.translation, tf.transform.rotation
+            yaw = math.atan2(2*(q.w*q.z+q.x*q.y), 1-2*(q.y*q.y+q.z*q.z))
+            if not self.local_guard.clear(
+                    (t.x, t.y, yaw), v, w,
+                    front=self.centering_cfg.get('robot_front_m', .246),
+                    half_width=self.centering_cfg.get('robot_half_width_m', .118),
+                    horizon=self.centering_cfg.get('centering_horizon_s', 1.2)):
+                self.center_block = 'centering_path_blocked'
+                return None
+            self.last_centering_yaw, self.last_centering_at = w, now
+            self.center_block = None
+            return v, w
+        except (KeyError, TypeError, ValueError):
+            self.center_block = 'centering_waiting_for_target'
+        except Exception:
+            self.center_block = 'centering_waiting_for_tf'
+        return None
+
+    def _nav_command(self):
         """返回 ROS 约定下的 (linear_x, angular_z)；失效时归零。"""
         if not self.enabled:
             return 0.0, 0.0
@@ -291,6 +424,22 @@ class ChassisBridge(Node):
         fresh = (self.last_command is not None and
                  time.monotonic() - self.last_command < self.timeout)
         return self.command if fresh else (0.0, 0.0)
+
+    def _command(self):
+        linear, angular = self._nav_command()
+        now = time.monotonic()
+        if not self.person_task_active(now):
+            self.last_centering_yaw = 0.0
+            self.last_centering_at = now
+            self.center_block = None
+            return linear, angular
+        centered = self.centered_velocity(linear, angular, now)
+        if centered is None:
+            self.get_logger().warn(
+                f'Person centering blocked: {self.center_block}',
+                throttle_duration_sec=2.0)
+            return 0.0, 0.0
+        return centered
 
     def tick(self):
         if self.device is None:

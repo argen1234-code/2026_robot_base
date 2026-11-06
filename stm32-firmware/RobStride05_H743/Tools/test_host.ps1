@@ -2,7 +2,7 @@ $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
 Push-Location $root
 try {
- & gcc -std=c99 -Wall -Wextra -Werror Tools/test_dual_motor.c Devices/robstride05.c Devices/jy901s.c App/app_chassis.c App/app_pid.c App/app_bluetooth.c -ITools/mocks -IApp -IDevices -IBSP -lm -o Tools/test_dual_motor.exe
+ & gcc -std=c99 -Wall -Wextra -Werror Tools/test_dual_motor.c Devices/robstride05.c Devices/jy901s.c App/app_chassis.c App/app_pid.c App/app_bluetooth.c App/app_usb.c -ITools/mocks -IApp -IDevices -IBSP -lm -o Tools/test_dual_motor.exe
  if($LASTEXITCODE -ne 0){throw 'Dual motor host compilation failed'}
  & ./Tools/test_dual_motor.exe
  if($LASTEXITCODE -ne 0){throw 'Dual motor host checks failed'}

@@ -40,7 +40,7 @@ Windows 与树莓派时钟相差约 **985 ms**；通过持久 SSH 连接测得�
 ## 原启动命令
 
 ```bash
-cd ~/2026_robot_base && bash scripts/start_host_stack.sh --map /home/pi/maps/robot_map_20261105_054354 --motor --viz foxglove --person
+cd ~/2026_robot_base && bash scripts/robot.sh start --nav localize --map /home/pi/maps/robot_map_20261105_054354 --motor --foxglove --vision both
 ```
 
 当前任务已由 SSH 后台恢复运行，不要重复启动。当前主进程 PID 为 216834（仅对本次运行有效）；停止可发送 TERM 给该主进程，原脚本会清理各任务并 DISARM。
@@ -48,7 +48,7 @@ cd ~/2026_robot_base && bash scripts/start_host_stack.sh --map /home/pi/maps/rob
 仅降低电脑预览时可设置环境变量，例如：
 
 ```bash
-FOXGLOVE_PREVIEW_WIDTH=160 FOXGLOVE_PREVIEW_FPS=2 FOXGLOVE_PREVIEW_QUALITY=30 bash scripts/start_host_stack.sh --map /home/pi/maps/robot_map_20261105_054354 --motor --viz foxglove --person
+FOXGLOVE_PREVIEW_WIDTH=160 FOXGLOVE_PREVIEW_FPS=2 FOXGLOVE_PREVIEW_QUALITY=30 bash scripts/robot.sh start --nav localize --map /home/pi/maps/robot_map_20261105_054354 --motor --foxglove --vision both
 ```
 
 上述变量只影响查看副本。相机硬件 320×240 模式仅报告 30 Hz 配置；没有通过改硬件帧率来减少查看流量。
