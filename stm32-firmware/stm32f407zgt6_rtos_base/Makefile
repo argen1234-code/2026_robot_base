@@ -74,6 +74,21 @@ Middlewares/Third_Party/FreeRTOS/Source/timers.c \
 Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c \
 Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c \
 Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c \
+Bsp/bsp_can.c \
+Bsp/bsp_dm6215.c \
+Algorithm/pid.c \
+App/app_chassis_board.c \
+App/app_motor_config.c \
+App/app_telemetry.c \
+App/app_usb_bridge.c \
+USB_DEVICE/App/usb_device.c \
+USB_DEVICE/App/usbd_desc.c \
+USB_DEVICE/App/usbd_cdc_if.c \
+USB_DEVICE/Target/usbd_conf.c \
+Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c \
+Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c \
+Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c \
+Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c \
 Core/Src/sysmem.c \
 Core/Src/syscalls.c
 
@@ -151,7 +166,14 @@ C_INCLUDES =  \
 -IMiddlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 \
 -IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F \
 -IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
--IDrivers/CMSIS/Include
+-IDrivers/CMSIS/Include \
+-IBsp \
+-IAlgorithm \
+-IApp \
+-IUSB_DEVICE/App \
+-IUSB_DEVICE/Target \
+-IMiddlewares/ST/STM32_USB_Device_Library/Core/Inc \
+-IMiddlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
 
 
 # compile gcc flags
